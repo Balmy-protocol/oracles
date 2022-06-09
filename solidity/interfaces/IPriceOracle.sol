@@ -6,6 +6,9 @@ pragma solidity >=0.5.0;
  * @notice These methods allow users to add support for pairs, and then ask for quotes
  */
 interface IPriceOracle {
+  /// @notice Thrown when trying to execute an action with an unsupported pair
+  error PairNotSupported(address tokenA, address tokenB);
+
   /**
    * @notice Returns whether this oracle can support the given pair of tokens
    * @dev tokenA and tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order
@@ -35,7 +38,8 @@ interface IPriceOracle {
    * @param tokenA One of the pair's tokens
    * @param tokenB The other of the pair's tokens
    */
-  // function addOrModifySupportForPair(address tokenA, address tokenB) external;
+  function addOrModifySupportForPair(address tokenA, address tokenB) external;
+
   /**
    * @notice Adds support for a given pair if the oracle didn't support it already. If called for a pair that is already supported,
    *         then nothing will happen. This function will let the oracle take some actions to configure the pair, in preparation

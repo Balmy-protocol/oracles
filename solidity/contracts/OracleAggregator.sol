@@ -11,6 +11,7 @@ contract OracleAggregator is AccessControl, IOracleAggregator {
 
   // A list of available oracles. Oracles first on the array will take precedence over those that come later
   IPriceOracle[] internal _availableOracles;
+  mapping(bytes32 => IPriceOracle) internal _assignedOracle; // key(tokenA, tokenB) => oracle
 
   constructor(
     IPriceOracle[] memory _initialOracles,
@@ -43,6 +44,17 @@ contract OracleAggregator is AccessControl, IOracleAggregator {
     return false;
   }
 
+  /// @inheritdoc IPriceOracle
+  function addOrModifySupportForPair(address _tokenA, address _tokenB) external {
+    // TODO: Implement
+  }
+
+  /// @inheritdoc IOracleAggregator
+  function assignedOracle(address _tokenA, address _tokenB) external view returns (IPriceOracle) {
+    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
+    return _assignedOracle[_keyForPair(__tokenA, __tokenB)];
+  }
+
   /// @inheritdoc IOracleAggregator
   function availableOracles() external view returns (IPriceOracle[] memory) {
     return _availableOracles;
@@ -71,5 +83,29 @@ contract OracleAggregator is AccessControl, IOracleAggregator {
     }
 
     emit OracleListUpdated(_oracles);
+  }
+
+  /**
+   * @notice Checks all oracles again and re-assigns the first that supports the given pair.
+   *         It will also reconfigure the assigned oracle
+   * @dev We expect tokens to be sorted (tokenA < tokenB)
+   */
+  function _addOrModifySupportForPair(address _tokenA, address _tokenB) internal virtual {
+    uint256 _length = _availableOracles.length;
+    for (uint256 i; i < _length; i++) {
+      IPriceOracle _oracle = _availableOracles[i];
+      if (_oracle.canSupportPair(_tokenA, _tokenB)) {
+        _oracle.addOrModifySupportForPair(_tokenA, _tokenB);
+        _assignedOracle[_keyForPair(_tokenA, _tokenB)] = _oracle;
+        emit OracleAssigned(_tokenA, _tokenB, _oracle);
+        return;
+      }
+    }
+    revert PairNotSupported(_tokenA, _tokenB);
+  }
+
+  /// @dev We expect tokens to be sorted (tokenA < tokenB)
+  function _keyForPair(address _tokenA, address _tokenB) internal pure returns (bytes32) {
+    return keccak256(abi.encodePacked(_tokenA, _tokenB));
   }
 }
