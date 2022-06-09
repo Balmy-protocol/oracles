@@ -13,7 +13,7 @@ contract OracleAggregator is AccessControl, IOracleAggregator {
   IPriceOracle[] internal _availableOracles;
 
   constructor(
-    // IPriceOracle[] memory _initialOracles,
+    IPriceOracle[] memory _initialOracles,
     address _superAdmin,
     address[] memory _initialAdmins
   ) {
@@ -23,10 +23,42 @@ contract OracleAggregator is AccessControl, IOracleAggregator {
     for (uint256 i; i < _initialAdmins.length; i++) {
       _setupRole(ADMIN_ROLE, _initialAdmins[i]);
     }
+
+    if (_initialOracles.length > 0) {
+      for (uint256 i; i < _initialOracles.length; i++) {
+        _availableOracles.push(_initialOracles[i]);
+      }
+      emit OracleListUpdated(_initialOracles);
+    }
   }
 
   /// @inheritdoc IOracleAggregator
   function availableOracles() external view returns (IPriceOracle[] memory) {
     return _availableOracles;
+  }
+
+  /// @inheritdoc IOracleAggregator
+  function setAvailableOracles(IPriceOracle[] calldata _oracles) external onlyRole(ADMIN_ROLE) {
+    uint256 _currentAvailableOracles = _availableOracles.length;
+    uint256 _min = _currentAvailableOracles < _oracles.length ? _currentAvailableOracles : _oracles.length;
+
+    uint256 i;
+    for (; i < _min; i++) {
+      // Rewrite storage
+      _availableOracles[i] = _oracles[i];
+    }
+    if (_currentAvailableOracles < _oracles.length) {
+      // If have more oracles than before, then push
+      for (; i < _oracles.length; i++) {
+        _availableOracles.push(_oracles[i]);
+      }
+    } else if (_currentAvailableOracles > _oracles.length) {
+      // If have less oracles than before, then remove extra oracles
+      for (; i < _currentAvailableOracles; i++) {
+        _availableOracles.pop();
+      }
+    }
+
+    emit OracleListUpdated(_oracles);
   }
 }

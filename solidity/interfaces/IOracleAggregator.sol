@@ -12,8 +12,21 @@ interface IOracleAggregator is IPriceOracle {
   error ZeroAddress();
 
   /**
+   * @notice Emitted when the list of oracles is updated
+   * @param oracles The new list of oracles
+   */
+  event OracleListUpdated(IPriceOracle[] oracles);
+
+  /**
    * @notice Returns whether this oracle can support the given pair of tokens
    * @return Whether the given pair of tokens can be supported by the oracle
    */
   function availableOracles() external view returns (IPriceOracle[] memory);
+
+  /**
+   * @notice Sets a new list of oracles to be used by the aggregator
+   * @dev Can only be called by users with the admin role
+   * @param oracles The new list of oracles to set
+   */
+  function setAvailableOracles(IPriceOracle[] calldata oracles) external;
 }
