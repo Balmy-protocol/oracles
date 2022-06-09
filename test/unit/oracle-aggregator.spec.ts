@@ -8,11 +8,10 @@ import { OracleAggregator, OracleAggregator__factory } from '@typechained';
 import { snapshot } from '@utils/evm';
 
 describe('OracleAggregator', () => {
-
   let superAdmin: SignerWithAddress, admin: SignerWithAddress;
   let oracleAggregatorFactory: OracleAggregator__factory;
   let oracleAggregator: OracleAggregator;
-  let superAdminRole: string, adminRole: string
+  let superAdminRole: string, adminRole: string;
   let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
@@ -49,7 +48,7 @@ describe('OracleAggregator', () => {
       });
       then('super admin role is set as admin role', async () => {
         const admin = await oracleAggregator.getRoleAdmin(adminRole);
-        expect(admin).to.equal(superAdminRole)
+        expect(admin).to.equal(superAdminRole);
       });
     });
   });

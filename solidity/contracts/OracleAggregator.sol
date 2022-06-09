@@ -6,7 +6,6 @@ import '@mean-finance/dca-v2-core/contracts/libraries/TokenSorting.sol';
 import '../interfaces/IOracleAggregator.sol';
 
 contract OracleAggregator is AccessControl, IOracleAggregator {
-
   bytes32 public constant SUPER_ADMIN_ROLE = keccak256('SUPER_ADMIN_ROLE');
   bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
 
@@ -21,7 +20,7 @@ contract OracleAggregator is AccessControl, IOracleAggregator {
     if (_superAdmin == address(0)) revert ZeroAddress();
     _setupRole(SUPER_ADMIN_ROLE, _superAdmin);
     _setRoleAdmin(ADMIN_ROLE, SUPER_ADMIN_ROLE);
-    for (uint i; i < _initialAdmins.length; i++) {
+    for (uint256 i; i < _initialAdmins.length; i++) {
       _setupRole(ADMIN_ROLE, _initialAdmins[i]);
     }
   }
@@ -30,6 +29,4 @@ contract OracleAggregator is AccessControl, IOracleAggregator {
   function availableOracles() external view returns (IPriceOracle[] memory) {
     return _availableOracles;
   }
-
 }
-
