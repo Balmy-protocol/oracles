@@ -97,7 +97,7 @@ describe('OracleAggregator', () => {
         expect(await oracleAggregator.canSupportPair(TOKEN_A, TOKEN_B)).to.be.true;
       });
     });
-    when('both oracle support a pair', () => {
+    when('both oracles support a pair', () => {
       given(() => {
         oracle1.canSupportPair.returns(true);
         oracle2.canSupportPair.returns(true);
@@ -111,7 +111,7 @@ describe('OracleAggregator', () => {
   describe('assignedOracle', () => {
     given(async () => {
       oracle1.canSupportPair.returns(true);
-      await oracleAggregator.addOrModifySupportForPair(TOKEN_B, TOKEN_A);
+      await oracleAggregator.internalAddOrModifySupportForPair(TOKEN_A, TOKEN_B);
     });
     when(`pair's addreses are inverted`, () => {
       then(`oracle is still returned`, async () => {
