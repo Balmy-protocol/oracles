@@ -13,7 +13,8 @@ interface IPriceOracle {
    * @param tokenB The other of the pair's tokens
    * @return Whether the given pair of tokens can be supported by the oracle
    */
-  // function canSupportPair(address tokenA, address tokenB) external view returns (bool);
+  function canSupportPair(address tokenA, address tokenB) external view returns (bool);
+
   /**
    * @notice Returns a quote, based on the given tokens and amount
    * @param tokenIn The token that will be provided

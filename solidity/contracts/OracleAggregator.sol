@@ -32,6 +32,17 @@ contract OracleAggregator is AccessControl, IOracleAggregator {
     }
   }
 
+  /// @inheritdoc IPriceOracle
+  function canSupportPair(address _tokenA, address _tokenB) external view returns (bool) {
+    uint256 _length = _availableOracles.length;
+    for (uint256 i; i < _length; i++) {
+      if (_availableOracles[i].canSupportPair(_tokenA, _tokenB)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /// @inheritdoc IOracleAggregator
   function availableOracles() external view returns (IPriceOracle[] memory) {
     return _availableOracles;

@@ -4,18 +4,20 @@ import { constants } from 'ethers';
 import { behaviours } from '@utils';
 import { given, then, when } from '@utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-import { OracleAggregator, OracleAggregator__factory, IOracleAggregator } from '@typechained';
+import { OracleAggregator, OracleAggregator__factory, IPriceOracle } from '@typechained';
 import { snapshot } from '@utils/evm';
 import { smock, FakeContract } from '@defi-wonderland/smock';
 import { shouldBeExecutableOnlyByRole } from '@utils/behaviours';
 import { TransactionResponse } from 'ethers/node_modules/@ethersproject/providers';
 
 describe('OracleAggregator', () => {
+  const TOKEN_A = '0x0000000000000000000000000000000000000001';
+  const TOKEN_B = '0x0000000000000000000000000000000000000002';
   let superAdmin: SignerWithAddress, admin: SignerWithAddress;
   let oracleAggregatorFactory: OracleAggregator__factory;
   let oracleAggregator: OracleAggregator;
   let superAdminRole: string, adminRole: string;
-  let oracle1: FakeContract<IOracleAggregator>, oracle2: FakeContract<IOracleAggregator>; // TODO: Replace with <IPriceOracle>
+  let oracle1: FakeContract<IPriceOracle>, oracle2: FakeContract<IPriceOracle>;
   let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
@@ -59,6 +61,45 @@ describe('OracleAggregator', () => {
       then('oracles are set correctly', async () => {
         const availableOracles = await oracleAggregator.availableOracles();
         expect(availableOracles).to.eql([oracle1.address, oracle2.address]);
+      });
+    });
+  });
+
+  describe('canSupportPair', () => {
+    when('neither oracle supports a pair', () => {
+      given(() => {
+        oracle1.canSupportPair.returns(false);
+        oracle2.canSupportPair.returns(false);
+      });
+      then('pair is not supported', async () => {
+        expect(await oracleAggregator.canSupportPair(TOKEN_A, TOKEN_B)).to.be.false;
+      });
+    });
+    when('oracle1 supports a pair but oracle 2 does not', () => {
+      given(() => {
+        oracle1.canSupportPair.returns(true);
+        oracle2.canSupportPair.returns(false);
+      });
+      then('pair is supported', async () => {
+        expect(await oracleAggregator.canSupportPair(TOKEN_A, TOKEN_B)).to.be.true;
+      });
+    });
+    when('oracle2 supports a pair but oracle 1 does not', () => {
+      given(() => {
+        oracle1.canSupportPair.returns(false);
+        oracle2.canSupportPair.returns(true);
+      });
+      then('pair is supported', async () => {
+        expect(await oracleAggregator.canSupportPair(TOKEN_A, TOKEN_B)).to.be.true;
+      });
+    });
+    when('both oracle support a pair', () => {
+      given(() => {
+        oracle1.canSupportPair.returns(true);
+        oracle2.canSupportPair.returns(true);
+      });
+      then('pair is supported', async () => {
+        expect(await oracleAggregator.canSupportPair(TOKEN_A, TOKEN_B)).to.be.true;
       });
     });
   });

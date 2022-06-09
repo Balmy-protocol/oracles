@@ -6,7 +6,7 @@ on:
       - main
   pull_request:
 
-jobs:
+# jobs:
   # analyze:
   #   runs-on: ubuntu-latest
   #   permissions:
