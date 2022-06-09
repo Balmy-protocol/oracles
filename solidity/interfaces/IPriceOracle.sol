@@ -34,11 +34,12 @@ interface IPriceOracle {
    * @param tokenOut The token we would like to quote
    * @return amountOut How much `tokenOut` will be returned in exchange for `amountIn` amount of `tokenIn`
    */
-  // function quote(
-  //   address tokenIn,
-  //   uint256 amountIn,
-  //   address tokenOut
-  // ) external view returns (uint256 amountOut);
+  function quote(
+    address tokenIn,
+    uint256 amountIn,
+    address tokenOut
+  ) external view returns (uint256 amountOut);
+
   /**
    * @notice Add or reconfigures the support for a given pair. This function will let the oracle take some actions
    *         to configure the pair, in preparation for future quotes. Can be called many times in order to let the oracle

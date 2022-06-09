@@ -5,6 +5,8 @@ import '@openzeppelin/contracts/access/AccessControl.sol';
 import '@mean-finance/dca-v2-core/contracts/libraries/TokenSorting.sol';
 import '../interfaces/IOracleAggregator.sol';
 
+import 'hardhat/console.sol';
+
 contract OracleAggregator is AccessControl, IOracleAggregator {
   bytes32 public constant SUPER_ADMIN_ROLE = keccak256('SUPER_ADMIN_ROLE');
   bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
@@ -49,6 +51,17 @@ contract OracleAggregator is AccessControl, IOracleAggregator {
     IPriceOracle _oracle = assignedOracle(_tokenA, _tokenB).oracle;
     // We check if the oracle still supports the pair, since it might have lost support
     return address(_oracle) != address(0) && _oracle.isPairAlreadySupported(_tokenA, _tokenA);
+  }
+
+  /// @inheritdoc IPriceOracle
+  function quote(
+    address _tokenIn,
+    uint256 _amountIn,
+    address _tokenOut
+  ) external view returns (uint256 _amountOut) {
+    IPriceOracle _oracle = assignedOracle(_tokenIn, _tokenOut).oracle;
+    if (address(_oracle) == address(0)) revert PairNotSupported(_tokenIn, _tokenOut);
+    return _oracle.quote(_tokenIn, _amountIn, _tokenOut);
   }
 
   /// @inheritdoc IPriceOracle

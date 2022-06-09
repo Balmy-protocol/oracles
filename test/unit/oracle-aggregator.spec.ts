@@ -1,6 +1,6 @@
 import chai, { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { constants } from 'ethers';
+import { BigNumber, constants } from 'ethers';
 import { behaviours } from '@utils';
 import { given, then, when } from '@utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
@@ -130,6 +130,34 @@ describe('OracleAggregator', () => {
       });
       then('pair is not already supported', async () => {
         expect(await oracleAggregator.isPairAlreadySupported(TOKEN_A, TOKEN_B)).to.be.false;
+      });
+    });
+  });
+
+  describe('quote', () => {
+    when('no oracle is being used for the pair', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: oracleAggregator,
+          func: 'quote',
+          args: [TOKEN_A, 1000, TOKEN_B],
+          message: `PairNotSupported`,
+        });
+      });
+    });
+    when('oracle is being used for pair', () => {
+      const RESULT = BigNumber.from(5);
+      let amountOut: BigNumber;
+      given(async () => {
+        await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, false);
+        oracle1.quote.returns(RESULT);
+        amountOut = await oracleAggregator.quote(TOKEN_A, 1000, TOKEN_B);
+      });
+      then('oracle was called', async () => {
+        expect(oracle1.quote).to.have.been.calledWith(TOKEN_A, 1000, TOKEN_B);
+      });
+      then('result is what the oracle returned', () => {
+        expect(amountOut).to.equal(RESULT);
       });
     });
   });
