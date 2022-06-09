@@ -45,6 +45,13 @@ contract OracleAggregator is AccessControl, IOracleAggregator {
   }
 
   /// @inheritdoc IPriceOracle
+  function isPairAlreadySupported(address _tokenA, address _tokenB) public view returns (bool) {
+    IPriceOracle _oracle = assignedOracle(_tokenA, _tokenB).oracle;
+    // We check if the oracle still supports the pair, since it might have lost support
+    return address(_oracle) != address(0) && _oracle.isPairAlreadySupported(_tokenA, _tokenA);
+  }
+
+  /// @inheritdoc IPriceOracle
   function addOrModifySupportForPair(address _tokenA, address _tokenB) external {
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     /* 
@@ -61,15 +68,14 @@ contract OracleAggregator is AccessControl, IOracleAggregator {
 
   /// @inheritdoc IPriceOracle
   function addSupportForPairIfNeeded(address _tokenA, address _tokenB) external {
-    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
-    IPriceOracle _assigned = _assignedOracleForPair(__tokenA, __tokenB).oracle;
-    if (address(_assigned) == address(0)) {
+    if (!isPairAlreadySupported(_tokenA, _tokenB)) {
+      (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
       _addOrModifySupportForPair(__tokenA, __tokenB);
     }
   }
 
   /// @inheritdoc IOracleAggregator
-  function assignedOracle(address _tokenA, address _tokenB) external view returns (OracleAssignment memory) {
+  function assignedOracle(address _tokenA, address _tokenB) public view returns (OracleAssignment memory) {
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     return _assignedOracleForPair(__tokenA, __tokenB);
   }

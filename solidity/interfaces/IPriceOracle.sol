@@ -19,6 +19,15 @@ interface IPriceOracle {
   function canSupportPair(address tokenA, address tokenB) external view returns (bool);
 
   /**
+   * @notice Returns whether this oracle is already supporting the given pair of tokens
+   * @dev tokenA and tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order
+   * @param tokenA One of the pair's tokens
+   * @param tokenB The other of the pair's tokens
+   * @return Whether the given pair of tokens is already being supported by the oracle
+   */
+  function isPairAlreadySupported(address tokenA, address tokenB) external view returns (bool);
+
+  /**
    * @notice Returns a quote, based on the given tokens and amount
    * @param tokenIn The token that will be provided
    * @param amountIn The amount that will be provided

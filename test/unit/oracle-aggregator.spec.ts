@@ -108,6 +108,32 @@ describe('OracleAggregator', () => {
     });
   });
 
+  describe('isPairAlreadySupported', () => {
+    when('no oracle has been assigned', () => {
+      then('pair is not already supported', async () => {
+        expect(await oracleAggregator.isPairAlreadySupported(TOKEN_A, TOKEN_B)).to.be.false;
+      });
+    });
+    when('oracle has been assigned and it still supports the pair', () => {
+      given(async () => {
+        oracle1.isPairAlreadySupported.returns(true);
+        await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, false);
+      });
+      then('pair is already supported', async () => {
+        expect(await oracleAggregator.isPairAlreadySupported(TOKEN_A, TOKEN_B)).to.be.true;
+      });
+    });
+    when('oracle has been assigned but it does not support the pair', () => {
+      given(async () => {
+        oracle1.isPairAlreadySupported.returns(false);
+        await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, false);
+      });
+      then('pair is not already supported', async () => {
+        expect(await oracleAggregator.isPairAlreadySupported(TOKEN_A, TOKEN_B)).to.be.false;
+      });
+    });
+  });
+
   describe('addOrModifySupportForPair', () => {
     when(`pair's addreses are inverted`, () => {
       given(async () => {
@@ -171,13 +197,24 @@ describe('OracleAggregator', () => {
         expect(await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B)).to.be.true;
       });
     });
-    when('pair already has an assigned oracle', () => {
+    when('pair already has an assigned oracle and it still supports the pair', () => {
       given(async () => {
+        oracle1.isPairAlreadySupported.returns(true);
         await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, true);
         await oracleAggregator.addSupportForPairIfNeeded(TOKEN_A, TOKEN_B);
       });
       then('internal add is not called', async () => {
         expect(await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B)).to.be.false;
+      });
+    });
+    when('pair already has an assigned oracle but it does not support the pair anymore', () => {
+      given(async () => {
+        oracle1.isPairAlreadySupported.returns(false);
+        await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, true);
+        await oracleAggregator.addSupportForPairIfNeeded(TOKEN_A, TOKEN_B);
+      });
+      then('internal add support is called', async () => {
+        expect(await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B)).to.be.true;
       });
     });
   });
