@@ -53,8 +53,17 @@ contract OracleAggregator is AccessControl, IOracleAggregator {
         - The current oracle hasn't been forced by an admin
         - The caller is an admin
     */
-    bool _shouldModify = !_assignedOracle[_keyForPair(__tokenA, __tokenB)].forced || hasRole(ADMIN_ROLE, msg.sender);
+    bool _shouldModify = !_assignedOracleForPair(__tokenA, __tokenB).forced || hasRole(ADMIN_ROLE, msg.sender);
     if (_shouldModify) {
+      _addOrModifySupportForPair(__tokenA, __tokenB);
+    }
+  }
+
+  /// @inheritdoc IPriceOracle
+  function addSupportForPairIfNeeded(address _tokenA, address _tokenB) external {
+    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
+    IPriceOracle _assigned = _assignedOracleForPair(__tokenA, __tokenB).oracle;
+    if (address(_assigned) == address(0)) {
       _addOrModifySupportForPair(__tokenA, __tokenB);
     }
   }
@@ -62,7 +71,7 @@ contract OracleAggregator is AccessControl, IOracleAggregator {
   /// @inheritdoc IOracleAggregator
   function assignedOracle(address _tokenA, address _tokenB) external view returns (OracleAssignment memory) {
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
-    return _assignedOracle[_keyForPair(__tokenA, __tokenB)];
+    return _assignedOracleForPair(__tokenA, __tokenB);
   }
 
   /// @inheritdoc IOracleAggregator
@@ -132,6 +141,11 @@ contract OracleAggregator is AccessControl, IOracleAggregator {
   ) internal {
     _assignedOracle[_keyForPair(_tokenA, _tokenB)] = OracleAssignment({oracle: _oracle, forced: _forced});
     emit OracleAssigned(_tokenA, _tokenB, _oracle);
+  }
+
+  /// @dev We expect tokens to be sorted (tokenA < tokenB)
+  function _assignedOracleForPair(address _tokenA, address _tokenB) internal view returns (OracleAssignment memory) {
+    return _assignedOracle[_keyForPair(_tokenA, _tokenB)];
   }
 
   /// @dev We expect tokens to be sorted (tokenA < tokenB)

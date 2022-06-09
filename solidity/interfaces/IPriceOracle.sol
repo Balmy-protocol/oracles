@@ -48,5 +48,5 @@ interface IPriceOracle {
    * @param tokenA One of the pair's tokens
    * @param tokenB The other of the pair's tokens
    */
-  // function addSupportForPairIfNeeded(address tokenA, address tokenB) external;
+  function addSupportForPairIfNeeded(address tokenA, address tokenB) external;
 }

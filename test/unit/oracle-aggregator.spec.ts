@@ -154,6 +154,34 @@ describe('OracleAggregator', () => {
     });
   });
 
+  describe('addSupportForPairIfNeeded', () => {
+    when(`pair's addreses are inverted`, () => {
+      given(async () => {
+        await oracleAggregator.addSupportForPairIfNeeded(TOKEN_B, TOKEN_A);
+      });
+      then(`correct order is sent to internal add support`, async () => {
+        expect(await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B)).to.be.true;
+      });
+    });
+    when('pair does not have an assigned oracle', () => {
+      given(async () => {
+        await oracleAggregator.addSupportForPairIfNeeded(TOKEN_A, TOKEN_B);
+      });
+      then('internal add support is called', async () => {
+        expect(await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B)).to.be.true;
+      });
+    });
+    when('pair already has an assigned oracle', () => {
+      given(async () => {
+        await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, true);
+        await oracleAggregator.addSupportForPairIfNeeded(TOKEN_A, TOKEN_B);
+      });
+      then('internal add is not called', async () => {
+        expect(await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B)).to.be.false;
+      });
+    });
+  });
+
   describe('assignedOracle', () => {
     given(async () => {
       oracle1.canSupportPair.returns(true);
