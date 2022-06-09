@@ -111,19 +111,57 @@ describe('OracleAggregator', () => {
   describe('assignedOracle', () => {
     given(async () => {
       oracle1.canSupportPair.returns(true);
-      await oracleAggregator.internalAddOrModifySupportForPair(TOKEN_A, TOKEN_B);
+      await oracleAggregator.connect(admin).forceOracle(TOKEN_A, TOKEN_B, oracle1.address);
     });
     when(`pair's addreses are inverted`, () => {
       then(`oracle is still returned`, async () => {
-        const oracle = await oracleAggregator.assignedOracle(TOKEN_B, TOKEN_A);
+        const { oracle } = await oracleAggregator.assignedOracle(TOKEN_B, TOKEN_A);
         expect(oracle).to.equal(oracle1.address);
       });
     });
     when('addresses are sent sorted', () => {
       then(`oracle is still returned`, async () => {
-        const oracle = await oracleAggregator.assignedOracle(TOKEN_A, TOKEN_B);
+        const { oracle } = await oracleAggregator.assignedOracle(TOKEN_A, TOKEN_B);
         expect(oracle).to.equal(oracle1.address);
       });
+    });
+  });
+
+  describe('forceOracle', () => {
+    when(`oracle is forced and pair's addreses are inverted`, () => {
+      let tx: TransactionResponse;
+      given(async () => {
+        tx = await oracleAggregator.connect(admin).forceOracle(TOKEN_B, TOKEN_A, oracle1.address);
+      });
+      then(`oracle is assigned correctly`, async () => {
+        const { oracle, forced } = await oracleAggregator.assignedOracle(TOKEN_A, TOKEN_B);
+        expect(oracle).to.equal(oracle1.address);
+        expect(forced).to.be.true;
+      });
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(oracleAggregator, 'OracleAssigned').withArgs(TOKEN_A, TOKEN_B, oracle1.address);
+      });
+    });
+    when('oracle is forced', () => {
+      let tx: TransactionResponse;
+      given(async () => {
+        tx = await oracleAggregator.connect(admin).forceOracle(TOKEN_A, TOKEN_B, oracle2.address);
+      });
+      then(`oracle is assigned correctly`, async () => {
+        const { oracle, forced } = await oracleAggregator.assignedOracle(TOKEN_A, TOKEN_B);
+        expect(oracle).to.equal(oracle2.address);
+        expect(forced).to.be.true;
+      });
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(oracleAggregator, 'OracleAssigned').withArgs(TOKEN_A, TOKEN_B, oracle2.address);
+      });
+    });
+    shouldBeExecutableOnlyByRole({
+      contract: () => oracleAggregator,
+      funcAndSignature: 'forceOracle',
+      params: [TOKEN_A, TOKEN_B, TOKEN_A],
+      addressWithRole: () => admin,
+      role: () => adminRole,
     });
   });
 
@@ -141,7 +179,9 @@ describe('OracleAggregator', () => {
         expect(oracle2.addOrModifySupportForPair).to.not.have.been.called;
       });
       then('now oracle 1 will be used', async () => {
-        expect(await oracleAggregator.assignedOracle(TOKEN_A, TOKEN_B)).to.equal(oracle1.address);
+        const { oracle, forced } = await oracleAggregator.assignedOracle(TOKEN_A, TOKEN_B);
+        expect(oracle).to.equal(oracle1.address);
+        expect(forced).to.be.false;
       });
       then('event is emitted', async () => {
         await expect(tx).to.emit(oracleAggregator, 'OracleAssigned').withArgs(TOKEN_A, TOKEN_B, oracle1.address);
@@ -161,7 +201,9 @@ describe('OracleAggregator', () => {
         expect(oracle1.addOrModifySupportForPair).to.not.have.been.called;
       });
       then('now oracle 2 will be used', async () => {
-        expect(await oracleAggregator.assignedOracle(TOKEN_A, TOKEN_B)).to.equal(oracle2.address);
+        const { oracle, forced } = await oracleAggregator.assignedOracle(TOKEN_A, TOKEN_B);
+        expect(oracle).to.equal(oracle2.address);
+        expect(forced).to.be.false;
       });
       then('event is emitted', async () => {
         await expect(tx).to.emit(oracleAggregator, 'OracleAssigned').withArgs(TOKEN_A, TOKEN_B, oracle2.address);

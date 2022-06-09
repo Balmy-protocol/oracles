@@ -11,7 +11,7 @@ contract OracleAggregator is AccessControl, IOracleAggregator {
 
   // A list of available oracles. Oracles first on the array will take precedence over those that come later
   IPriceOracle[] internal _availableOracles;
-  mapping(bytes32 => IPriceOracle) internal _assignedOracle; // key(tokenA, tokenB) => oracle
+  mapping(bytes32 => OracleAssignment) internal _assignedOracle; // key(tokenA, tokenB) => oracle
 
   constructor(
     IPriceOracle[] memory _initialOracles,
@@ -50,7 +50,7 @@ contract OracleAggregator is AccessControl, IOracleAggregator {
   }
 
   /// @inheritdoc IOracleAggregator
-  function assignedOracle(address _tokenA, address _tokenB) external view returns (IPriceOracle) {
+  function assignedOracle(address _tokenA, address _tokenB) external view returns (OracleAssignment memory) {
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     return _assignedOracle[_keyForPair(__tokenA, __tokenB)];
   }
@@ -58,6 +58,16 @@ contract OracleAggregator is AccessControl, IOracleAggregator {
   /// @inheritdoc IOracleAggregator
   function availableOracles() external view returns (IPriceOracle[] memory) {
     return _availableOracles;
+  }
+
+  /// @inheritdoc IOracleAggregator
+  function forceOracle(
+    address _tokenA,
+    address _tokenB,
+    IPriceOracle _oracle
+  ) external onlyRole(ADMIN_ROLE) {
+    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
+    _setOracle(__tokenA, __tokenB, _oracle, true);
   }
 
   /// @inheritdoc IOracleAggregator
@@ -96,12 +106,22 @@ contract OracleAggregator is AccessControl, IOracleAggregator {
       IPriceOracle _oracle = _availableOracles[i];
       if (_oracle.canSupportPair(_tokenA, _tokenB)) {
         _oracle.addOrModifySupportForPair(_tokenA, _tokenB);
-        _assignedOracle[_keyForPair(_tokenA, _tokenB)] = _oracle;
-        emit OracleAssigned(_tokenA, _tokenB, _oracle);
+        _setOracle(_tokenA, _tokenB, _oracle, false);
         return;
       }
     }
     revert PairNotSupported(_tokenA, _tokenB);
+  }
+
+  /// @dev We expect tokens to be sorted (tokenA < tokenB)
+  function _setOracle(
+    address _tokenA,
+    address _tokenB,
+    IPriceOracle _oracle,
+    bool _forced
+  ) internal {
+    _assignedOracle[_keyForPair(_tokenA, _tokenB)] = OracleAssignment({oracle: _oracle, forced: _forced});
+    emit OracleAssigned(_tokenA, _tokenB, _oracle);
   }
 
   /// @dev We expect tokens to be sorted (tokenA < tokenB)
