@@ -108,10 +108,56 @@ describe('OracleAggregator', () => {
     });
   });
 
+  describe('addOrModifySupportForPair', () => {
+    when(`pair's addreses are inverted`, () => {
+      given(async () => {
+        await oracleAggregator.addOrModifySupportForPair(TOKEN_B, TOKEN_A);
+      });
+      then(`correct order is sent to internal add support`, async () => {
+        expect(await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B)).to.be.true;
+      });
+    });
+    when('no oracle has been assigned', () => {
+      given(async () => {
+        await oracleAggregator.addOrModifySupportForPair(TOKEN_A, TOKEN_B);
+      });
+      then('pair is modified', async () => {
+        expect(await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B)).to.be.true;
+      });
+    });
+    when(`oracle is assigned but it hasn't been forced`, () => {
+      given(async () => {
+        await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, false);
+        await oracleAggregator.addOrModifySupportForPair(TOKEN_A, TOKEN_B);
+      });
+      then('pair is modified', async () => {
+        expect(await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B)).to.be.true;
+      });
+    });
+    when(`oracle was forced but caller is admin`, () => {
+      given(async () => {
+        await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, true);
+        await oracleAggregator.connect(admin).addOrModifySupportForPair(TOKEN_A, TOKEN_B);
+      });
+      then('pair is modified', async () => {
+        expect(await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B)).to.be.true;
+      });
+    });
+    when(`oracle was forced and caller is not admin`, () => {
+      given(async () => {
+        await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, true);
+        await oracleAggregator.addOrModifySupportForPair(TOKEN_A, TOKEN_B);
+      });
+      then('pair is not modified', async () => {
+        expect(await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B)).to.be.false;
+      });
+    });
+  });
+
   describe('assignedOracle', () => {
     given(async () => {
       oracle1.canSupportPair.returns(true);
-      await oracleAggregator.connect(admin).forceOracle(TOKEN_A, TOKEN_B, oracle1.address);
+      await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, false);
     });
     when(`pair's addreses are inverted`, () => {
       then(`oracle is still returned`, async () => {

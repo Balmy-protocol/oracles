@@ -46,7 +46,17 @@ contract OracleAggregator is AccessControl, IOracleAggregator {
 
   /// @inheritdoc IPriceOracle
   function addOrModifySupportForPair(address _tokenA, address _tokenB) external {
-    // TODO: Implement
+    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
+    /* 
+      Only modify if one of the following is true:
+        - There is no current oracle
+        - The current oracle hasn't been forced by an admin
+        - The caller is an admin
+    */
+    bool _shouldModify = !_assignedOracle[_keyForPair(__tokenA, __tokenB)].forced || hasRole(ADMIN_ROLE, msg.sender);
+    if (_shouldModify) {
+      _addOrModifySupportForPair(__tokenA, __tokenB);
+    }
   }
 
   /// @inheritdoc IOracleAggregator
