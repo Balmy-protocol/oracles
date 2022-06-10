@@ -11,6 +11,7 @@ contract OracleAggregator is AccessControl, IOracleAggregator {
 
   // A list of available oracles. Oracles first on the array will take precedence over those that come later
   IPriceOracle[] internal _availableOracles;
+  mapping(bytes32 => OracleAssignment) internal _assignedOracle; // key(tokenA, tokenB) => oracle
 
   constructor(
     IPriceOracle[] memory _initialOracles,
@@ -43,9 +44,66 @@ contract OracleAggregator is AccessControl, IOracleAggregator {
     return false;
   }
 
+  /// @inheritdoc IPriceOracle
+  function isPairAlreadySupported(address _tokenA, address _tokenB) public view returns (bool) {
+    IPriceOracle _oracle = assignedOracle(_tokenA, _tokenB).oracle;
+    // We check if the oracle still supports the pair, since it might have lost support
+    return address(_oracle) != address(0) && _oracle.isPairAlreadySupported(_tokenA, _tokenA);
+  }
+
+  /// @inheritdoc IPriceOracle
+  function quote(
+    address _tokenIn,
+    uint256 _amountIn,
+    address _tokenOut
+  ) external view returns (uint256 _amountOut) {
+    IPriceOracle _oracle = assignedOracle(_tokenIn, _tokenOut).oracle;
+    if (address(_oracle) == address(0)) revert PairNotSupported(_tokenIn, _tokenOut);
+    return _oracle.quote(_tokenIn, _amountIn, _tokenOut);
+  }
+
+  /// @inheritdoc IPriceOracle
+  function addOrModifySupportForPair(address _tokenA, address _tokenB) external {
+    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
+    /* 
+      Only modify if one of the following is true:
+        - There is no current oracle
+        - The current oracle hasn't been forced by an admin
+        - The caller is an admin
+    */
+    bool _shouldModify = !_assignedOracleForPair(__tokenA, __tokenB).forced || hasRole(ADMIN_ROLE, msg.sender);
+    if (_shouldModify) {
+      _addOrModifySupportForPair(__tokenA, __tokenB);
+    }
+  }
+
+  /// @inheritdoc IPriceOracle
+  function addSupportForPairIfNeeded(address _tokenA, address _tokenB) external {
+    if (!isPairAlreadySupported(_tokenA, _tokenB)) {
+      (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
+      _addOrModifySupportForPair(__tokenA, __tokenB);
+    }
+  }
+
+  /// @inheritdoc IOracleAggregator
+  function assignedOracle(address _tokenA, address _tokenB) public view returns (OracleAssignment memory) {
+    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
+    return _assignedOracleForPair(__tokenA, __tokenB);
+  }
+
   /// @inheritdoc IOracleAggregator
   function availableOracles() external view returns (IPriceOracle[] memory) {
     return _availableOracles;
+  }
+
+  /// @inheritdoc IOracleAggregator
+  function forceOracle(
+    address _tokenA,
+    address _tokenB,
+    IPriceOracle _oracle
+  ) external onlyRole(ADMIN_ROLE) {
+    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
+    _setOracle(__tokenA, __tokenB, _oracle, true);
   }
 
   /// @inheritdoc IOracleAggregator
@@ -71,5 +129,44 @@ contract OracleAggregator is AccessControl, IOracleAggregator {
     }
 
     emit OracleListUpdated(_oracles);
+  }
+
+  /**
+   * @notice Checks all oracles again and re-assigns the first that supports the given pair.
+   *         It will also reconfigure the assigned oracle
+   * @dev We expect tokens to be sorted (tokenA < tokenB)
+   */
+  function _addOrModifySupportForPair(address _tokenA, address _tokenB) internal virtual {
+    uint256 _length = _availableOracles.length;
+    for (uint256 i; i < _length; i++) {
+      IPriceOracle _oracle = _availableOracles[i];
+      if (_oracle.canSupportPair(_tokenA, _tokenB)) {
+        _oracle.addOrModifySupportForPair(_tokenA, _tokenB);
+        _setOracle(_tokenA, _tokenB, _oracle, false);
+        return;
+      }
+    }
+    revert PairNotSupported(_tokenA, _tokenB);
+  }
+
+  /// @dev We expect tokens to be sorted (tokenA < tokenB)
+  function _setOracle(
+    address _tokenA,
+    address _tokenB,
+    IPriceOracle _oracle,
+    bool _forced
+  ) internal {
+    _assignedOracle[_keyForPair(_tokenA, _tokenB)] = OracleAssignment({oracle: _oracle, forced: _forced});
+    emit OracleAssigned(_tokenA, _tokenB, _oracle);
+  }
+
+  /// @dev We expect tokens to be sorted (tokenA < tokenB)
+  function _assignedOracleForPair(address _tokenA, address _tokenB) internal view returns (OracleAssignment memory) {
+    return _assignedOracle[_keyForPair(_tokenA, _tokenB)];
+  }
+
+  /// @dev We expect tokens to be sorted (tokenA < tokenB)
+  function _keyForPair(address _tokenA, address _tokenB) internal pure returns (bytes32) {
+    return keccak256(abi.encodePacked(_tokenA, _tokenB));
   }
 }
