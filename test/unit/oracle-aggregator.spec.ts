@@ -155,11 +155,11 @@ describe('OracleAggregator', () => {
       let amountOut: BigNumber;
       given(async () => {
         await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, false);
-        oracle1.quote.returns(RESULT);
-        amountOut = await oracleAggregator.quote(TOKEN_A, 1000, TOKEN_B);
+        oracle1['quote(address,uint256,address,bytes)'].returns(RESULT);
+        amountOut = await oracleAggregator['quote(address,uint256,address,bytes)'](TOKEN_A, 1000, TOKEN_B, BYTES);
       });
       then('oracle was called', async () => {
-        expect(oracle1.quote).to.have.been.calledWith(TOKEN_A, 1000, TOKEN_B);
+        expect(oracle1['quote(address,uint256,address,bytes)']).to.have.been.calledWith(TOKEN_A, 1000, TOKEN_B, BYTES);
       });
       then('result is what the oracle returned', () => {
         expect(amountOut).to.equal(RESULT);
