@@ -144,7 +144,7 @@ describe('OracleAggregator', () => {
       then('tx is reverted with reason', async () => {
         await behaviours.txShouldRevertWithMessage({
           contract: oracleAggregator,
-          func: 'quote',
+          func: 'quote(address,uint256,address)',
           args: [TOKEN_A, 1000, TOKEN_B],
           message: `PairNotSupported`,
         });
