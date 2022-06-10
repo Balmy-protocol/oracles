@@ -1,6 +1,6 @@
 import chai, { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { constants } from 'ethers';
+import { BigNumber, constants } from 'ethers';
 import { behaviours } from '@utils';
 import { given, then, when } from '@utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
@@ -108,6 +108,60 @@ describe('OracleAggregator', () => {
     });
   });
 
+  describe('isPairAlreadySupported', () => {
+    when('no oracle has been assigned', () => {
+      then('pair is not already supported', async () => {
+        expect(await oracleAggregator.isPairAlreadySupported(TOKEN_A, TOKEN_B)).to.be.false;
+      });
+    });
+    when('oracle has been assigned and it still supports the pair', () => {
+      given(async () => {
+        oracle1.isPairAlreadySupported.returns(true);
+        await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, false);
+      });
+      then('pair is already supported', async () => {
+        expect(await oracleAggregator.isPairAlreadySupported(TOKEN_A, TOKEN_B)).to.be.true;
+      });
+    });
+    when('oracle has been assigned but it does not support the pair', () => {
+      given(async () => {
+        oracle1.isPairAlreadySupported.returns(false);
+        await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, false);
+      });
+      then('pair is not already supported', async () => {
+        expect(await oracleAggregator.isPairAlreadySupported(TOKEN_A, TOKEN_B)).to.be.false;
+      });
+    });
+  });
+
+  describe('quote', () => {
+    when('no oracle is being used for the pair', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: oracleAggregator,
+          func: 'quote',
+          args: [TOKEN_A, 1000, TOKEN_B],
+          message: `PairNotSupported`,
+        });
+      });
+    });
+    when('oracle is being used for pair', () => {
+      const RESULT = BigNumber.from(5);
+      let amountOut: BigNumber;
+      given(async () => {
+        await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, false);
+        oracle1.quote.returns(RESULT);
+        amountOut = await oracleAggregator.quote(TOKEN_A, 1000, TOKEN_B);
+      });
+      then('oracle was called', async () => {
+        expect(oracle1.quote).to.have.been.calledWith(TOKEN_A, 1000, TOKEN_B);
+      });
+      then('result is what the oracle returned', () => {
+        expect(amountOut).to.equal(RESULT);
+      });
+    });
+  });
+
   describe('addOrModifySupportForPair', () => {
     when(`pair's addreses are inverted`, () => {
       given(async () => {
@@ -171,13 +225,24 @@ describe('OracleAggregator', () => {
         expect(await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B)).to.be.true;
       });
     });
-    when('pair already has an assigned oracle', () => {
+    when('pair already has an assigned oracle and it still supports the pair', () => {
       given(async () => {
+        oracle1.isPairAlreadySupported.returns(true);
         await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, true);
         await oracleAggregator.addSupportForPairIfNeeded(TOKEN_A, TOKEN_B);
       });
       then('internal add is not called', async () => {
         expect(await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B)).to.be.false;
+      });
+    });
+    when('pair already has an assigned oracle but it does not support the pair anymore', () => {
+      given(async () => {
+        oracle1.isPairAlreadySupported.returns(false);
+        await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, true);
+        await oracleAggregator.addSupportForPairIfNeeded(TOKEN_A, TOKEN_B);
+      });
+      then('internal add support is called', async () => {
+        expect(await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B)).to.be.true;
       });
     });
   });
@@ -305,28 +370,32 @@ describe('OracleAggregator', () => {
     const NEW_ORACLE_3 = '0x0000000000000000000000000000000000000003';
     setOraclesTest({
       when: 'the number of oracles stay the same',
-      newOracles: [NEW_ORACLE_1, NEW_ORACLE_2],
+      newOracles: () => [NEW_ORACLE_1, NEW_ORACLE_2],
     });
     setOraclesTest({
       when: 'the number of oracles increased',
-      newOracles: [NEW_ORACLE_1, NEW_ORACLE_2, NEW_ORACLE_3],
+      newOracles: () => [NEW_ORACLE_1, NEW_ORACLE_2, NEW_ORACLE_3],
     });
     setOraclesTest({
       when: 'the number of oracles is reduced',
-      newOracles: [NEW_ORACLE_1],
+      newOracles: () => [NEW_ORACLE_1],
     });
-    function setOraclesTest({ when: title, newOracles }: { when: string; newOracles: string[] }) {
+    setOraclesTest({
+      when: 'changing order of current added oracles',
+      newOracles: () => [oracle2.address, oracle1.address],
+    });
+    function setOraclesTest({ when: title, newOracles }: { when: string; newOracles: () => string[] }) {
       when(title, () => {
         let tx: TransactionResponse;
         given(async () => {
-          tx = await oracleAggregator.connect(admin).setAvailableOracles(newOracles);
+          tx = await oracleAggregator.connect(admin).setAvailableOracles(newOracles());
         });
         then('oracles are set correctly', async () => {
           const available = await oracleAggregator.availableOracles();
-          expect(available).to.eql(newOracles);
+          expect(available).to.eql(newOracles());
         });
         then('event is emitted', async () => {
-          await expect(tx).to.emit(oracleAggregator, 'OracleListUpdated').withArgs(newOracles);
+          await expect(tx).to.emit(oracleAggregator, 'OracleListUpdated').withArgs(newOracles());
         });
       });
     }
