@@ -2,10 +2,11 @@
 pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/access/AccessControl.sol';
+import '@openzeppelin/contracts/utils/Multicall.sol';
 import '@mean-finance/dca-v2-core/contracts/libraries/TokenSorting.sol';
 import '../interfaces/IOracleAggregator.sol';
 
-contract OracleAggregator is AccessControl, IOracleAggregator {
+contract OracleAggregator is AccessControl, Multicall, IOracleAggregator {
   bytes32 public constant SUPER_ADMIN_ROLE = keccak256('SUPER_ADMIN_ROLE');
   bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
 
