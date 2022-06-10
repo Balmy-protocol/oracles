@@ -35,34 +35,34 @@ jobs:
         run: yarn test:unit
         env:
           TS_NODE_SKIP_IGNORE: true
-  # e2e:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Check out github repository
-  #       uses: actions/checkout@v2
-  #       with:
-  #         fetch-depth: 1
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out github repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
 
-  #     - name: Cache node modules
-  #       uses: actions/cache@v2
-  #       env:
-  #         cache-name: cache-node-modules
-  #       with:
-  #         path: "**/node_modules"
-  #         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/yarn.lock') }}
+      - name: Cache node modules
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-node-modules
+        with:
+          path: "**/node_modules"
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/yarn.lock') }}
 
-  #     - name: Install node
-  #       uses: actions/setup-node@v1
-  #       with:
-  #         node-version: "16.x"
+      - name: Install node
+        uses: actions/setup-node@v1
+        with:
+          node-version: "16.x"
 
-  #     - name: Install dependencies
-  #       run: yarn --frozen-lockfile
+      - name: Install dependencies
+        run: yarn --frozen-lockfile
 
-  #     - name: Run e2e tests
-  #       run: yarn test:e2e
-  #       env:
-  #         TS_NODE_SKIP_IGNORE: true
+      - name: Run e2e tests
+        run: yarn test:e2e
+        env:
+          TS_NODE_SKIP_IGNORE: true
   # integration:
   #   runs-on: ubuntu-latest
   #   steps:
