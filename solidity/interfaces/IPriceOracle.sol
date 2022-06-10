@@ -19,17 +19,28 @@ interface IPriceOracle {
   function canSupportPair(address tokenA, address tokenB) external view returns (bool);
 
   /**
+   * @notice Returns whether this oracle is already supporting the given pair of tokens
+   * @dev tokenA and tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order
+   * @param tokenA One of the pair's tokens
+   * @param tokenB The other of the pair's tokens
+   * @return Whether the given pair of tokens is already being supported by the oracle
+   */
+  function isPairAlreadySupported(address tokenA, address tokenB) external view returns (bool);
+
+  /**
    * @notice Returns a quote, based on the given tokens and amount
+   * @dev Will revert if pair cannot be supported
    * @param tokenIn The token that will be provided
    * @param amountIn The amount that will be provided
    * @param tokenOut The token we would like to quote
    * @return amountOut How much `tokenOut` will be returned in exchange for `amountIn` amount of `tokenIn`
    */
-  // function quote(
-  //   address tokenIn,
-  //   uint256 amountIn,
-  //   address tokenOut
-  // ) external view returns (uint256 amountOut);
+  function quote(
+    address tokenIn,
+    uint256 amountIn,
+    address tokenOut
+  ) external view returns (uint256 amountOut);
+
   /**
    * @notice Add or reconfigures the support for a given pair. This function will let the oracle take some actions
    *         to configure the pair, in preparation for future quotes. Can be called many times in order to let the oracle
@@ -48,5 +59,5 @@ interface IPriceOracle {
    * @param tokenA One of the pair's tokens
    * @param tokenB The other of the pair's tokens
    */
-  // function addSupportForPairIfNeeded(address tokenA, address tokenB) external;
+  function addSupportForPairIfNeeded(address tokenA, address tokenB) external;
 }
