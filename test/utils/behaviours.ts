@@ -6,6 +6,8 @@ import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { Provider } from '@ethersproject/providers';
 import { getStatic } from 'ethers/lib/utils';
 import { wallet } from '.';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { given, then, when } from './bdd';
 
 chai.use(chaiAsPromised);
 
@@ -200,4 +202,44 @@ export const fnShouldOnlyBeCallableByGovernance = (
     const fn = delayedContract().connect(impersonator)[fnName] as (...args: unknown[]) => unknown;
     return fn(...argsArray);
   }
+};
+
+export const shouldBeExecutableOnlyByRole = ({
+  contract,
+  funcAndSignature,
+  params,
+  addressWithRole,
+  role,
+}: {
+  contract: () => Contract;
+  funcAndSignature: string;
+  params?: any[];
+  addressWithRole: () => SignerWithAddress;
+  role: () => string;
+}) => {
+  params = params ?? [];
+  when('called from address without role', () => {
+    let tx: Promise<TransactionResponse>;
+    let walletWithoutRole: Wallet;
+    given(async () => {
+      walletWithoutRole = await wallet.generateRandom();
+      tx = contract()
+        .connect(walletWithoutRole)
+        [funcAndSignature](...params!);
+    });
+    then('tx is reverted with reason', async () => {
+      await expect(tx).to.be.revertedWith(`AccessControl: account ${walletWithoutRole.address.toLowerCase()} is missing role ${role()}`);
+    });
+  });
+  when('called from address with role', () => {
+    let tx: Promise<TransactionResponse>;
+    given(async () => {
+      tx = contract()
+        .connect(addressWithRole())
+        [funcAndSignature](...params!);
+    });
+    then('tx is not reverted or not reverted with reason only governor', async () => {
+      await expect(tx).to.not.be.revertedWith(`AccessControl: account ${addressWithRole().address.toLowerCase()} is missing role ${role()}`);
+    });
+  });
 };
