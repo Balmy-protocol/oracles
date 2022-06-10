@@ -29,6 +29,7 @@ interface IPriceOracle {
 
   /**
    * @notice Returns a quote, based on the given tokens and amount
+   * @dev Will revert if pair cannot be supported
    * @param tokenIn The token that will be provided
    * @param amountIn The amount that will be provided
    * @param tokenOut The token we would like to quote

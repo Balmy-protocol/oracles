@@ -380,6 +380,10 @@ describe('OracleAggregator', () => {
       when: 'the number of oracles is reduced',
       newOracles: [NEW_ORACLE_1],
     });
+    setOraclesTest({
+      when: 'changing order of current added oracles',
+      newOracles: [oracle2.address, oracle1.address],
+    });
     function setOraclesTest({ when: title, newOracles }: { when: string; newOracles: string[] }) {
       when(title, () => {
         let tx: TransactionResponse;
