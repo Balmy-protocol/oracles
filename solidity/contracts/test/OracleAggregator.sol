@@ -16,6 +16,15 @@ contract OracleAggregatorMock is OracleAggregator {
     _addOrModifySupportForPair(_tokenA, _tokenB);
   }
 
+  function setOracle(
+    address _tokenA,
+    address _tokenB,
+    IPriceOracle _oracle,
+    bool _forced
+  ) external {
+    _setOracle(_tokenA, _tokenB, _oracle, _forced);
+  }
+
   function _addOrModifySupportForPair(address _tokenA, address _tokenB) internal override {
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     internalAddOrModifyCalled[__tokenA][__tokenB] = true;
