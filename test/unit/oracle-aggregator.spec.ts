@@ -370,32 +370,32 @@ describe('OracleAggregator', () => {
     const NEW_ORACLE_3 = '0x0000000000000000000000000000000000000003';
     setOraclesTest({
       when: 'the number of oracles stay the same',
-      newOracles: [NEW_ORACLE_1, NEW_ORACLE_2],
+      newOracles: () => [NEW_ORACLE_1, NEW_ORACLE_2],
     });
     setOraclesTest({
       when: 'the number of oracles increased',
-      newOracles: [NEW_ORACLE_1, NEW_ORACLE_2, NEW_ORACLE_3],
+      newOracles: () => [NEW_ORACLE_1, NEW_ORACLE_2, NEW_ORACLE_3],
     });
     setOraclesTest({
       when: 'the number of oracles is reduced',
-      newOracles: [NEW_ORACLE_1],
+      newOracles: () => [NEW_ORACLE_1],
     });
     setOraclesTest({
       when: 'changing order of current added oracles',
-      newOracles: [oracle2.address, oracle1.address],
+      newOracles: () => [oracle2.address, oracle1.address],
     });
-    function setOraclesTest({ when: title, newOracles }: { when: string; newOracles: string[] }) {
+    function setOraclesTest({ when: title, newOracles }: { when: string; newOracles: () => string[] }) {
       when(title, () => {
         let tx: TransactionResponse;
         given(async () => {
-          tx = await oracleAggregator.connect(admin).setAvailableOracles(newOracles);
+          tx = await oracleAggregator.connect(admin).setAvailableOracles(newOracles());
         });
         then('oracles are set correctly', async () => {
           const available = await oracleAggregator.availableOracles();
-          expect(available).to.eql(newOracles);
+          expect(available).to.eql(newOracles());
         });
         then('event is emitted', async () => {
-          await expect(tx).to.emit(oracleAggregator, 'OracleListUpdated').withArgs(newOracles);
+          await expect(tx).to.emit(oracleAggregator, 'OracleListUpdated').withArgs(newOracles());
         });
       });
     }
