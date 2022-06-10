@@ -43,7 +43,7 @@ describe('OracleAggregator', () => {
       });
       describe('and then an admin updates the support', () => {
         given(async () => {
-          await oracleAggregator.connect(admin).addOrModifySupportForPair(TOKEN_A, TOKEN_B);
+          await oracleAggregator.connect(admin)['addOrModifySupportForPair(address,address)'](TOKEN_A, TOKEN_B);
         });
         then('a oracle that takes precedence will be assigned', async () => {
           const { oracle, forced } = await oracleAggregator.assignedOracle(TOKEN_A, TOKEN_B);
