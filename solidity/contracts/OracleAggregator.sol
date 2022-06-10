@@ -52,6 +52,17 @@ contract OracleAggregator is AccessControl, IOracleAggregator {
   }
 
   /// @inheritdoc IPriceOracle
+  function quote(
+    address _tokenIn,
+    uint256 _amountIn,
+    address _tokenOut
+  ) external view returns (uint256 _amountOut) {
+    IPriceOracle _oracle = assignedOracle(_tokenIn, _tokenOut).oracle;
+    if (address(_oracle) == address(0)) revert PairNotSupported(_tokenIn, _tokenOut);
+    return _oracle.quote(_tokenIn, _amountIn, _tokenOut);
+  }
+
+  /// @inheritdoc IPriceOracle
   function addOrModifySupportForPair(address _tokenA, address _tokenB) external {
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     /* 
