@@ -64,6 +64,15 @@ contract OracleAggregator is AccessControl, IOracleAggregator {
 
   /// @inheritdoc IPriceOracle
   function addOrModifySupportForPair(address _tokenA, address _tokenB) external {
+    addOrModifySupportForPair(_tokenA, _tokenB, '');
+  }
+
+  /// @inheritdoc IPriceOracle
+  function addOrModifySupportForPair(
+    address _tokenA,
+    address _tokenB,
+    bytes memory _data
+  ) public {
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     /* 
       Only modify if one of the following is true:
@@ -73,15 +82,24 @@ contract OracleAggregator is AccessControl, IOracleAggregator {
     */
     bool _shouldModify = !_assignedOracleForPair(__tokenA, __tokenB).forced || hasRole(ADMIN_ROLE, msg.sender);
     if (_shouldModify) {
-      _addOrModifySupportForPair(__tokenA, __tokenB);
+      _addOrModifySupportForPair(__tokenA, __tokenB, _data);
     }
   }
 
   /// @inheritdoc IPriceOracle
   function addSupportForPairIfNeeded(address _tokenA, address _tokenB) external {
+    addSupportForPairIfNeeded(_tokenA, _tokenB, '');
+  }
+
+  /// @inheritdoc IPriceOracle
+  function addSupportForPairIfNeeded(
+    address _tokenA,
+    address _tokenB,
+    bytes memory _data
+  ) public {
     if (!isPairAlreadySupported(_tokenA, _tokenB)) {
       (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
-      _addOrModifySupportForPair(__tokenA, __tokenB);
+      _addOrModifySupportForPair(__tokenA, __tokenB, _data);
     }
   }
 
@@ -136,12 +154,16 @@ contract OracleAggregator is AccessControl, IOracleAggregator {
    *         It will also reconfigure the assigned oracle
    * @dev We expect tokens to be sorted (tokenA < tokenB)
    */
-  function _addOrModifySupportForPair(address _tokenA, address _tokenB) internal virtual {
+  function _addOrModifySupportForPair(
+    address _tokenA,
+    address _tokenB,
+    bytes memory _data
+  ) internal virtual {
     uint256 _length = _availableOracles.length;
     for (uint256 i; i < _length; i++) {
       IPriceOracle _oracle = _availableOracles[i];
       if (_oracle.canSupportPair(_tokenA, _tokenB)) {
-        _oracle.addOrModifySupportForPair(_tokenA, _tokenB);
+        _oracle.addOrModifySupportForPair(_tokenA, _tokenB, _data);
         _setOracle(_tokenA, _tokenB, _oracle, false);
         return;
       }

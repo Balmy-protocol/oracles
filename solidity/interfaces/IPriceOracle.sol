@@ -52,6 +52,21 @@ interface IPriceOracle {
   function addOrModifySupportForPair(address tokenA, address tokenB) external;
 
   /**
+   * @notice Add or reconfigures the support for a given pair. This function will let the oracle take some actions
+   *         to configure the pair, in preparation for future quotes. Can be called many times in order to let the oracle
+   *         re-configure for a new context
+   * @dev Will revert if pair cannot be supported. tokenA and tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order
+   * @param tokenA One of the pair's tokens
+   * @param tokenB The other of the pair's tokens
+   * @param data Custom data that the oracle might need to operate
+   */
+  function addOrModifySupportForPair(
+    address tokenA,
+    address tokenB,
+    bytes calldata data
+  ) external;
+
+  /**
    * @notice Adds support for a given pair if the oracle didn't support it already. If called for a pair that is already supported,
    *         then nothing will happen. This function will let the oracle take some actions to configure the pair, in preparation
    *         for future quotes
@@ -60,4 +75,19 @@ interface IPriceOracle {
    * @param tokenB The other of the pair's tokens
    */
   function addSupportForPairIfNeeded(address tokenA, address tokenB) external;
+
+  /**
+   * @notice Adds support for a given pair if the oracle didn't support it already. If called for a pair that is already supported,
+   *         then nothing will happen. This function will let the oracle take some actions to configure the pair, in preparation
+   *         for future quotes
+   * @dev Will revert if pair cannot be supported. tokenA and tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order
+   * @param tokenA One of the pair's tokens
+   * @param tokenB The other of the pair's tokens
+   * @param data Custom data that the oracle might need to operate
+   */
+  function addSupportForPairIfNeeded(
+    address tokenA,
+    address tokenB,
+    bytes calldata data
+  ) external;
 }
