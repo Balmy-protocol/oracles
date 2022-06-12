@@ -28,7 +28,8 @@ interface IPriceOracle {
   function isPairAlreadySupported(address tokenA, address tokenB) external view returns (bool);
 
   /**
-   * @notice Returns a quote, based on the given tokens and amount
+   * @notice Returns a quote, based on the given tokens and amount. Can be consider the same as
+   *         calling `quote(tokenIn, amountIn, tokenOut, data)` with empty data
    * @dev Will revert if pair cannot be supported
    * @param tokenIn The token that will be provided
    * @param amountIn The amount that will be provided
@@ -60,7 +61,8 @@ interface IPriceOracle {
   /**
    * @notice Add or reconfigures the support for a given pair. This function will let the oracle take some actions
    *         to configure the pair, in preparation for future quotes. Can be called many times in order to let the oracle
-   *         re-configure for a new context
+   *         re-configure for a new context. Can be consider the same as calling `addOrModifySupportForPair(tokenA, tokenB, data)`
+   *         with empty data.
    * @dev Will revert if pair cannot be supported. tokenA and tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order
    * @param tokenA One of the pair's tokens
    * @param tokenB The other of the pair's tokens
@@ -85,7 +87,8 @@ interface IPriceOracle {
   /**
    * @notice Adds support for a given pair if the oracle didn't support it already. If called for a pair that is already supported,
    *         then nothing will happen. This function will let the oracle take some actions to configure the pair, in preparation
-   *         for future quotes
+   *         for future quotes. Can be consider the same as calling `addSupportForPairIfNeeded(tokenA, tokenB, data)` with empty
+   *         data
    * @dev Will revert if pair cannot be supported. tokenA and tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order
    * @param tokenA One of the pair's tokens
    * @param tokenB The other of the pair's tokens
