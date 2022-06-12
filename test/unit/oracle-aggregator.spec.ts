@@ -15,7 +15,7 @@ chai.use(smock.matchers);
 describe('OracleAggregator', () => {
   const TOKEN_A = '0x0000000000000000000000000000000000000001';
   const TOKEN_B = '0x0000000000000000000000000000000000000002';
-  const BYTES = ethers.utils.hexlify(ethers.utils.randomBytes(10));
+  const BYTES = '0xf2c047db4a7cf81f935c'; // Some random bytes
   let superAdmin: SignerWithAddress, admin: SignerWithAddress;
   let oracleAggregatorFactory: OracleAggregatorMock__factory;
   let oracleAggregator: OracleAggregatorMock;
