@@ -146,6 +146,22 @@ describe('UniswapV3Adapter', () => {
     });
   });
 
+  describe('isPairAlreadySupported', () => {
+    when('there are no pools stored', () => {
+      then('pair is not already supported', async () => {
+        expect(await adapter.isPairAlreadySupported(TOKEN_A, TOKEN_B)).to.be.false;
+      });
+    });
+    when('there are some stored pools', () => {
+      given(async () => {
+        await adapter.setPools(TOKEN_A, TOKEN_B, [pool1.address]);
+      });
+      then('pool is already sipported', async () => {
+        expect(await adapter.isPairAlreadySupported(TOKEN_A, TOKEN_B)).to.be.true;
+      });
+    });
+  });
+
   describe('setPeriod', () => {
     when('period is lower than min period', () => {
       then('tx is reverted with reason error', async () => {
