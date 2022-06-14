@@ -175,26 +175,27 @@ describe('UniswapV3Adapter', () => {
       });
     });
     when('quote amount is over uint128', () => {
+      let tx: Promise<BigNumber>;
+      given(async () => {
+        await adapter.setPools(TOKEN_A, TOKEN_B, [pool1.address, pool2.address]);
+        tx = adapter['quote(address,uint256,address)'](TOKEN_A, BigNumber.from(2).pow(128), TOKEN_B);
+      });
       then('tx is reverted with reason error', async () => {
-        await behaviours.txShouldRevertWithMessage({
-          contract: adapter,
-          func: 'quote(address,uint256,address)',
-          args: [TOKEN_A, BigNumber.from(2).pow(128), TOKEN_B],
-          message: 'PairNotAlreadySupported',
-        });
+        expect(tx).to.have.revertedWith(`SafeCast: value doesn't fit in 128 bits`);
       });
     });
     when('there are some stored pools', () => {
       const RESULT = BigNumber.from(10000);
+      const MAX_AMOUNT_IN = BigNumber.from(2).pow(128).sub(1);
       let returnedQuote: BigNumber;
       given(async () => {
         oracle.quoteSpecificPoolsWithTimePeriod.returns(RESULT);
         await adapter.setPools(TOKEN_A, TOKEN_B, [pool1.address, pool2.address]);
-        returnedQuote = await adapter['quote(address,uint256,address)'](TOKEN_A, 10, TOKEN_B);
+        returnedQuote = await adapter['quote(address,uint256,address)'](TOKEN_A, MAX_AMOUNT_IN, TOKEN_B);
       });
       then('the oracle is called correctly', async () => {
         expect(oracle.quoteSpecificPoolsWithTimePeriod).to.have.been.calledOnceWith(
-          10,
+          MAX_AMOUNT_IN,
           TOKEN_A,
           TOKEN_B,
           [pool1.address, pool2.address],
