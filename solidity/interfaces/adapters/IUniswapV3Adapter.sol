@@ -45,6 +45,9 @@ interface IUniswapV3Adapter {
   /// @notice Thrown when trying to set a denylist but the given parameters are invalid
   error InvalidDenylistParams();
 
+  /// @notice Thrown when trying to execute a quote with a pair that isn't supported yet
+  error PairNotAlreadySupported(address tokenA, address tokenB);
+
   /**
    * @notice Returns the address of the Uniswap oracle
    * @dev Cannot be modified

@@ -2,11 +2,14 @@
 pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/access/AccessControl.sol';
+import '@openzeppelin/contracts/utils/math/SafeCast.sol';
 import '@mean-finance/dca-v2-core/contracts/libraries/TokenSorting.sol';
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
 import '../../interfaces//adapters/IUniswapV3Adapter.sol';
 
 contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
+  using SafeCast for uint256;
+
   bytes32 public constant SUPER_ADMIN_ROLE = keccak256('SUPER_ADMIN_ROLE');
   bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
 
@@ -60,6 +63,25 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
 
   function isPairAlreadySupported(address _tokenA, address _tokenB) public view returns (bool) {
     return _poolsForPair[_keyForPair(_tokenA, _tokenB)].length > 0;
+  }
+
+  function quote(
+    address _tokenIn,
+    uint256 _amountIn,
+    address _tokenOut
+  ) public view returns (uint256 _amountOut) {
+    address[] memory _pools = _poolsForPair[_keyForPair(_tokenIn, _tokenOut)];
+    if (_pools.length == 0) revert PairNotAlreadySupported(_tokenIn, _tokenOut);
+    return UNISWAP_V3_ORACLE.quoteSpecificPoolsWithTimePeriod(_amountIn.toUint128(), _tokenIn, _tokenOut, _pools, period);
+  }
+
+  function quote(
+    address _tokenIn,
+    uint256 _amountIn,
+    address _tokenOut,
+    bytes calldata
+  ) external view returns (uint256) {
+    return quote(_tokenIn, _amountIn, _tokenOut);
   }
 
   /// @inheritdoc IUniswapV3Adapter
