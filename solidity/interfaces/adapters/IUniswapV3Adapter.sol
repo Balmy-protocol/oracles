@@ -33,6 +33,14 @@ interface IUniswapV3Adapter {
    */
   event DenylistChanged(address[] pools, bool[] denylisted);
 
+  /**
+   * @notice Emitted when support is updated (added or modified) for a new pair
+   * @param tokenA One of the pair's tokens
+   * @param tokenB The other of the pair's tokens
+   * @param pools The pools assigned to the pair
+   */
+  event UpdatedSupport(address tokenA, address tokenB, address[] pools);
+
   /// @notice Thrown when one of the parameters is the zero address
   error ZeroAddress();
 

@@ -28,6 +28,9 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
 
   mapping(bytes32 => address[]) internal _poolsForPair; // key(tokenA, tokenB) => pools
 
+  // TODO: Remove when we implement IPriceOracle
+  error PairNotSupported(address tokenA, address tokenB);
+
   constructor(InitialConfig memory _initialConfig) {
     if (_initialConfig.superAdmin == address(0)) revert ZeroAddress();
     UNISWAP_V3_ORACLE = _initialConfig.uniswapV3Oracle;
@@ -84,6 +87,19 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
     return quote(_tokenIn, _amountIn, _tokenOut);
   }
 
+  function addOrModifySupportForPair(address _tokenA, address _tokenB) public {
+    delete _poolsForPair[_keyForPair(_tokenA, _tokenB)];
+    _addOrModifySupportForPair(_tokenA, _tokenB);
+  }
+
+  function addOrModifySupportForPair(
+    address _tokenA,
+    address _tokenB,
+    bytes calldata
+  ) external {
+    addOrModifySupportForPair(_tokenA, _tokenB);
+  }
+
   /// @inheritdoc IUniswapV3Adapter
   function getPoolsPreparedForPair(address _tokenA, address _tokenB) external view returns (address[] memory) {
     return _poolsForPair[_keyForPair(_tokenA, _tokenB)];
@@ -117,6 +133,27 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
     emit DenylistChanged(_pools, _denylisted);
   }
 
+  function _addOrModifySupportForPair(address _tokenA, address _tokenB) internal virtual {
+    uint16 _cardinality = uint16((uint32(period) * cardinalityPerMinute) / 60) + 1;
+    address[] memory _allPools = UNISWAP_V3_ORACLE.getAllPoolsForPair(_tokenA, _tokenA);
+
+    uint256 _amountOfStoredPools;
+    address[] memory _storedPools = new address[](_allPools.length);
+    address[] storage _storagePools = _poolsForPair[_keyForPair(_tokenA, _tokenB)];
+    for (uint256 i; i < _allPools.length; i++) {
+      address _pool = _allPools[i];
+      if (!isPoolDenylisted[_pool]) {
+        _storagePools.push(_pool);
+        _storedPools[_amountOfStoredPools++] = _pool;
+      }
+    }
+    if (_amountOfStoredPools == 0) revert PairNotSupported(_tokenA, _tokenB);
+
+    _resizeArray(_storedPools, _amountOfStoredPools);
+    UNISWAP_V3_ORACLE.prepareSpecificPoolsWithCardinality(_storedPools, _cardinality);
+    emit UpdatedSupport(_tokenA, _tokenB, _storedPools);
+  }
+
   /**
    * @notice This function will take a Uniswap pool that has just been denylisted. We need to check if it's part
    *         of the pools assigned for the pair. If it is, then we want to remove the pool from the pair's list
@@ -140,5 +177,15 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
   function _keyForPair(address _tokenA, address _tokenB) internal pure returns (bytes32) {
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     return keccak256(abi.encodePacked(__tokenA, __tokenB));
+  }
+
+  function _resizeArray(address[] memory _array, uint256 _amountOfValidElements) internal pure {
+    // If all elements are valid, then nothing to do here
+    if (_array.length == _amountOfValidElements) return;
+
+    // If not, then resize the array
+    assembly {
+      mstore(_array, _amountOfValidElements)
+    }
   }
 }
