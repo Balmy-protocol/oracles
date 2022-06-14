@@ -19,6 +19,10 @@ describe('UniswapV3Adapter', () => {
   const MIN_PERIOD = moment.duration(1, 'minutes').asSeconds();
   const INITIAL_PERIOD = moment.duration(5, 'minutes').asSeconds();
   const INITIAL_CARDINALITY = 100;
+  const POOL1 = '0x0000000000000000000000000000000000000001';
+  const POOL2 = '0x0000000000000000000000000000000000000002';
+  const TOKEN_A = '0x0000000000000000000000000000000000000003';
+  const TOKEN_B = '0x0000000000000000000000000000000000000004';
 
   let superAdmin: SignerWithAddress, admin: SignerWithAddress;
   let adapterFactory: UniswapV3Adapter__factory;
@@ -106,6 +110,30 @@ describe('UniswapV3Adapter', () => {
       });
       then('initial cardinality is set correctly', async () => {
         expect(await adapter.cardinalityPerMinute()).to.equal(INITIAL_CARDINALITY);
+      });
+    });
+  });
+
+  describe('canSupportPair', () => {
+    when('there are no pools', () => {
+      given(() => oracle.getAllPoolsForPair.returns([]));
+      then('pair cannot be supported', async () => {
+        expect(await adapter.canSupportPair(TOKEN_A, TOKEN_B)).to.be.false;
+      });
+    });
+    when('all existing pools are denylisted', () => {
+      given(async () => {
+        oracle.getAllPoolsForPair.returns([POOL1, POOL2]);
+        await adapter.connect(admin).setDenylisted([POOL1, POOL2], [true, true]);
+      });
+      then('pair cannot be supported', async () => {
+        expect(await adapter.canSupportPair(TOKEN_A, TOKEN_B)).to.be.false;
+      });
+    });
+    when('there are allowed pools', () => {
+      given(() => oracle.getAllPoolsForPair.returns([POOL1, POOL2]));
+      then('pair can be supported', async () => {
+        expect(await adapter.canSupportPair(TOKEN_A, TOKEN_B)).to.be.true;
       });
     });
   });
