@@ -60,6 +60,7 @@ describe('UniswapV3Adapter', () => {
     await snapshot.revert(snapshotId);
     oracle.quoteSpecificPoolsWithTimePeriod.reset();
     oracle.prepareSpecificPoolsWithCardinality.reset();
+    oracle.getAllPoolsForPair.reset();
   });
 
   describe('constructor', () => {
@@ -220,6 +221,29 @@ describe('UniswapV3Adapter', () => {
       when: 'there are some pools stored before hand',
       func: 'addOrModifySupportForPair(address,address)',
       context: () => adapter.setPools(TOKEN_A, TOKEN_B, [pool1.address, pool2.address]),
+    });
+  });
+
+  describe('addSupportForPairIfNeeded', () => {
+    whenPairHasNoPoolsThenCallingEndsInRevert('addSupportForPairIfNeeded(address,address)');
+    whenPairHasPoolsButTheyAreAllDenylistedThenCallingEndsInRevert('addSupportForPairIfNeeded(address,address)');
+    testAddSupportForPair({
+      when: 'there are no pools stored before hand',
+      func: 'addSupportForPairIfNeeded(address,address)',
+    });
+    when('there are some pools stored before hand', () => {
+      given(async () => {
+        oracle.getAllPoolsForPair.returns([pool1.address, pool2.address]);
+        await adapter.setPools(TOKEN_A, TOKEN_B, [pool1.address]), await adapter['addSupportForPairIfNeeded(address,address)'](TOKEN_A, TOKEN_B);
+      });
+      then('oracle is never called', () => {
+        expect(oracle.getAllPoolsForPair).to.not.have.been.called;
+        expect(oracle.prepareSpecificPoolsWithCardinality).to.not.have.been.called;
+      });
+      then('stored pools remain are not changed', async () => {
+        const pools = await adapter.getPoolsPreparedForPair(TOKEN_A, TOKEN_B);
+        expect(pools).to.eql([pool1.address]);
+      });
     });
   });
 
@@ -419,7 +443,7 @@ describe('UniswapV3Adapter', () => {
     context,
   }: {
     when: string;
-    func: 'addOrModifySupportForPair(address,address)';
+    func: 'addOrModifySupportForPair(address,address)' | 'addSupportForPairIfNeeded(address,address)';
     context?: () => Promise<any>;
   }) {
     when(title, () => {
