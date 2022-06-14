@@ -20,11 +20,20 @@ interface IUniswapV3Adapter {
    */
   event PeriodChanged(uint32 period);
 
+  /**
+   * @notice Emitted when a new cardinality per minute is set
+   * @param cardinalityPerMinute The new cardinality per minute
+   */
+  event CardinalityPerMinuteChanged(uint8 cardinalityPerMinute);
+
   /// @notice Thrown when one of the parameters is the zero address
   error ZeroAddress();
 
   /// @notice Thrown when trying to set an invalid period
   error InvalidPeriod(uint16 period);
+
+  /// @notice Thrown when trying to set an invalid cardinality
+  error InvalidCardinalityPerMinute();
 
   /**
    * @notice Returns the address of the Uniswap oracle
@@ -54,10 +63,23 @@ interface IUniswapV3Adapter {
   function period() external view returns (uint16);
 
   /**
+   * @notice Returns the cardinality per minute used for adding support to pairs
+   * @return The cardinality per minute used for increase cardinality calculations
+   */
+  function cardinalityPerMinute() external view returns (uint8);
+
+  /**
    * @notice Sets the period to be used for the TWAP calculation
    * @dev Will revert it is lower than the minimum period or greater than maximum period
    *      WARNING: increasing the period could cause big problems, because Uniswap V3 pools might not support a TWAP so old
    * @param newPeriod The new period
    */
   function setPeriod(uint16 newPeriod) external;
+
+  /**
+   * @notice Sets the cardinality per minute to be used when increasing observation cardinality at the moment of adding support for pairs
+   * @dev WARNING: increasing the cardinality per minute will make adding support to a pair significantly costly
+   * @param cardinalityPerMinute The new cardinality per minute
+   */
+  function setCardinalityPerMinute(uint8 cardinalityPerMinute) external;
 }
