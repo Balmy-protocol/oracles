@@ -2,6 +2,8 @@
 pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/access/AccessControl.sol';
+import '@mean-finance/dca-v2-core/contracts/libraries/TokenSorting.sol';
+import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
 import '../../interfaces//adapters/IUniswapV3Adapter.sol';
 
 contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
@@ -20,6 +22,8 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
   uint8 public cardinalityPerMinute;
   /// @inheritdoc IUniswapV3Adapter
   mapping(address => bool) public isPoolDenylisted;
+
+  mapping(bytes32 => address[]) internal _poolsForPair;
 
   constructor(InitialConfig memory _initialConfig) {
     if (_initialConfig.superAdmin == address(0)) revert ZeroAddress();
@@ -55,6 +59,11 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
   }
 
   /// @inheritdoc IUniswapV3Adapter
+  function getPoolsPreparedForPair(address _tokenA, address _tokenB) external view returns (address[] memory) {
+    return _poolsForPair[_keyForPair(_tokenA, _tokenB)];
+  }
+
+  /// @inheritdoc IUniswapV3Adapter
   function setPeriod(uint16 _newPeriod) external onlyRole(ADMIN_ROLE) {
     if (_newPeriod < MIN_PERIOD || _newPeriod > MAX_PERIOD) revert InvalidPeriod(_newPeriod);
     period = _newPeriod;
@@ -72,8 +81,38 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
   function setDenylisted(address[] calldata _pools, bool[] calldata _denylisted) external onlyRole(ADMIN_ROLE) {
     if (_pools.length != _denylisted.length) revert InvalidDenylistParams();
     for (uint256 i; i < _pools.length; i++) {
-      isPoolDenylisted[_pools[i]] = _denylisted[i];
+      address _pool = _pools[i];
+      isPoolDenylisted[_pool] = _denylisted[i];
+      if (_denylisted[i]) {
+        // If we are denylisting a pool, then we remove it from the pair's list of pools
+        _removePoolFromPair(_pool);
+      }
     }
     emit DenylistChanged(_pools, _denylisted);
+  }
+
+  /**
+   * @notice This function will take a Uniswap pool that has just been denylisted. We need to check if it's part
+   *         of the pools assigned for the pair. If it is, then we want to remove the pool from the pair's list
+   */
+  function _removePoolFromPair(address _pool) internal {
+    address[] storage _storagePools = _poolsForPair[_keyForPair(IUniswapV3Pool(_pool).token0(), IUniswapV3Pool(_pool).token1())];
+    uint256 _length = _storagePools.length;
+    if (_length == 0) return;
+    for (uint256 i = _length - 1; i >= 0; i--) {
+      if (_storagePools[i] == _pool) {
+        if (i < _length - 1) {
+          // Bring the latest pools in the array to the current index
+          _storagePools[i] = _storagePools[_length - 1];
+        }
+        _storagePools.pop();
+        return;
+      }
+    }
+  }
+
+  function _keyForPair(address _tokenA, address _tokenB) internal pure returns (bytes32) {
+    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
+    return keccak256(abi.encodePacked(__tokenA, __tokenB));
   }
 }
