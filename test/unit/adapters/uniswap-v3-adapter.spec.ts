@@ -18,6 +18,7 @@ describe('UniswapV3Adapter', () => {
   const MAX_PERIOD = moment.duration(20, 'minutes').asSeconds();
   const MIN_PERIOD = moment.duration(1, 'minutes').asSeconds();
   const INITIAL_PERIOD = moment.duration(5, 'minutes').asSeconds();
+  const INITIAL_CARDINALITY = 100;
 
   let superAdmin: SignerWithAddress, admin: SignerWithAddress;
   let adapterFactory: UniswapV3Adapter__factory;
@@ -30,6 +31,7 @@ describe('UniswapV3Adapter', () => {
   before('Setup accounts and contracts', async () => {
     [, superAdmin, admin] = await ethers.getSigners();
     oracle = await smock.fake('IStaticOracle');
+    oracle.CARDINALITY_PER_MINUTE.returns(INITIAL_CARDINALITY);
     adapterFactory = await ethers.getContractFactory('solidity/contracts/adapters/UniswapV3Adapter.sol:UniswapV3Adapter');
     initialConfig = {
       uniswapV3Oracle: oracle.address,
@@ -102,6 +104,9 @@ describe('UniswapV3Adapter', () => {
       then('initial period is set correctly', async () => {
         expect(await adapter.period()).to.equal(INITIAL_PERIOD);
       });
+      then('initial cardinality is set correctly', async () => {
+        expect(await adapter.cardinalityPerMinute()).to.equal(INITIAL_CARDINALITY);
+      });
     });
   });
 
@@ -143,6 +148,40 @@ describe('UniswapV3Adapter', () => {
     shouldBeExecutableOnlyByRole({
       contract: () => adapter,
       funcAndSignature: 'setPeriod',
+      params: [10],
+      addressWithRole: () => admin,
+      role: () => adminRole,
+    });
+  });
+
+  describe('setCardinalityPerMinute', () => {
+    when('cardinality is zero', () => {
+      then('tx is reverted with reason error', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: adapter.connect(admin),
+          func: 'setCardinalityPerMinute',
+          args: [0],
+          message: 'InvalidCardinalityPerMinute',
+        });
+      });
+    });
+    when('a valid cardinality is provided', () => {
+      let tx: TransactionResponse;
+      given(async () => {
+        tx = await adapter.connect(admin).setCardinalityPerMinute(INITIAL_CARDINALITY + 1);
+      });
+      then('cardinality is updated', async () => {
+        expect(await adapter.cardinalityPerMinute()).to.equal(INITIAL_CARDINALITY + 1);
+      });
+      then('event is emitted', async () => {
+        await expect(tx)
+          .to.emit(adapter, 'CardinalityPerMinuteChanged')
+          .withArgs(INITIAL_CARDINALITY + 1);
+      });
+    });
+    shouldBeExecutableOnlyByRole({
+      contract: () => adapter,
+      funcAndSignature: 'setCardinalityPerMinute',
       params: [10],
       addressWithRole: () => admin,
       role: () => adminRole,

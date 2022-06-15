@@ -16,8 +16,8 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
   uint16 public immutable MIN_PERIOD;
   /// @inheritdoc IUniswapV3Adapter
   uint16 public period;
-
-  // uint8 public cardinalityPerMinute;
+  /// @inheritdoc IUniswapV3Adapter
+  uint8 public cardinalityPerMinute;
 
   constructor(InitialConfig memory _initialConfig) {
     if (_initialConfig.superAdmin == address(0)) revert ZeroAddress();
@@ -35,6 +35,11 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
       revert InvalidPeriod(_initialConfig.initialPeriod);
     period = _initialConfig.initialPeriod;
     emit PeriodChanged(_initialConfig.initialPeriod);
+
+    // Set cardinality, by using the oracle's default
+    uint8 _cardinality = UNISWAP_V3_ORACLE.CARDINALITY_PER_MINUTE();
+    cardinalityPerMinute = _cardinality;
+    emit CardinalityPerMinuteChanged(_cardinality);
   }
 
   /// @inheritdoc IUniswapV3Adapter
@@ -42,5 +47,12 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
     if (_newPeriod < MIN_PERIOD || _newPeriod > MAX_PERIOD) revert InvalidPeriod(_newPeriod);
     period = _newPeriod;
     emit PeriodChanged(_newPeriod);
+  }
+
+  /// @inheritdoc IUniswapV3Adapter
+  function setCardinalityPerMinute(uint8 _cardinalityPerMinute) external onlyRole(ADMIN_ROLE) {
+    if (_cardinalityPerMinute == 0) revert InvalidCardinalityPerMinute();
+    cardinalityPerMinute = _cardinalityPerMinute;
+    emit CardinalityPerMinuteChanged(_cardinalityPerMinute);
   }
 }
