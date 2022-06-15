@@ -44,6 +44,16 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
     emit CardinalityPerMinuteChanged(_cardinality);
   }
 
+  function canSupportPair(address _tokenA, address _tokenB) external view returns (bool) {
+    address[] memory _pools = UNISWAP_V3_ORACLE.getAllPoolsForPair(_tokenA, _tokenB);
+    for (uint256 i; i < _pools.length; i++) {
+      if (!isPoolDenylisted[_pools[i]]) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /// @inheritdoc IUniswapV3Adapter
   function setPeriod(uint16 _newPeriod) external onlyRole(ADMIN_ROLE) {
     if (_newPeriod < MIN_PERIOD || _newPeriod > MAX_PERIOD) revert InvalidPeriod(_newPeriod);
