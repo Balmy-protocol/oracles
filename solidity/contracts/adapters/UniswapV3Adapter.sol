@@ -23,7 +23,7 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
   /// @inheritdoc IUniswapV3Adapter
   mapping(address => bool) public isPoolDenylisted;
 
-  mapping(bytes32 => address[]) internal _poolsForPair;
+  mapping(bytes32 => address[]) internal _poolsForPair; // key(tokenA, tokenB) => pools
 
   constructor(InitialConfig memory _initialConfig) {
     if (_initialConfig.superAdmin == address(0)) revert ZeroAddress();
