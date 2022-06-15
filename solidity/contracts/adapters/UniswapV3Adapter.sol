@@ -18,6 +18,8 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
   uint16 public period;
   /// @inheritdoc IUniswapV3Adapter
   uint8 public cardinalityPerMinute;
+  /// @inheritdoc IUniswapV3Adapter
+  mapping(address => bool) public isPoolDenylisted;
 
   constructor(InitialConfig memory _initialConfig) {
     if (_initialConfig.superAdmin == address(0)) revert ZeroAddress();
@@ -54,5 +56,14 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
     if (_cardinalityPerMinute == 0) revert InvalidCardinalityPerMinute();
     cardinalityPerMinute = _cardinalityPerMinute;
     emit CardinalityPerMinuteChanged(_cardinalityPerMinute);
+  }
+
+  /// @inheritdoc IUniswapV3Adapter
+  function setDenylisted(address[] calldata _pools, bool[] calldata _denylisted) external onlyRole(ADMIN_ROLE) {
+    if (_pools.length != _denylisted.length) revert InvalidDenylistParams();
+    for (uint256 i; i < _pools.length; i++) {
+      isPoolDenylisted[_pools[i]] = _denylisted[i];
+    }
+    emit DenylistChanged(_pools, _denylisted);
   }
 }

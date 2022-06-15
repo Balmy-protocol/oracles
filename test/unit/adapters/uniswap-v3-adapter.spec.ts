@@ -187,4 +187,50 @@ describe('UniswapV3Adapter', () => {
       role: () => adminRole,
     });
   });
+
+  describe('setDenylisted', () => {
+    const ADDRESS = '0x0000000000000000000000000000000000000001';
+    when('parameters are invalid', () => {
+      then('tx is reverted with reason error', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: adapter.connect(admin),
+          func: 'setDenylisted',
+          args: [[], [true]],
+          message: 'InvalidDenylistParams',
+        });
+      });
+    });
+    when('addresses are denylisted', () => {
+      let tx: TransactionResponse;
+      given(async () => {
+        tx = await adapter.connect(admin).setDenylisted([ADDRESS], [true]);
+      });
+      then('their status is updated', async () => {
+        expect(await adapter.isPoolDenylisted(ADDRESS)).to.be.true;
+      });
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(adapter, 'DenylistChanged').withArgs([ADDRESS], [true]);
+      });
+    });
+    when('addresses are allowlisted back', () => {
+      let tx: TransactionResponse;
+      given(async () => {
+        await adapter.connect(admin).setDenylisted([ADDRESS], [true]);
+        tx = await adapter.connect(admin).setDenylisted([ADDRESS], [false]);
+      });
+      then('their status is updated', async () => {
+        expect(await adapter.isPoolDenylisted(ADDRESS)).to.be.false;
+      });
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(adapter, 'DenylistChanged').withArgs([ADDRESS], [false]);
+      });
+    });
+    shouldBeExecutableOnlyByRole({
+      contract: () => adapter,
+      funcAndSignature: 'setDenylisted',
+      params: [[ADDRESS], [true]],
+      addressWithRole: () => admin,
+      role: () => adminRole,
+    });
+  });
 });
