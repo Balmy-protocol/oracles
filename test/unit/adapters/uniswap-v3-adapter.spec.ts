@@ -131,7 +131,10 @@ describe('UniswapV3Adapter', () => {
       });
     });
     when('there are allowed pools', () => {
-      given(() => oracle.getAllPoolsForPair.returns([POOL1, POOL2]));
+      given(async () => {
+        oracle.getAllPoolsForPair.returns([POOL1, POOL2]);
+        await adapter.connect(admin).setDenylisted([POOL1], [true]);
+      });
       then('pair can be supported', async () => {
         expect(await adapter.canSupportPair(TOKEN_A, TOKEN_B)).to.be.true;
       });
