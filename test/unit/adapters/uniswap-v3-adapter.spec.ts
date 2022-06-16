@@ -1,6 +1,6 @@
 import chai, { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { constants } from 'ethers';
+import { BigNumber, constants } from 'ethers';
 import { behaviours } from '@utils';
 import { given, then, when } from '@utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
@@ -58,6 +58,7 @@ describe('UniswapV3Adapter', () => {
 
   beforeEach(async () => {
     await snapshot.revert(snapshotId);
+    oracle.quoteSpecificPoolsWithTimePeriod.reset();
   });
 
   describe('constructor', () => {
@@ -158,6 +159,51 @@ describe('UniswapV3Adapter', () => {
       });
       then('pool is already sipported', async () => {
         expect(await adapter.isPairAlreadySupported(TOKEN_A, TOKEN_B)).to.be.true;
+      });
+    });
+  });
+
+  describe('quote', () => {
+    when('there are no pools stored', () => {
+      then('tx is reverted with reason error', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: adapter,
+          func: 'quote(address,uint256,address)',
+          args: [TOKEN_A, 0, TOKEN_B],
+          message: 'PairNotSupportedYet',
+        });
+      });
+    });
+    when('quote amount is over uint128', () => {
+      let tx: Promise<BigNumber>;
+      given(async () => {
+        await adapter.setPools(TOKEN_A, TOKEN_B, [pool1.address, pool2.address]);
+        tx = adapter['quote(address,uint256,address)'](TOKEN_A, BigNumber.from(2).pow(128), TOKEN_B);
+      });
+      then('tx is reverted with reason error', async () => {
+        expect(tx).to.have.revertedWith(`SafeCast: value doesn't fit in 128 bits`);
+      });
+    });
+    when('there are some stored pools', () => {
+      const RESULT = BigNumber.from(10000);
+      const MAX_AMOUNT_IN = BigNumber.from(2).pow(128).sub(1);
+      let returnedQuote: BigNumber;
+      given(async () => {
+        oracle.quoteSpecificPoolsWithTimePeriod.returns(RESULT);
+        await adapter.setPools(TOKEN_A, TOKEN_B, [pool1.address, pool2.address]);
+        returnedQuote = await adapter['quote(address,uint256,address)'](TOKEN_A, MAX_AMOUNT_IN, TOKEN_B);
+      });
+      then('the oracle is called correctly', async () => {
+        expect(oracle.quoteSpecificPoolsWithTimePeriod).to.have.been.calledOnceWith(
+          MAX_AMOUNT_IN,
+          TOKEN_A,
+          TOKEN_B,
+          [pool1.address, pool2.address],
+          INITIAL_PERIOD
+        );
+      });
+      then('the returned result is the same as the oracle', async () => {
+        expect(returnedQuote).to.equal(RESULT);
       });
     });
   });
