@@ -71,7 +71,7 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
     address _tokenOut
   ) public view returns (uint256 _amountOut) {
     address[] memory _pools = _poolsForPair[_keyForPair(_tokenIn, _tokenOut)];
-    if (_pools.length == 0) revert PairNotAlreadySupported(_tokenIn, _tokenOut);
+    if (_pools.length == 0) revert PairNotSupportedYet(_tokenIn, _tokenOut);
     return UNISWAP_V3_ORACLE.quoteSpecificPoolsWithTimePeriod(_amountIn.toUint128(), _tokenIn, _tokenOut, _pools, period);
   }
 

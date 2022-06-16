@@ -170,7 +170,7 @@ describe('UniswapV3Adapter', () => {
           contract: adapter,
           func: 'quote(address,uint256,address)',
           args: [TOKEN_A, 0, TOKEN_B],
-          message: 'PairNotAlreadySupported',
+          message: 'PairNotSupportedYet',
         });
       });
     });
