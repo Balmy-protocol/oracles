@@ -142,7 +142,7 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
     for (uint256 i; i < _pairs.length; i++) {
       bytes32 _pairKey = _keyForPair(_pairs[i].tokenA, _pairs[i].tokenB);
       _isPairDenylisted[_pairKey] = _denylisted[i];
-      if (_denylisted[i]) {
+      if (_denylisted[i] && _poolsForPair[_pairKey].length > 0) {
         delete _poolsForPair[_pairKey];
       }
     }
