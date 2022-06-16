@@ -15,7 +15,7 @@ import { readArgFromEventOrFail } from '@utils/event-utils';
 
 chai.use(smock.matchers);
 
-describe.only('UniswapV3Adapter', () => {
+describe('UniswapV3Adapter', () => {
   const MAX_PERIOD = moment.duration(20, 'minutes').asSeconds();
   const MIN_PERIOD = moment.duration(1, 'minutes').asSeconds();
   const INITIAL_PERIOD = moment.duration(5, 'minutes').asSeconds();
