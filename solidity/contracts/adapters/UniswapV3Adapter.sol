@@ -58,6 +58,10 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
     return false;
   }
 
+  function isPairAlreadySupported(address _tokenA, address _tokenB) public view returns (bool) {
+    return _poolsForPair[_keyForPair(_tokenA, _tokenB)].length > 0;
+  }
+
   /// @inheritdoc IUniswapV3Adapter
   function getPoolsPreparedForPair(address _tokenA, address _tokenB) external view returns (address[] memory) {
     return _poolsForPair[_keyForPair(_tokenA, _tokenB)];
