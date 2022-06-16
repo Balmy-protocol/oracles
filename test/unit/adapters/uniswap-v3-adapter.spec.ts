@@ -4,7 +4,7 @@ import { constants } from 'ethers';
 import { behaviours } from '@utils';
 import { given, then, when } from '@utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-import { UniswapV3Adapter, UniswapV3Adapter__factory, IStaticOracle } from '@typechained';
+import { UniswapV3AdapterMock, UniswapV3AdapterMock__factory, IStaticOracle, IUniswapV3Pool } from '@typechained';
 import { snapshot } from '@utils/evm';
 import { smock, FakeContract } from '@defi-wonderland/smock';
 import moment from 'moment';
@@ -19,16 +19,15 @@ describe('UniswapV3Adapter', () => {
   const MIN_PERIOD = moment.duration(1, 'minutes').asSeconds();
   const INITIAL_PERIOD = moment.duration(5, 'minutes').asSeconds();
   const INITIAL_CARDINALITY = 100;
-  const POOL1 = '0x0000000000000000000000000000000000000001';
-  const POOL2 = '0x0000000000000000000000000000000000000002';
   const TOKEN_A = '0x0000000000000000000000000000000000000003';
   const TOKEN_B = '0x0000000000000000000000000000000000000004';
 
   let superAdmin: SignerWithAddress, admin: SignerWithAddress;
-  let adapterFactory: UniswapV3Adapter__factory;
-  let adapter: UniswapV3Adapter;
+  let adapterFactory: UniswapV3AdapterMock__factory;
+  let adapter: UniswapV3AdapterMock;
   let superAdminRole: string, adminRole: string;
   let oracle: FakeContract<IStaticOracle>;
+  let pool1: FakeContract<IUniswapV3Pool>, pool2: FakeContract<IUniswapV3Pool>;
   let initialConfig: IUniswapV3Adapter.InitialConfigStruct;
   let snapshotId: string;
 
@@ -36,7 +35,13 @@ describe('UniswapV3Adapter', () => {
     [, superAdmin, admin] = await ethers.getSigners();
     oracle = await smock.fake('IStaticOracle');
     oracle.CARDINALITY_PER_MINUTE.returns(INITIAL_CARDINALITY);
-    adapterFactory = await ethers.getContractFactory('solidity/contracts/adapters/UniswapV3Adapter.sol:UniswapV3Adapter');
+    pool1 = await smock.fake('IUniswapV3Pool');
+    pool2 = await smock.fake('IUniswapV3Pool');
+    pool1.token0.returns(TOKEN_A);
+    pool1.token1.returns(TOKEN_B);
+    pool2.token0.returns(TOKEN_A);
+    pool2.token1.returns(TOKEN_B);
+    adapterFactory = await ethers.getContractFactory('solidity/contracts/test/adapters/UniswapV3Adapter.sol:UniswapV3AdapterMock');
     initialConfig = {
       uniswapV3Oracle: oracle.address,
       maxPeriod: MAX_PERIOD,
@@ -123,8 +128,8 @@ describe('UniswapV3Adapter', () => {
     });
     when('all existing pools are denylisted', () => {
       given(async () => {
-        oracle.getAllPoolsForPair.returns([POOL1, POOL2]);
-        await adapter.connect(admin).setDenylisted([POOL1, POOL2], [true, true]);
+        oracle.getAllPoolsForPair.returns([pool1.address, pool2.address]);
+        await adapter.connect(admin).setDenylisted([pool1.address, pool2.address], [true, true]);
       });
       then('pair cannot be supported', async () => {
         expect(await adapter.canSupportPair(TOKEN_A, TOKEN_B)).to.be.false;
@@ -132,8 +137,8 @@ describe('UniswapV3Adapter', () => {
     });
     when('there are allowed pools', () => {
       given(async () => {
-        oracle.getAllPoolsForPair.returns([POOL1, POOL2]);
-        await adapter.connect(admin).setDenylisted([POOL1], [true]);
+        oracle.getAllPoolsForPair.returns([pool1.address, pool2.address]);
+        await adapter.connect(admin).setDenylisted([pool1.address], [true]);
       });
       then('pair can be supported', async () => {
         expect(await adapter.canSupportPair(TOKEN_A, TOKEN_B)).to.be.true;
@@ -220,7 +225,6 @@ describe('UniswapV3Adapter', () => {
   });
 
   describe('setDenylisted', () => {
-    const ADDRESS = '0x0000000000000000000000000000000000000001';
     when('parameters are invalid', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.txShouldRevertWithMessage({
@@ -231,35 +235,69 @@ describe('UniswapV3Adapter', () => {
         });
       });
     });
-    when('addresses are denylisted', () => {
+    when('pools that were not assigned to the pair are denylisted', () => {
       let tx: TransactionResponse;
       given(async () => {
-        tx = await adapter.connect(admin).setDenylisted([ADDRESS], [true]);
+        tx = await adapter.connect(admin).setDenylisted([pool1.address], [true]);
       });
       then('their status is updated', async () => {
-        expect(await adapter.isPoolDenylisted(ADDRESS)).to.be.true;
+        expect(await adapter.isPoolDenylisted(pool1.address)).to.be.true;
       });
       then('event is emitted', async () => {
-        await expect(tx).to.emit(adapter, 'DenylistChanged').withArgs([ADDRESS], [true]);
+        await expect(tx).to.emit(adapter, 'DenylistChanged').withArgs([pool1.address], [true]);
+      });
+    });
+    when('some pools that were assigned to the pair are denylisted', () => {
+      let tx: TransactionResponse;
+      given(async () => {
+        await adapter.setPools(TOKEN_A, TOKEN_B, [pool1.address, pool2.address]);
+        tx = await adapter.connect(admin).setDenylisted([pool1.address], [true]);
+      });
+      then('their status is updated', async () => {
+        expect(await adapter.isPoolDenylisted(pool1.address)).to.be.true;
+        expect(await adapter.isPoolDenylisted(pool2.address)).to.be.false;
+      });
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(adapter, 'DenylistChanged').withArgs([pool1.address], [true]);
+      });
+      then('assigned pools is calculated correctly', async () => {
+        expect(await adapter.getPoolsPreparedForPair(TOKEN_A, TOKEN_B)).to.eql([pool2.address]);
+      });
+    });
+    when('all pools that were assigned to the pair are denylisted', () => {
+      let tx: TransactionResponse;
+      given(async () => {
+        await adapter.setPools(TOKEN_A, TOKEN_B, [pool1.address, pool2.address]);
+        tx = await adapter.connect(admin).setDenylisted([pool1.address, pool2.address], [true, true]);
+      });
+      then('their status is updated', async () => {
+        expect(await adapter.isPoolDenylisted(pool1.address)).to.be.true;
+        expect(await adapter.isPoolDenylisted(pool2.address)).to.be.true;
+      });
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(adapter, 'DenylistChanged').withArgs([pool1.address, pool2.address], [true, true]);
+      });
+      then('assigned pools is calculated correctly', async () => {
+        expect(await adapter.getPoolsPreparedForPair(TOKEN_A, TOKEN_B)).to.eql([]);
       });
     });
     when('addresses are allowlisted back', () => {
       let tx: TransactionResponse;
       given(async () => {
-        await adapter.connect(admin).setDenylisted([ADDRESS], [true]);
-        tx = await adapter.connect(admin).setDenylisted([ADDRESS], [false]);
+        await adapter.connect(admin).setDenylisted([pool1.address], [true]);
+        tx = await adapter.connect(admin).setDenylisted([pool1.address], [false]);
       });
       then('their status is updated', async () => {
-        expect(await adapter.isPoolDenylisted(ADDRESS)).to.be.false;
+        expect(await adapter.isPoolDenylisted(pool1.address)).to.be.false;
       });
       then('event is emitted', async () => {
-        await expect(tx).to.emit(adapter, 'DenylistChanged').withArgs([ADDRESS], [false]);
+        await expect(tx).to.emit(adapter, 'DenylistChanged').withArgs([pool1.address], [false]);
       });
     });
     shouldBeExecutableOnlyByRole({
       contract: () => adapter,
       funcAndSignature: 'setDenylisted',
-      params: [[ADDRESS], [true]],
+      params: [['0x0000000000000000000000000000000000000001'], [true]],
       addressWithRole: () => admin,
       role: () => adminRole,
     });

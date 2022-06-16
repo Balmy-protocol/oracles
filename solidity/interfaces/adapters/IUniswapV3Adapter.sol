@@ -86,6 +86,17 @@ interface IUniswapV3Adapter {
   function isPoolDenylisted(address pool) external view returns (bool);
 
   /**
+   * @notice When a pair is added to the oracle adapter, we will prepare all pools for the pair. Now, it could
+   *         happen that certain pools are added for the pair at a later stage, and we can't be sure if those pools
+   *         will be configured correctly. So be basically store the pools that ready for sure, and use only those
+   *         for quotes. This functions returns this list of pools known to be prepared
+   * @param tokenA One of the pair's tokens
+   * @param tokenB The other of the pair's tokens
+   * @return The list of pools that will be used for quoting
+   */
+  function getPoolsPreparedForPair(address tokenA, address tokenB) external view returns (address[] memory);
+
+  /**
    * @notice Sets the period to be used for the TWAP calculation
    * @dev Will revert it is lower than the minimum period or greater than maximum period.
    *      Can only be called by users with the admin role
