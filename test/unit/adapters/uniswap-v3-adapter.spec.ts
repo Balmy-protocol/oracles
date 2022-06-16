@@ -354,7 +354,7 @@ describe('UniswapV3Adapter', () => {
       then('event is emitted', async () => {
         await expectEventToBe(tx, [{ tokenA: TOKEN_A, tokenB: TOKEN_B }], [true]);
       });
-      then('assigned pools is removed', async () => {
+      then('assigned pools are removed', async () => {
         expect(await adapter.getPoolsPreparedForPair(TOKEN_A, TOKEN_B)).to.eql([]);
       });
     });
