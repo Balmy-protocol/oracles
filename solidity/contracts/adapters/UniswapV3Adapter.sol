@@ -28,9 +28,6 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
 
   mapping(bytes32 => address[]) internal _poolsForPair; // key(tokenA, tokenB) => pools
 
-  // TODO: Remove when we implement IPriceOracle
-  error PairNotSupported(address tokenA, address tokenB);
-
   constructor(InitialConfig memory _initialConfig) {
     if (_initialConfig.superAdmin == address(0)) revert ZeroAddress();
     UNISWAP_V3_ORACLE = _initialConfig.uniswapV3Oracle;
@@ -54,6 +51,7 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
     emit CardinalityPerMinuteChanged(_cardinality);
   }
 
+  /// @inheritdoc IPriceOracle
   function canSupportPair(address _tokenA, address _tokenB) external view returns (bool) {
     address[] memory _pools = UNISWAP_V3_ORACLE.getAllPoolsForPair(_tokenA, _tokenB);
     for (uint256 i; i < _pools.length; i++) {
@@ -64,10 +62,12 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
     return false;
   }
 
+  /// @inheritdoc IPriceOracle
   function isPairAlreadySupported(address _tokenA, address _tokenB) public view returns (bool) {
     return _poolsForPair[_keyForPair(_tokenA, _tokenB)].length > 0;
   }
 
+  /// @inheritdoc IPriceOracle
   function quote(
     address _tokenIn,
     uint256 _amountIn,
@@ -78,6 +78,7 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
     return UNISWAP_V3_ORACLE.quoteSpecificPoolsWithTimePeriod(_amountIn.toUint128(), _tokenIn, _tokenOut, _pools, period);
   }
 
+  /// @inheritdoc IPriceOracle
   function quote(
     address _tokenIn,
     uint256 _amountIn,
@@ -87,17 +88,35 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
     return quote(_tokenIn, _amountIn, _tokenOut);
   }
 
+  /// @inheritdoc IPriceOracle
   function addOrModifySupportForPair(address _tokenA, address _tokenB) public {
     delete _poolsForPair[_keyForPair(_tokenA, _tokenB)];
     _addOrModifySupportForPair(_tokenA, _tokenB);
   }
 
+  /// @inheritdoc IPriceOracle
   function addOrModifySupportForPair(
     address _tokenA,
     address _tokenB,
     bytes calldata
   ) external {
     addOrModifySupportForPair(_tokenA, _tokenB);
+  }
+
+  /// @inheritdoc IPriceOracle
+  function addSupportForPairIfNeeded(address _tokenA, address _tokenB) public {
+    if (!isPairAlreadySupported(_tokenA, _tokenB)) {
+      _addOrModifySupportForPair(_tokenA, _tokenB);
+    }
+  }
+
+  /// @inheritdoc IPriceOracle
+  function addSupportForPairIfNeeded(
+    address _tokenA,
+    address _tokenB,
+    bytes calldata
+  ) external {
+    addSupportForPairIfNeeded(_tokenA, _tokenB);
   }
 
   /// @inheritdoc IUniswapV3Adapter
@@ -133,7 +152,7 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
     emit DenylistChanged(_pools, _denylisted);
   }
 
-  function _addOrModifySupportForPair(address _tokenA, address _tokenB) internal virtual {
+  function _addOrModifySupportForPair(address _tokenA, address _tokenB) internal {
     uint16 _cardinality = uint16((uint32(period) * cardinalityPerMinute) / 60) + 1;
     address[] memory _allPools = UNISWAP_V3_ORACLE.getAllPoolsForPair(_tokenA, _tokenA);
 
