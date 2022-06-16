@@ -49,7 +49,7 @@ contract OracleAggregator is AccessControl, Multicall, IOracleAggregator {
   function isPairAlreadySupported(address _tokenA, address _tokenB) public view returns (bool) {
     IPriceOracle _oracle = assignedOracle(_tokenA, _tokenB).oracle;
     // We check if the oracle still supports the pair, since it might have lost support
-    return address(_oracle) != address(0) && _oracle.isPairAlreadySupported(_tokenA, _tokenA);
+    return address(_oracle) != address(0) && _oracle.isPairAlreadySupported(_tokenA, _tokenB);
   }
 
   /// @inheritdoc IPriceOracle
