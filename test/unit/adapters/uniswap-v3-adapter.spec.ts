@@ -11,6 +11,7 @@ import moment from 'moment';
 import { IUniswapV3Adapter } from 'typechained/solidity/contracts/adapters/UniswapV3Adapter';
 import { shouldBeExecutableOnlyByRole } from '@utils/behaviours';
 import { TransactionResponse } from 'ethers/node_modules/@ethersproject/providers';
+import { readArgFromEventOrFail } from '@utils/event-utils';
 
 chai.use(smock.matchers);
 
@@ -37,10 +38,6 @@ describe('UniswapV3Adapter', () => {
     oracle.CARDINALITY_PER_MINUTE.returns(INITIAL_CARDINALITY);
     pool1 = await smock.fake('IUniswapV3Pool');
     pool2 = await smock.fake('IUniswapV3Pool');
-    pool1.token0.returns(TOKEN_A);
-    pool1.token1.returns(TOKEN_B);
-    pool2.token0.returns(TOKEN_A);
-    pool2.token1.returns(TOKEN_B);
     adapterFactory = await ethers.getContractFactory('solidity/contracts/test/adapters/UniswapV3Adapter.sol:UniswapV3AdapterMock');
     initialConfig = {
       uniswapV3Oracle: oracle.address,
@@ -59,8 +56,7 @@ describe('UniswapV3Adapter', () => {
   beforeEach(async () => {
     await snapshot.revert(snapshotId);
     oracle.quoteSpecificPoolsWithTimePeriod.reset();
-    oracle.prepareSpecificPoolsWithCardinality.reset();
-    oracle.getAllPoolsForPair.reset();
+    oracle.prepareAllAvailablePoolsWithCardinality.reset();
   });
 
   describe('constructor', () => {
@@ -129,19 +125,18 @@ describe('UniswapV3Adapter', () => {
         expect(await adapter.canSupportPair(TOKEN_A, TOKEN_B)).to.be.false;
       });
     });
-    when('all existing pools are denylisted', () => {
+    when('there are polls but pair is denylisted', () => {
       given(async () => {
         oracle.getAllPoolsForPair.returns([pool1.address, pool2.address]);
-        await adapter.connect(admin).setDenylisted([pool1.address, pool2.address], [true, true]);
+        await adapter.connect(admin).setDenylisted([{ tokenA: TOKEN_A, tokenB: TOKEN_B }], [true]);
       });
       then('pair cannot be supported', async () => {
         expect(await adapter.canSupportPair(TOKEN_A, TOKEN_B)).to.be.false;
       });
     });
-    when('there are allowed pools', () => {
+    when('there are pools and pair is allowed', () => {
       given(async () => {
         oracle.getAllPoolsForPair.returns([pool1.address, pool2.address]);
-        await adapter.connect(admin).setDenylisted([pool1.address], [true]);
       });
       then('pair can be supported', async () => {
         expect(await adapter.canSupportPair(TOKEN_A, TOKEN_B)).to.be.true;
@@ -212,7 +207,7 @@ describe('UniswapV3Adapter', () => {
 
   describe('addOrModifySupportForPair', () => {
     whenPairHasNoPoolsThenCallingEndsInRevert('addOrModifySupportForPair(address,address)');
-    whenPairHasPoolsButTheyAreAllDenylistedThenCallingEndsInRevert('addOrModifySupportForPair(address,address)');
+    whenPairHasPoolsButItIsDenylistedThenCallingEndsInRevert('addOrModifySupportForPair(address,address)');
     testAddSupportForPair({
       when: 'there are no pools stored before hand',
       func: 'addOrModifySupportForPair(address,address)',
@@ -226,7 +221,7 @@ describe('UniswapV3Adapter', () => {
 
   describe('addSupportForPairIfNeeded', () => {
     whenPairHasNoPoolsThenCallingEndsInRevert('addSupportForPairIfNeeded(address,address)');
-    whenPairHasPoolsButTheyAreAllDenylistedThenCallingEndsInRevert('addSupportForPairIfNeeded(address,address)');
+    whenPairHasPoolsButItIsDenylistedThenCallingEndsInRevert('addSupportForPairIfNeeded(address,address)');
     testAddSupportForPair({
       when: 'there are no pools stored before hand',
       func: 'addSupportForPairIfNeeded(address,address)',
@@ -237,8 +232,7 @@ describe('UniswapV3Adapter', () => {
         await adapter.setPools(TOKEN_A, TOKEN_B, [pool1.address]), await adapter['addSupportForPairIfNeeded(address,address)'](TOKEN_A, TOKEN_B);
       });
       then('oracle is never called', () => {
-        expect(oracle.getAllPoolsForPair).to.not.have.been.called;
-        expect(oracle.prepareSpecificPoolsWithCardinality).to.not.have.been.called;
+        expect(oracle.prepareAllAvailablePoolsWithCardinality).to.not.have.been.called;
       });
       then('stored pools remain are not changed', async () => {
         const pools = await adapter.getPoolsPreparedForPair(TOKEN_A, TOKEN_B);
@@ -336,73 +330,66 @@ describe('UniswapV3Adapter', () => {
         });
       });
     });
-    when('pools that were not assigned to the pair are denylisted', () => {
+    when('pair is denylisted', () => {
       let tx: TransactionResponse;
       given(async () => {
-        tx = await adapter.connect(admin).setDenylisted([pool1.address], [true]);
+        tx = await adapter.connect(admin).setDenylisted([{ tokenA: TOKEN_A, tokenB: TOKEN_B }], [true]);
       });
-      then('their status is updated', async () => {
-        expect(await adapter.isPoolDenylisted(pool1.address)).to.be.true;
+      then('its status is updated', async () => {
+        expect(await adapter.isPairDenylisted(TOKEN_A, TOKEN_B)).to.be.true;
       });
       then('event is emitted', async () => {
-        await expect(tx).to.emit(adapter, 'DenylistChanged').withArgs([pool1.address], [true]);
+        await expectEventToBe(tx, [{ tokenA: TOKEN_A, tokenB: TOKEN_B }], [true]);
       });
     });
-    when('some pools that were assigned to the pair are denylisted', () => {
+    when('pair is denylisted and some pools were assigned to the it', () => {
       let tx: TransactionResponse;
       given(async () => {
         await adapter.setPools(TOKEN_A, TOKEN_B, [pool1.address, pool2.address]);
-        tx = await adapter.connect(admin).setDenylisted([pool1.address], [true]);
+        tx = await adapter.connect(admin).setDenylisted([{ tokenA: TOKEN_A, tokenB: TOKEN_B }], [true]);
       });
-      then('their status is updated', async () => {
-        expect(await adapter.isPoolDenylisted(pool1.address)).to.be.true;
-        expect(await adapter.isPoolDenylisted(pool2.address)).to.be.false;
-      });
-      then('event is emitted', async () => {
-        await expect(tx).to.emit(adapter, 'DenylistChanged').withArgs([pool1.address], [true]);
-      });
-      then('assigned pools is calculated correctly', async () => {
-        expect(await adapter.getPoolsPreparedForPair(TOKEN_A, TOKEN_B)).to.eql([pool2.address]);
-      });
-    });
-    when('all pools that were assigned to the pair are denylisted', () => {
-      let tx: TransactionResponse;
-      given(async () => {
-        await adapter.setPools(TOKEN_A, TOKEN_B, [pool1.address, pool2.address]);
-        tx = await adapter.connect(admin).setDenylisted([pool1.address, pool2.address], [true, true]);
-      });
-      then('their status is updated', async () => {
-        expect(await adapter.isPoolDenylisted(pool1.address)).to.be.true;
-        expect(await adapter.isPoolDenylisted(pool2.address)).to.be.true;
+      then('its status is updated', async () => {
+        expect(await adapter.isPairDenylisted(TOKEN_A, TOKEN_B)).to.be.true;
       });
       then('event is emitted', async () => {
-        await expect(tx).to.emit(adapter, 'DenylistChanged').withArgs([pool1.address, pool2.address], [true, true]);
+        await expectEventToBe(tx, [{ tokenA: TOKEN_A, tokenB: TOKEN_B }], [true]);
       });
-      then('assigned pools is calculated correctly', async () => {
+      then('assigned pools are removed', async () => {
         expect(await adapter.getPoolsPreparedForPair(TOKEN_A, TOKEN_B)).to.eql([]);
       });
     });
-    when('addresses are allowlisted back', () => {
+    when('pair is allowlisted back', () => {
       let tx: TransactionResponse;
       given(async () => {
-        await adapter.connect(admin).setDenylisted([pool1.address], [true]);
-        tx = await adapter.connect(admin).setDenylisted([pool1.address], [false]);
+        await adapter.connect(admin).setDenylisted([{ tokenA: TOKEN_A, tokenB: TOKEN_B }], [true]);
+        tx = await adapter.connect(admin).setDenylisted([{ tokenA: TOKEN_A, tokenB: TOKEN_B }], [false]);
       });
-      then('their status is updated', async () => {
-        expect(await adapter.isPoolDenylisted(pool1.address)).to.be.false;
+      then('its status is updated', async () => {
+        expect(await adapter.isPairDenylisted(TOKEN_A, TOKEN_B)).to.be.false;
       });
       then('event is emitted', async () => {
-        await expect(tx).to.emit(adapter, 'DenylistChanged').withArgs([pool1.address], [false]);
+        await expectEventToBe(tx, [{ tokenA: TOKEN_A, tokenB: TOKEN_B }], [false]);
       });
     });
     shouldBeExecutableOnlyByRole({
       contract: () => adapter,
       funcAndSignature: 'setDenylisted',
-      params: [['0x0000000000000000000000000000000000000001'], [true]],
+      params: [[{ tokenA: TOKEN_A, tokenB: TOKEN_B }], [true]],
       addressWithRole: () => admin,
       role: () => adminRole,
     });
   });
+
+  async function expectEventToBe(tx: TransactionResponse, pairs: { tokenA: string; tokenB: string }[], denylisted: boolean[]) {
+    const actualPairs = await readArgFromEventOrFail<{ tokenA: string; tokenB: string }[]>(tx, 'DenylistChanged', 'pairs');
+    const actualDenylisted = await readArgFromEventOrFail(tx, 'DenylistChanged', 'denylisted');
+    expect(actualPairs.length).to.equal(pairs.length);
+    for (let i = 0; i < pairs.length; i++) {
+      expect(actualPairs[i].tokenA).to.equal(pairs[i].tokenA);
+      expect(actualPairs[i].tokenB).to.equal(pairs[i].tokenB);
+    }
+    expect(actualDenylisted).to.eql(denylisted);
+  }
 
   function whenPairHasNoPoolsThenCallingEndsInRevert(func: string) {
     when('pairs have no pools', () => {
@@ -420,11 +407,11 @@ describe('UniswapV3Adapter', () => {
     });
   }
 
-  function whenPairHasPoolsButTheyAreAllDenylistedThenCallingEndsInRevert(func: string) {
-    when('pairs has pools but they are all denylisted', () => {
+  function whenPairHasPoolsButItIsDenylistedThenCallingEndsInRevert(func: string) {
+    when('pairs is denylisted', () => {
       given(async () => {
         oracle.getAllPoolsForPair.returns([pool1.address]);
-        await adapter.connect(admin).setDenylisted([pool1.address], [true]);
+        await adapter.connect(admin).setDenylisted([{ tokenA: TOKEN_A, tokenB: TOKEN_B }], [true]);
       });
       then('tx is reverted with reason error', async () => {
         await behaviours.txShouldRevertWithMessage({
@@ -450,20 +437,19 @@ describe('UniswapV3Adapter', () => {
       let tx: TransactionResponse;
       given(async () => {
         await context?.();
-        oracle.getAllPoolsForPair.returns([pool1.address, pool2.address]);
-        await adapter.connect(admin).setDenylisted([pool1.address], [true]);
+        oracle.prepareAllAvailablePoolsWithCardinality.returns([pool1.address, pool2.address]);
         tx = await adapter[func](TOKEN_A, TOKEN_B);
       });
       then('oracle is called correctly', () => {
         const cardinality = BigNumber.from(INITIAL_PERIOD).mul(INITIAL_CARDINALITY).div(60).add(1);
-        expect(oracle.prepareSpecificPoolsWithCardinality).to.have.been.calledOnceWith([pool2.address], cardinality);
+        expect(oracle.prepareAllAvailablePoolsWithCardinality).to.have.been.calledOnceWith(TOKEN_A, TOKEN_B, cardinality);
       });
-      then('only allowed pools are stored', async () => {
+      then('all returned pools are stored', async () => {
         const pools = await adapter.getPoolsPreparedForPair(TOKEN_A, TOKEN_B);
-        expect(pools).to.eql([pool2.address]);
+        expect(pools).to.eql([pool1.address, pool2.address]);
       });
       then('event is emitted', async () => {
-        await expect(tx).to.emit(adapter, 'UpdatedSupport').withArgs(TOKEN_A, TOKEN_B, [pool2.address]);
+        await expect(tx).to.emit(adapter, 'UpdatedSupport').withArgs(TOKEN_A, TOKEN_B, [pool1.address, pool2.address]);
       });
     });
   }

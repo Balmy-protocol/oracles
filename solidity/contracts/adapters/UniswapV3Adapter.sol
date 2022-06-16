@@ -23,9 +23,8 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
   uint16 public period;
   /// @inheritdoc IUniswapV3Adapter
   uint8 public cardinalityPerMinute;
-  /// @inheritdoc IUniswapV3Adapter
-  mapping(address => bool) public isPoolDenylisted;
 
+  mapping(bytes32 => bool) internal _isPairDenylisted; // key(tokenA, tokenB) => is denylisted
   mapping(bytes32 => address[]) internal _poolsForPair; // key(tokenA, tokenB) => pools
 
   constructor(InitialConfig memory _initialConfig) {
@@ -53,13 +52,7 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
 
   /// @inheritdoc IPriceOracle
   function canSupportPair(address _tokenA, address _tokenB) external view returns (bool) {
-    address[] memory _pools = UNISWAP_V3_ORACLE.getAllPoolsForPair(_tokenA, _tokenB);
-    for (uint256 i; i < _pools.length; i++) {
-      if (!isPoolDenylisted[_pools[i]]) {
-        return true;
-      }
-    }
-    return false;
+    return !_isPairDenylisted[_keyForPair(_tokenA, _tokenB)] && UNISWAP_V3_ORACLE.getAllPoolsForPair(_tokenA, _tokenB).length > 0;
   }
 
   /// @inheritdoc IPriceOracle
@@ -120,6 +113,11 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
   }
 
   /// @inheritdoc IUniswapV3Adapter
+  function isPairDenylisted(address _tokenA, address _tokenB) external view returns (bool) {
+    return _isPairDenylisted[_keyForPair(_tokenA, _tokenB)];
+  }
+
+  /// @inheritdoc IUniswapV3Adapter
   function getPoolsPreparedForPair(address _tokenA, address _tokenB) external view returns (address[] memory) {
     return _poolsForPair[_keyForPair(_tokenA, _tokenB)];
   }
@@ -139,72 +137,36 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
   }
 
   /// @inheritdoc IUniswapV3Adapter
-  function setDenylisted(address[] calldata _pools, bool[] calldata _denylisted) external onlyRole(ADMIN_ROLE) {
-    if (_pools.length != _denylisted.length) revert InvalidDenylistParams();
-    for (uint256 i; i < _pools.length; i++) {
-      address _pool = _pools[i];
-      isPoolDenylisted[_pool] = _denylisted[i];
-      if (_denylisted[i]) {
-        // If we are denylisting a pool, then we remove it from the pair's list of pools
-        _removePoolFromPair(_pool);
+  function setDenylisted(Pair[] calldata _pairs, bool[] calldata _denylisted) external onlyRole(ADMIN_ROLE) {
+    if (_pairs.length != _denylisted.length) revert InvalidDenylistParams();
+    for (uint256 i; i < _pairs.length; i++) {
+      bytes32 _pairKey = _keyForPair(_pairs[i].tokenA, _pairs[i].tokenB);
+      _isPairDenylisted[_pairKey] = _denylisted[i];
+      if (_denylisted[i] && _poolsForPair[_pairKey].length > 0) {
+        delete _poolsForPair[_pairKey];
       }
     }
-    emit DenylistChanged(_pools, _denylisted);
+    emit DenylistChanged(_pairs, _denylisted);
   }
 
   function _addOrModifySupportForPair(address _tokenA, address _tokenB) internal {
+    bytes32 _pairKey = _keyForPair(_tokenA, _tokenB);
+    if (_isPairDenylisted[_pairKey]) revert PairNotSupported(_tokenA, _tokenB);
+
     uint16 _cardinality = uint16((uint32(period) * cardinalityPerMinute) / 60) + 1;
-    address[] memory _allPools = UNISWAP_V3_ORACLE.getAllPoolsForPair(_tokenA, _tokenA);
+    address[] memory _pools = UNISWAP_V3_ORACLE.prepareAllAvailablePoolsWithCardinality(_tokenA, _tokenB, _cardinality);
+    if (_pools.length == 0) revert PairNotSupported(_tokenA, _tokenB);
 
-    uint256 _amountOfStoredPools;
-    address[] memory _storedPools = new address[](_allPools.length);
-    address[] storage _storagePools = _poolsForPair[_keyForPair(_tokenA, _tokenB)];
-    for (uint256 i; i < _allPools.length; i++) {
-      address _pool = _allPools[i];
-      if (!isPoolDenylisted[_pool]) {
-        _storagePools.push(_pool);
-        _storedPools[_amountOfStoredPools++] = _pool;
-      }
+    address[] storage _storagePools = _poolsForPair[_pairKey];
+    for (uint256 i; i < _pools.length; i++) {
+      _storagePools.push(_pools[i]);
     }
-    if (_amountOfStoredPools == 0) revert PairNotSupported(_tokenA, _tokenB);
 
-    _resizeArray(_storedPools, _amountOfStoredPools);
-    UNISWAP_V3_ORACLE.prepareSpecificPoolsWithCardinality(_storedPools, _cardinality);
-    emit UpdatedSupport(_tokenA, _tokenB, _storedPools);
-  }
-
-  /**
-   * @notice This function will take a Uniswap pool that has just been denylisted. We need to check if it's part
-   *         of the pools assigned for the pair. If it is, then we want to remove the pool from the pair's list
-   */
-  function _removePoolFromPair(address _pool) internal {
-    address[] storage _storagePools = _poolsForPair[_keyForPair(IUniswapV3Pool(_pool).token0(), IUniswapV3Pool(_pool).token1())];
-    uint256 _length = _storagePools.length;
-    if (_length == 0) return;
-    for (uint256 i = _length - 1; i >= 0; i--) {
-      if (_storagePools[i] == _pool) {
-        if (i < _length - 1) {
-          // Bring the latest pools in the array to the current index
-          _storagePools[i] = _storagePools[_length - 1];
-        }
-        _storagePools.pop();
-        return;
-      }
-    }
+    emit UpdatedSupport(_tokenA, _tokenB, _pools);
   }
 
   function _keyForPair(address _tokenA, address _tokenB) internal pure returns (bytes32) {
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     return keccak256(abi.encodePacked(__tokenA, __tokenB));
-  }
-
-  function _resizeArray(address[] memory _array, uint256 _amountOfValidElements) internal pure {
-    // If all elements are valid, then nothing to do here
-    if (_array.length == _amountOfValidElements) return;
-
-    // If not, then resize the array
-    assembly {
-      mstore(_array, _amountOfValidElements)
-    }
   }
 }
