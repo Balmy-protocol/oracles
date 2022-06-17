@@ -6,8 +6,11 @@ pragma solidity >=0.5.0;
  * @notice These methods allow users to add support for pairs, and then ask for quotes
  */
 interface IPriceOracle {
-  /// @notice Thrown when trying to execute an action with an unsupported pair
-  error PairNotSupported(address tokenA, address tokenB);
+  /// @notice Thrown when trying to add support for a pair that cannot be supported
+  error PairCannotBeSupported(address tokenA, address tokenB);
+
+  /// @notice Thrown when trying to execute a quote with a pair that isn't supported yet
+  error PairNotSupportedYet(address tokenA, address tokenB);
 
   /**
    * @notice Returns whether this oracle can support the given pair of tokens

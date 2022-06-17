@@ -151,11 +151,11 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
 
   function _addOrModifySupportForPair(address _tokenA, address _tokenB) internal {
     bytes32 _pairKey = _keyForPair(_tokenA, _tokenB);
-    if (_isPairDenylisted[_pairKey]) revert PairNotSupported(_tokenA, _tokenB);
+    if (_isPairDenylisted[_pairKey]) revert PairCannotBeSupported(_tokenA, _tokenB);
 
     uint16 _cardinality = uint16((uint32(period) * cardinalityPerMinute) / 60) + 1;
     address[] memory _pools = UNISWAP_V3_ORACLE.prepareAllAvailablePoolsWithCardinality(_tokenA, _tokenB, _cardinality);
-    if (_pools.length == 0) revert PairNotSupported(_tokenA, _tokenB);
+    if (_pools.length == 0) revert PairCannotBeSupported(_tokenA, _tokenB);
 
     address[] storage _storagePools = _poolsForPair[_pairKey];
     for (uint256 i; i < _pools.length; i++) {

@@ -401,7 +401,7 @@ describe('UniswapV3Adapter', () => {
           contract: adapter,
           func,
           args: [TOKEN_A, TOKEN_B],
-          message: 'PairNotSupported',
+          message: 'PairCannotBeSupported',
         });
       });
     });
@@ -418,7 +418,7 @@ describe('UniswapV3Adapter', () => {
           contract: adapter,
           func,
           args: [TOKEN_A, TOKEN_B],
-          message: 'PairNotSupported',
+          message: 'PairCannotBeSupported',
         });
       });
     });

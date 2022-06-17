@@ -69,7 +69,7 @@ contract OracleAggregator is AccessControl, Multicall, IOracleAggregator {
     bytes memory _data
   ) public view returns (uint256 _amountOut) {
     IPriceOracle _oracle = assignedOracle(_tokenIn, _tokenOut).oracle;
-    if (address(_oracle) == address(0)) revert PairNotSupported(_tokenIn, _tokenOut);
+    if (address(_oracle) == address(0)) revert PairNotSupportedYet(_tokenIn, _tokenOut);
     return _oracle.quote(_tokenIn, _amountIn, _tokenOut, _data);
   }
 
@@ -179,7 +179,7 @@ contract OracleAggregator is AccessControl, Multicall, IOracleAggregator {
         return;
       }
     }
-    revert PairNotSupported(_tokenA, _tokenB);
+    revert PairCannotBeSupported(_tokenA, _tokenB);
   }
 
   /// @dev We expect tokens to be sorted (tokenA < tokenB)

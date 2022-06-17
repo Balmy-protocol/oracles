@@ -146,7 +146,7 @@ describe('OracleAggregator', () => {
           contract: oracleAggregator,
           func: 'quote(address,uint256,address)',
           args: [TOKEN_A, 1000, TOKEN_B],
-          message: `PairNotSupported`,
+          message: `PairNotSupportedYet`,
         });
       });
     });
@@ -383,7 +383,7 @@ describe('OracleAggregator', () => {
           contract: oracleAggregator,
           func: 'internalAddOrModifySupportForPair',
           args: [TOKEN_A, TOKEN_B, BYTES],
-          message: `PairNotSupported("${TOKEN_A}", "${TOKEN_B}")`,
+          message: `PairCannotBeSupported("${TOKEN_A}", "${TOKEN_B}")`,
         });
       });
     });
