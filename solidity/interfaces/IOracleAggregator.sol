@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity >=0.5.0;
 
-import './IPriceOracle.sol';
+import './ITokenPriceOracle.sol';
 
 /**
- * @title An implementation of `IPriceOracle` that aggregates two or more oracles. It's important to
+ * @title An implementation of `ITokenPriceOracle` that aggregates two or more oracles. It's important to
  *        note that this oracle is permissioned. Admins can determine available oracles and they can
  *        also force an oracle for a specific pair
  * @notice This oracle will use two or more oracles to support price quotes
  */
-interface IOracleAggregator is IPriceOracle {
+interface IOracleAggregator is ITokenPriceOracle {
   /// @notice An oracle's assignment for a specific pair
   struct OracleAssignment {
     // The oracle's address
-    IPriceOracle oracle;
+    ITokenPriceOracle oracle;
     // Whether the oracle was forced by an admin. If forced, only an admin can modify it
     bool forced;
   }
@@ -25,7 +25,7 @@ interface IOracleAggregator is IPriceOracle {
    * @notice Emitted when the list of oracles is updated
    * @param oracles The new list of oracles
    */
-  event OracleListUpdated(IPriceOracle[] oracles);
+  event OracleListUpdated(ITokenPriceOracle[] oracles);
 
   /**
    * @notice Emitted when an oracle is assigned to a pair
@@ -33,7 +33,7 @@ interface IOracleAggregator is IPriceOracle {
    * @param tokenB The other of the pair's tokens
    * @param oracle The oracle that was assigned to the pair
    */
-  event OracleAssigned(address tokenA, address tokenB, IPriceOracle oracle);
+  event OracleAssigned(address tokenA, address tokenB, ITokenPriceOracle oracle);
 
   /**
    * @notice Returns the assigned oracle (or the zero address if there isn't one) for the given pair
@@ -48,7 +48,7 @@ interface IOracleAggregator is IPriceOracle {
    * @notice Returns whether this oracle can support the given pair of tokens
    * @return Whether the given pair of tokens can be supported by the oracle
    */
-  function availableOracles() external view returns (IPriceOracle[] memory);
+  function availableOracles() external view returns (ITokenPriceOracle[] memory);
 
   /**
    * @notice Sets a new oracle for the given pair. After it's sent, only other admins will be able
@@ -62,7 +62,7 @@ interface IOracleAggregator is IPriceOracle {
   function forceOracle(
     address tokenA,
     address tokenB,
-    IPriceOracle oracle
+    ITokenPriceOracle oracle
   ) external;
 
   /**
@@ -70,5 +70,5 @@ interface IOracleAggregator is IPriceOracle {
    * @dev Can only be called by users with the admin role
    * @param oracles The new list of oracles to set
    */
-  function setAvailableOracles(IPriceOracle[] calldata oracles) external;
+  function setAvailableOracles(ITokenPriceOracle[] calldata oracles) external;
 }

@@ -5,7 +5,7 @@ pragma solidity >=0.5.0;
  * @title The interface for an oracle that provides price quotes
  * @notice These methods allow users to add support for pairs, and then ask for quotes
  */
-interface IPriceOracle {
+interface ITokenPriceOracle {
   /// @notice Thrown when trying to add support for a pair that cannot be supported
   error PairCannotBeSupported(address tokenA, address tokenB);
 
@@ -33,7 +33,7 @@ interface IPriceOracle {
   /**
    * @notice Returns a quote, based on the given tokens and amount. Can be consider the same as
    *         calling `quote(tokenIn, amountIn, tokenOut, data)` with empty data
-   * @dev Will revert if pair cannot be supported
+   * @dev Will revert if pair isn't supported
    * @param tokenIn The token that will be provided
    * @param amountIn The amount that will be provided
    * @param tokenOut The token we would like to quote
@@ -47,7 +47,7 @@ interface IPriceOracle {
 
   /**
    * @notice Returns a quote, based on the given tokens and amount
-   * @dev Will revert if pair cannot be supported
+   * @dev Will revert if pair isn't supported
    * @param tokenIn The token that will be provided
    * @param amountIn The amount that will be provided
    * @param tokenOut The token we would like to quote

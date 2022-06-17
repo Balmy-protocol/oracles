@@ -11,11 +11,11 @@ contract OracleAggregator is AccessControl, Multicall, IOracleAggregator {
   bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
 
   // A list of available oracles. Oracles first on the array will take precedence over those that come later
-  IPriceOracle[] internal _availableOracles;
+  ITokenPriceOracle[] internal _availableOracles;
   mapping(bytes32 => OracleAssignment) internal _assignedOracle; // key(tokenA, tokenB) => oracle
 
   constructor(
-    IPriceOracle[] memory _initialOracles,
+    ITokenPriceOracle[] memory _initialOracles,
     address _superAdmin,
     address[] memory _initialAdmins
   ) {
@@ -34,7 +34,7 @@ contract OracleAggregator is AccessControl, Multicall, IOracleAggregator {
     }
   }
 
-  /// @inheritdoc IPriceOracle
+  /// @inheritdoc ITokenPriceOracle
   function canSupportPair(address _tokenA, address _tokenB) external view returns (bool) {
     uint256 _length = _availableOracles.length;
     for (uint256 i; i < _length; i++) {
@@ -45,14 +45,14 @@ contract OracleAggregator is AccessControl, Multicall, IOracleAggregator {
     return false;
   }
 
-  /// @inheritdoc IPriceOracle
+  /// @inheritdoc ITokenPriceOracle
   function isPairAlreadySupported(address _tokenA, address _tokenB) public view returns (bool) {
-    IPriceOracle _oracle = assignedOracle(_tokenA, _tokenB).oracle;
+    ITokenPriceOracle _oracle = assignedOracle(_tokenA, _tokenB).oracle;
     // We check if the oracle still supports the pair, since it might have lost support
     return address(_oracle) != address(0) && _oracle.isPairAlreadySupported(_tokenA, _tokenB);
   }
 
-  /// @inheritdoc IPriceOracle
+  /// @inheritdoc ITokenPriceOracle
   function quote(
     address _tokenIn,
     uint256 _amountIn,
@@ -61,24 +61,24 @@ contract OracleAggregator is AccessControl, Multicall, IOracleAggregator {
     return quote(_tokenIn, _amountIn, _tokenOut, '');
   }
 
-  /// @inheritdoc IPriceOracle
+  /// @inheritdoc ITokenPriceOracle
   function quote(
     address _tokenIn,
     uint256 _amountIn,
     address _tokenOut,
     bytes memory _data
   ) public view returns (uint256 _amountOut) {
-    IPriceOracle _oracle = assignedOracle(_tokenIn, _tokenOut).oracle;
+    ITokenPriceOracle _oracle = assignedOracle(_tokenIn, _tokenOut).oracle;
     if (address(_oracle) == address(0)) revert PairNotSupportedYet(_tokenIn, _tokenOut);
     return _oracle.quote(_tokenIn, _amountIn, _tokenOut, _data);
   }
 
-  /// @inheritdoc IPriceOracle
+  /// @inheritdoc ITokenPriceOracle
   function addOrModifySupportForPair(address _tokenA, address _tokenB) external {
     addOrModifySupportForPair(_tokenA, _tokenB, '');
   }
 
-  /// @inheritdoc IPriceOracle
+  /// @inheritdoc ITokenPriceOracle
   function addOrModifySupportForPair(
     address _tokenA,
     address _tokenB,
@@ -97,12 +97,12 @@ contract OracleAggregator is AccessControl, Multicall, IOracleAggregator {
     }
   }
 
-  /// @inheritdoc IPriceOracle
+  /// @inheritdoc ITokenPriceOracle
   function addSupportForPairIfNeeded(address _tokenA, address _tokenB) external {
     addSupportForPairIfNeeded(_tokenA, _tokenB, '');
   }
 
-  /// @inheritdoc IPriceOracle
+  /// @inheritdoc ITokenPriceOracle
   function addSupportForPairIfNeeded(
     address _tokenA,
     address _tokenB,
@@ -121,7 +121,7 @@ contract OracleAggregator is AccessControl, Multicall, IOracleAggregator {
   }
 
   /// @inheritdoc IOracleAggregator
-  function availableOracles() external view returns (IPriceOracle[] memory) {
+  function availableOracles() external view returns (ITokenPriceOracle[] memory) {
     return _availableOracles;
   }
 
@@ -129,14 +129,14 @@ contract OracleAggregator is AccessControl, Multicall, IOracleAggregator {
   function forceOracle(
     address _tokenA,
     address _tokenB,
-    IPriceOracle _oracle
+    ITokenPriceOracle _oracle
   ) external onlyRole(ADMIN_ROLE) {
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     _setOracle(__tokenA, __tokenB, _oracle, true);
   }
 
   /// @inheritdoc IOracleAggregator
-  function setAvailableOracles(IPriceOracle[] calldata _oracles) external onlyRole(ADMIN_ROLE) {
+  function setAvailableOracles(ITokenPriceOracle[] calldata _oracles) external onlyRole(ADMIN_ROLE) {
     uint256 _currentAvailableOracles = _availableOracles.length;
     uint256 _min = _currentAvailableOracles < _oracles.length ? _currentAvailableOracles : _oracles.length;
 
@@ -172,7 +172,7 @@ contract OracleAggregator is AccessControl, Multicall, IOracleAggregator {
   ) internal virtual {
     uint256 _length = _availableOracles.length;
     for (uint256 i; i < _length; i++) {
-      IPriceOracle _oracle = _availableOracles[i];
+      ITokenPriceOracle _oracle = _availableOracles[i];
       if (_oracle.canSupportPair(_tokenA, _tokenB)) {
         _oracle.addOrModifySupportForPair(_tokenA, _tokenB, _data);
         _setOracle(_tokenA, _tokenB, _oracle, false);
@@ -186,7 +186,7 @@ contract OracleAggregator is AccessControl, Multicall, IOracleAggregator {
   function _setOracle(
     address _tokenA,
     address _tokenB,
-    IPriceOracle _oracle,
+    ITokenPriceOracle _oracle,
     bool _forced
   ) internal {
     _assignedOracle[_keyForPair(_tokenA, _tokenB)] = OracleAssignment({oracle: _oracle, forced: _forced});

@@ -50,17 +50,17 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
     emit CardinalityPerMinuteChanged(_cardinality);
   }
 
-  /// @inheritdoc IPriceOracle
+  /// @inheritdoc ITokenPriceOracle
   function canSupportPair(address _tokenA, address _tokenB) external view returns (bool) {
     return !_isPairDenylisted[_keyForPair(_tokenA, _tokenB)] && UNISWAP_V3_ORACLE.getAllPoolsForPair(_tokenA, _tokenB).length > 0;
   }
 
-  /// @inheritdoc IPriceOracle
+  /// @inheritdoc ITokenPriceOracle
   function isPairAlreadySupported(address _tokenA, address _tokenB) public view returns (bool) {
     return _poolsForPair[_keyForPair(_tokenA, _tokenB)].length > 0;
   }
 
-  /// @inheritdoc IPriceOracle
+  /// @inheritdoc ITokenPriceOracle
   function quote(
     address _tokenIn,
     uint256 _amountIn,
@@ -71,7 +71,7 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
     return UNISWAP_V3_ORACLE.quoteSpecificPoolsWithTimePeriod(_amountIn.toUint128(), _tokenIn, _tokenOut, _pools, period);
   }
 
-  /// @inheritdoc IPriceOracle
+  /// @inheritdoc ITokenPriceOracle
   function quote(
     address _tokenIn,
     uint256 _amountIn,
@@ -81,13 +81,13 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
     return quote(_tokenIn, _amountIn, _tokenOut);
   }
 
-  /// @inheritdoc IPriceOracle
+  /// @inheritdoc ITokenPriceOracle
   function addOrModifySupportForPair(address _tokenA, address _tokenB) public {
     delete _poolsForPair[_keyForPair(_tokenA, _tokenB)];
     _addOrModifySupportForPair(_tokenA, _tokenB);
   }
 
-  /// @inheritdoc IPriceOracle
+  /// @inheritdoc ITokenPriceOracle
   function addOrModifySupportForPair(
     address _tokenA,
     address _tokenB,
@@ -96,14 +96,14 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
     addOrModifySupportForPair(_tokenA, _tokenB);
   }
 
-  /// @inheritdoc IPriceOracle
+  /// @inheritdoc ITokenPriceOracle
   function addSupportForPairIfNeeded(address _tokenA, address _tokenB) public {
     if (!isPairAlreadySupported(_tokenA, _tokenB)) {
       _addOrModifySupportForPair(_tokenA, _tokenB);
     }
   }
 
-  /// @inheritdoc IPriceOracle
+  /// @inheritdoc ITokenPriceOracle
   function addSupportForPairIfNeeded(
     address _tokenA,
     address _tokenB,

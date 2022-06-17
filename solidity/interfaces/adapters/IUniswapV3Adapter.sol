@@ -2,9 +2,9 @@
 pragma solidity >=0.8.7 <0.9.0;
 
 import '../IStaticOracle.sol'; // TODO: use the published npm library for this, and remove interface file
-import '../IPriceOracle.sol';
+import '../ITokenPriceOracle.sol';
 
-interface IUniswapV3Adapter is IPriceOracle {
+interface IUniswapV3Adapter is ITokenPriceOracle {
   /// @notice The initial adapter's configuration
   struct InitialConfig {
     IStaticOracle uniswapV3Oracle;

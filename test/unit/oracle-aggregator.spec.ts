@@ -4,7 +4,7 @@ import { BigNumber, constants } from 'ethers';
 import { behaviours } from '@utils';
 import { given, then, when } from '@utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-import { OracleAggregatorMock, OracleAggregatorMock__factory, IPriceOracle } from '@typechained';
+import { OracleAggregatorMock, OracleAggregatorMock__factory, ITokenPriceOracle } from '@typechained';
 import { snapshot } from '@utils/evm';
 import { smock, FakeContract } from '@defi-wonderland/smock';
 import { shouldBeExecutableOnlyByRole } from '@utils/behaviours';
@@ -20,14 +20,14 @@ describe('OracleAggregator', () => {
   let oracleAggregatorFactory: OracleAggregatorMock__factory;
   let oracleAggregator: OracleAggregatorMock;
   let superAdminRole: string, adminRole: string;
-  let oracle1: FakeContract<IPriceOracle>, oracle2: FakeContract<IPriceOracle>;
+  let oracle1: FakeContract<ITokenPriceOracle>, oracle2: FakeContract<ITokenPriceOracle>;
   let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
     [, superAdmin, admin] = await ethers.getSigners();
     oracleAggregatorFactory = await ethers.getContractFactory('solidity/contracts/test/OracleAggregator.sol:OracleAggregatorMock');
-    oracle1 = await smock.fake('IPriceOracle');
-    oracle2 = await smock.fake('IPriceOracle');
+    oracle1 = await smock.fake('ITokenPriceOracle');
+    oracle2 = await smock.fake('ITokenPriceOracle');
     oracleAggregator = await oracleAggregatorFactory.deploy([oracle1.address, oracle2.address], superAdmin.address, [admin.address]);
     superAdminRole = await oracleAggregator.SUPER_ADMIN_ROLE();
     adminRole = await oracleAggregator.ADMIN_ROLE();
