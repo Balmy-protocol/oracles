@@ -76,6 +76,7 @@
   "dependencies": {
     "@mean-finance/dca-v2-core": "^2.1.0",
     "@mean-finance/deterministic-factory": "1.0.0",
+    "@mean-finance/uniswap-v3-oracle": "1.0.0",
     "@openzeppelin/contracts": "4.6.0",
     "@uniswap/v3-core": "1.0.1"
   },
