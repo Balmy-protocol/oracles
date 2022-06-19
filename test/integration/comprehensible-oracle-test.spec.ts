@@ -63,12 +63,12 @@ describe('Comprehensive Oracle Test', () => {
         await snapshot.revert(snapshotId);
       });
       describe('canSupportPair', () => {
-        when('asked if the pair can be supported', () => {
+        when('asked if a valid can be supported', () => {
           then('the oracle returns true', async () => {
             expect(await oracle.canSupportPair(tokenIn, tokenOut)).to.be.true;
           });
         });
-        when('asked if the pair can be supported with reversed tokens', () => {
+        when('asked if a valid can be supported with reversed tokens', () => {
           then('the oracle returns true', async () => {
             expect(await oracle.canSupportPair(tokenOut, tokenIn)).to.be.true;
           });
@@ -80,7 +80,7 @@ describe('Comprehensive Oracle Test', () => {
         });
       });
       describe('isPairAlreadySupported', () => {
-        when('asked if the pair is already supported', () => {
+        when('asked if a valid is already supported', () => {
           then('the oracle returns ' + canOracleWorkWithoutAddingExplicitSupport, async () => {
             expect(await oracle.isPairAlreadySupported(tokenIn, tokenOut)).to.equal(canOracleWorkWithoutAddingExplicitSupport);
           });
