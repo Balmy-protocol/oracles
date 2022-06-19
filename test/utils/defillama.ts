@@ -6,12 +6,17 @@ export const getLastPrice = async (network: string, coin: string): Promise<numbe
 };
 
 export const getPrice = async (network: string, coin: string, timestamp?: number): Promise<number> => {
+  const { price } = await getTokenData(network, coin, timestamp);
+  return price;
+};
+
+export const getTokenData = async (network: string, coin: string, timestamp?: number): Promise<{ price: number; decimals: number }> => {
   const coinId = `${network}:${coin.toLowerCase()}`;
   const response = await axios.post('https://coins.llama.fi/prices', { coins: [coinId], timestamp });
 
   const { coins } = response.data;
 
-  return coins[coinId].price;
+  return coins[coinId];
 };
 
 export const convertPriceToBigNumberWithDecimals = (price: number, decimals: number): BigNumber => {
