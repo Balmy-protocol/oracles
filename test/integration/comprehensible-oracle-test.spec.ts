@@ -4,7 +4,7 @@ import { contract, given, then, when } from '@utils/bdd';
 import { expect } from 'chai';
 import { getNodeUrl } from 'utils/env';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-import { ITokenPriceOracle } from '@typechained';
+import { ITokenPriceOracle, OracleAggregator } from '@typechained';
 import { convertPriceToBigNumberWithDecimals, getTokenData } from '../utils/defillama';
 import { BigNumber, constants, utils } from 'ethers';
 import { DeterministicFactory, DeterministicFactory__factory } from '@mean-finance/deterministic-factory/typechained';
@@ -14,6 +14,11 @@ import { setTestChainId } from 'utils/deploy';
 const CHAIN = { chain: 'optimism', chainId: 10 };
 const BLOCK_NUMBER = 12350000;
 const BYTES = '0xf2c047db4a7cf81f935c'; // Some random bytes
+
+const UNI = '0x6fd9d7AD17242c41f7131d257212c54A0e816691';
+const DAI = '0xda10009cbd5d07dd0cecc66161fc93d7c9000da1';
+const STG = '0x296f55f8fb28e498b858d0bcda06d955b2cb3f97';
+const USDC = '0x7f5c764cbc14f9669b88837ca1490cca17c31607';
 
 describe('Comprehensive Oracle Test', () => {
   let deployer: SignerWithAddress;
@@ -25,30 +30,64 @@ describe('Comprehensive Oracle Test', () => {
 
   oracleComprehensiveTest({
     oracle: 'StatefulChainlinkOracleAdapter',
-    tokenIn: '0x6fd9d7AD17242c41f7131d257212c54A0e816691', // UNI
-    tokenOut: '0xda10009cbd5d07dd0cecc66161fc93d7c9000da1', // DAI
+    tokenIn: UNI,
+    tokenOut: DAI,
     canOracleWorkWithoutAddingExplicitSupport: false,
   });
 
   oracleComprehensiveTest({
     oracle: 'UniswapV3Adapter',
-    tokenIn: '0x296f55f8fb28e498b858d0bcda06d955b2cb3f97', // STG
-    tokenOut: '0x7f5c764cbc14f9669b88837ca1490cca17c31607', // USDC
+    tokenIn: STG,
+    tokenOut: USDC,
     canOracleWorkWithoutAddingExplicitSupport: false,
+  });
+
+  oracleComprehensiveTest({
+    title: 'OracleAggregator (Chainlink Stateful)',
+    oracle: 'OracleAggregator',
+    tokenIn: UNI,
+    tokenOut: DAI,
+    canOracleWorkWithoutAddingExplicitSupport: false,
+    extraCheck: async (oracle: OracleAggregator) => {
+      // Make sure that this pair is using the Chainlink adapter
+      const chainlinkAdapter = await ethers.getContract('StatefulChainlinkOracleAdapter');
+      await oracle['addSupportForPairIfNeeded(address,address)'](UNI, DAI);
+      const [assigned] = await oracle.assignedOracle(UNI, DAI);
+      expect(assigned).to.equal(chainlinkAdapter.address);
+    },
+  });
+
+  oracleComprehensiveTest({
+    title: 'OracleAggregator (Uniswap v3)',
+    oracle: 'OracleAggregator',
+    tokenIn: STG,
+    tokenOut: USDC,
+    canOracleWorkWithoutAddingExplicitSupport: false,
+    extraCheck: async (oracle: OracleAggregator) => {
+      // Make sure that this pair is using the Uniswap v3 adapter
+      const uniV3Adapter = await ethers.getContract('UniswapV3Adapter');
+      await oracle['addSupportForPairIfNeeded(address,address)'](STG, USDC);
+      const [assigned] = await oracle.assignedOracle(STG, USDC);
+      expect(assigned).to.equal(uniV3Adapter.address);
+    },
   });
 
   function oracleComprehensiveTest({
     oracle: oracleName,
+    title,
     tokenIn,
     tokenOut,
     canOracleWorkWithoutAddingExplicitSupport,
+    extraCheck,
   }: {
+    title?: string;
     oracle: string;
     tokenIn: string;
     tokenOut: string;
     canOracleWorkWithoutAddingExplicitSupport: boolean;
+    extraCheck?: (oracle: any) => Promise<any>;
   }) {
-    contract(oracleName, () => {
+    contract(title ?? oracleName, () => {
       const ADD_SUPPORT_WITHOUT_DATA = ['addOrModifySupportForPair(address,address)', 'addSupportForPairIfNeeded(address,address)'] as const;
       const ADD_SUPPORT_WITH_DATA = [
         'addOrModifySupportForPair(address,address,bytes)',
@@ -66,6 +105,9 @@ describe('Comprehensive Oracle Test', () => {
         amountIn = utils.parseUnits('1', tokenInData.decimals);
         expectedAmountOut = convertPriceToBigNumberWithDecimals(tokenInData.price / tokenOutData.price, tokenOutData.decimals);
         snapshotId = await snapshot.take();
+
+        // Perform extra check (right after snapshot was taken)
+        await extraCheck?.(oracle);
       });
       beforeEach(async () => {
         await snapshot.revert(snapshotId);
