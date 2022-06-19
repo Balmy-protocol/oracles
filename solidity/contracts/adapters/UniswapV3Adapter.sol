@@ -52,7 +52,14 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
 
   /// @inheritdoc ITokenPriceOracle
   function canSupportPair(address _tokenA, address _tokenB) external view returns (bool) {
-    return !_isPairDenylisted[_keyForPair(_tokenA, _tokenB)] && UNISWAP_V3_ORACLE.getAllPoolsForPair(_tokenA, _tokenB).length > 0;
+    if (_isPairDenylisted[_keyForPair(_tokenA, _tokenB)]) {
+      return false;
+    }
+    try UNISWAP_V3_ORACLE.getAllPoolsForPair(_tokenA, _tokenB) returns (address[] memory _pools) {
+      return _pools.length > 0;
+    } catch {
+      return false;
+    }
   }
 
   /// @inheritdoc ITokenPriceOracle

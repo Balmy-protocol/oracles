@@ -125,6 +125,12 @@ describe('UniswapV3Adapter', () => {
         expect(await adapter.canSupportPair(TOKEN_A, TOKEN_B)).to.be.false;
       });
     });
+    when('call to oracle reverts', () => {
+      given(() => oracle.getAllPoolsForPair.reverts());
+      then('pair cannot be supported', async () => {
+        expect(await adapter.canSupportPair(TOKEN_A, TOKEN_B)).to.be.false;
+      });
+    });
     when('there are polls but pair is denylisted', () => {
       given(async () => {
         oracle.getAllPoolsForPair.returns([pool1.address, pool2.address]);
