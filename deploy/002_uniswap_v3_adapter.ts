@@ -4,23 +4,21 @@ import { UniswapV3Adapter__factory } from '@typechained';
 import { deployThroughDeterministicFactory } from '@mean-finance/deterministic-factory/utils/deployment';
 import { DeployFunction } from '@0xged/hardhat-deploy/dist/types';
 import moment from 'moment';
+import { getAdminAddress } from './utils';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
+  const chainId = await getChainId(hre);
+  const superAdmin = getAdminAddress(chainId);
 
   const minimumPeriod = moment.duration('5', 'minutes').as('seconds');
   const maximumPeriod = moment.duration('45', 'minutes').as('seconds');
   let period: number;
-  let superAdmin: string;
 
-  switch (await getChainId(hre)) {
+  switch (chainId) {
     case 10: // Optimism
-      period = moment.duration('10', 'minutes').as('seconds');
-      superAdmin = '0x308810881807189cAe91950888b2cB73A1CC5920';
-      break;
     case 137: // Polygon
       period = moment.duration('10', 'minutes').as('seconds');
-      superAdmin = '0xCe9F6991b48970d6c9Ef99Fffb112359584488e3';
       break;
     default:
       throw new Error(`Unsupported chain '${hre.network.name}`);
