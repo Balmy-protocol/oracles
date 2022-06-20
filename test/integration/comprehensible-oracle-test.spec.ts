@@ -9,9 +9,10 @@ import { convertPriceToBigNumberWithDecimals, getTokenData } from '../utils/defi
 import { BigNumber, constants, utils } from 'ethers';
 import { DeterministicFactory, DeterministicFactory__factory } from '@mean-finance/deterministic-factory/typechained';
 import { snapshot } from '@utils/evm';
+import { setTestChainId } from 'utils/deploy';
 
-const CHAIN = 'optimism';
-const BLOCK_NUMBER = 12147788;
+const CHAIN = { chain: 'optimism', chainId: 10 };
+const BLOCK_NUMBER = 12350000;
 const BYTES = '0xf2c047db4a7cf81f935c'; // Some random bytes
 
 describe('Comprehensive Oracle Test', () => {
@@ -19,13 +20,20 @@ describe('Comprehensive Oracle Test', () => {
 
   before(async () => {
     [deployer] = await ethers.getSigners();
-    await fork({ chain: CHAIN, blockNumber: BLOCK_NUMBER });
+    await fork({ ...CHAIN, blockNumber: BLOCK_NUMBER });
   });
 
   oracleComprehensiveTest({
     oracle: 'StatefulChainlinkOracleAdapter',
     tokenIn: '0x6fd9d7AD17242c41f7131d257212c54A0e816691', // UNI
     tokenOut: '0xda10009cbd5d07dd0cecc66161fc93d7c9000da1', // DAI
+    canOracleWorkWithoutAddingExplicitSupport: false,
+  });
+
+  oracleComprehensiveTest({
+    oracle: 'UniswapV3Adapter',
+    tokenIn: '0x296f55f8fb28e498b858d0bcda06d955b2cb3f97', // STG
+    tokenOut: '0x7f5c764cbc14f9669b88837ca1490cca17c31607', // USDC
     canOracleWorkWithoutAddingExplicitSupport: false,
   });
 
@@ -53,8 +61,8 @@ describe('Comprehensive Oracle Test', () => {
         await deployments.fixture([oracleName], { keepExistingDeployments: true });
         oracle = await ethers.getContract<ITokenPriceOracle>(oracleName);
         const { timestamp } = await ethers.provider.getBlock(BLOCK_NUMBER);
-        const tokenInData = await getTokenData(CHAIN, tokenIn, timestamp);
-        const tokenOutData = await getTokenData(CHAIN, tokenOut, timestamp);
+        const tokenInData = await getTokenData(CHAIN.chain, tokenIn, timestamp);
+        const tokenOutData = await getTokenData(CHAIN.chain, tokenOut, timestamp);
         amountIn = utils.parseUnits('1', tokenInData.decimals);
         expectedAmountOut = convertPriceToBigNumberWithDecimals(tokenInData.price / tokenOutData.price, tokenOutData.decimals);
         snapshotId = await snapshot.take();
@@ -194,12 +202,13 @@ describe('Comprehensive Oracle Test', () => {
 
   const DETERMINISTIC_FACTORY_ADMIN = '0x1a00e1e311009e56e3b0b9ed6f86f5ce128a1c01';
   const DEPLOYER_ROLE = utils.keccak256(utils.toUtf8Bytes('DEPLOYER_ROLE'));
-  async function fork({ chain, blockNumber }: { chain: string; blockNumber?: number }): Promise<void> {
+  async function fork({ chain, chainId, blockNumber }: { chain: string; chainId: number; blockNumber?: number }): Promise<void> {
     // Set fork of network
     await evm.reset({
       jsonRpcUrl: getNodeUrl(chain),
       blockNumber,
     });
+    setTestChainId(chainId);
     // Give deployer role to our deployer address
     const admin = await wallet.impersonate(DETERMINISTIC_FACTORY_ADMIN);
     await wallet.setBalance({ account: admin._address, balance: constants.MaxUint256 });
