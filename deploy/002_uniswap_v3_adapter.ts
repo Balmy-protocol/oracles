@@ -17,7 +17,11 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 
   switch (chainId) {
     case 10: // Optimism
+    case 69: // Optimism Kovan
+    case 42161: // Arbitrum
+    case 421611: // Arbitrum Rinkeby
     case 137: // Polygon
+    case 80001: // Polygon Mumbai
       period = moment.duration('10', 'minutes').as('seconds');
       break;
     default:
