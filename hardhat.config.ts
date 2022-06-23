@@ -74,7 +74,12 @@ const config: HardhatUserConfig = {
     deployer: {
       default: 4,
     },
-    admin: '0x1a00e1e311009e56e3b0b9ed6f86f5ce128a1c01',
+    admin: {
+      optimism: '0x308810881807189cAe91950888b2cB73A1CC5920', // Optimism
+      polygon: '0xCe9F6991b48970d6c9Ef99Fffb112359584488e3', // Polygon
+      arbitrum: '0x84F4836e8022765Af9FBCE3Bb2887fD826c668f1', // Arbitrum
+      default: '0x1a00e1e311009e56e3b0b9ed6f86f5ce128a1c01',
+    },
   },
   mocha: {
     timeout: process.env.MOCHA_TIMEOUT || 300000,

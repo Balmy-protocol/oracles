@@ -4,12 +4,10 @@ import { UniswapV3Adapter__factory } from '@typechained';
 import { deployThroughDeterministicFactory } from '@mean-finance/deterministic-factory/utils/deployment';
 import { DeployFunction } from '@0xged/hardhat-deploy/dist/types';
 import moment from 'moment';
-import { getAdminAddress } from './utils';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployer } = await hre.getNamedAccounts();
+  const { deployer, admin: superAdmin } = await hre.getNamedAccounts();
   const chainId = await getChainId(hre);
-  const superAdmin = getAdminAddress(chainId);
 
   const minimumPeriod = moment.duration('5', 'minutes').as('seconds');
   const maximumPeriod = moment.duration('45', 'minutes').as('seconds');

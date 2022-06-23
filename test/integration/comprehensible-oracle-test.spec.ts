@@ -1,4 +1,4 @@
-import { deployments, ethers } from 'hardhat';
+import hre, { deployments, ethers } from 'hardhat';
 import { evm, wallet } from '@utils';
 import { contract, given, then, when } from '@utils/bdd';
 import { expect } from 'chai';
@@ -24,7 +24,8 @@ describe('Comprehensive Oracle Test', () => {
   let deployer: SignerWithAddress;
 
   before(async () => {
-    [deployer] = await ethers.getSigners();
+    const { deployer: deployerAddress } = await hre.getNamedAccounts();
+    deployer = await ethers.getSigner(deployerAddress);
     await fork({ ...CHAIN, blockNumber: BLOCK_NUMBER });
   });
 
