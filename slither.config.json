@@ -1,4 +1,5 @@
 {
+  "exclude_low": true,
   "detectors_to_exclude": "conformance-to-solidity-naming-conventions,incorrect-versions-of-solidity,variable-names-are-too-similar",
   "filter_paths": "node_modules|openzeppelin|interfaces"
 }
