@@ -32,7 +32,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     minPeriod: minimumPeriod,
     initialPeriod: period,
     superAdmin,
-    initialAdmins: [],
+    initialAdmins: [superAdmin],
   };
 
   await deployThroughDeterministicFactory({

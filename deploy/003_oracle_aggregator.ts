@@ -19,7 +19,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     bytecode: OracleAggregator__factory.bytecode,
     constructorArgs: {
       types: ['address[]', 'address', 'address[]'],
-      values: [oracles, superAdmin, []],
+      values: [oracles, superAdmin, [superAdmin]],
     },
     log: !process.env.TEST,
     overrides: {
