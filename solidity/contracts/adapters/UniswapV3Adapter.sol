@@ -6,8 +6,9 @@ import '@openzeppelin/contracts/utils/math/SafeCast.sol';
 import '@mean-finance/dca-v2-core/contracts/libraries/TokenSorting.sol';
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
 import '../../interfaces//adapters/IUniswapV3Adapter.sol';
+import '../base/BaseOracle.sol';
 
-contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
+contract UniswapV3Adapter is AccessControl, BaseOracle, IUniswapV3Adapter {
   using SafeCast for uint256;
 
   bytes32 public constant SUPER_ADMIN_ROLE = keccak256('SUPER_ADMIN_ROLE');
@@ -135,6 +136,11 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
       }
     }
     emit DenylistChanged(_pairs, _denylisted);
+  }
+
+  /// @inheritdoc IERC165
+  function supportsInterface(bytes4 interfaceId) public view virtual override(AccessControl, BaseOracle) returns (bool) {
+    return AccessControl.supportsInterface(interfaceId) || BaseOracle.supportsInterface(interfaceId);
   }
 
   function _addOrModifySupportForPair(address _tokenA, address _tokenB) internal {

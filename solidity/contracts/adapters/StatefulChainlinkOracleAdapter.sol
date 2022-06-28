@@ -4,10 +4,10 @@ pragma solidity >=0.8.7 <0.9.0;
 import '@mean-finance/dca-v2-core/contracts/libraries/TokenSorting.sol';
 import '@mean-finance/dca-v2-core/contracts/interfaces/oracles/IChainlinkOracle.sol';
 import '@openzeppelin/contracts/utils/math/SafeCast.sol';
-import '../../interfaces/ITokenPriceOracle.sol';
+import '../base/BaseOracle.sol';
 
 /// @notice An adapter to make the stateful Chainlink oracle implement ITokenPriceOracle
-contract StatefulChainlinkOracleAdapter is ITokenPriceOracle {
+contract StatefulChainlinkOracleAdapter is BaseOracle {
   using SafeCast for uint256;
 
   /// @notice Returns the address of the stateful Chainlink oracle
