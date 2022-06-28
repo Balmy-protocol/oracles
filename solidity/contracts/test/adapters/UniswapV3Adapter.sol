@@ -6,6 +6,14 @@ import '../../adapters/UniswapV3Adapter.sol';
 contract UniswapV3AdapterMock is UniswapV3Adapter {
   constructor(InitialConfig memory _initialConfig) UniswapV3Adapter(_initialConfig) {}
 
+  function internalAddOrModifySupportForPair(
+    address _tokenA,
+    address _tokenB,
+    bytes calldata _data
+  ) external {
+    _addOrModifySupportForPair(_tokenA, _tokenB, _data);
+  }
+
   function setPools(
     address _tokenA,
     address _tokenB,
