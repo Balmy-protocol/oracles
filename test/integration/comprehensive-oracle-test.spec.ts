@@ -52,7 +52,7 @@ describe('Comprehensive Oracle Test', () => {
     extraCheck: async (oracle: OracleAggregator) => {
       // Make sure that this pair is using the Chainlink adapter
       const chainlinkAdapter = await ethers.getContract('StatefulChainlinkOracleAdapter');
-      await oracle['addSupportForPairIfNeeded(address,address)'](UNI, DAI);
+      await oracle.addSupportForPairIfNeeded(UNI, DAI, BYTES);
       const [assigned] = await oracle.assignedOracle(UNI, DAI);
       expect(assigned).to.equal(chainlinkAdapter.address);
     },
@@ -67,7 +67,7 @@ describe('Comprehensive Oracle Test', () => {
     extraCheck: async (oracle: OracleAggregator) => {
       // Make sure that this pair is using the Uniswap v3 adapter
       const uniV3Adapter = await ethers.getContract('UniswapV3Adapter');
-      await oracle['addSupportForPairIfNeeded(address,address)'](STG, USDC);
+      await oracle.addSupportForPairIfNeeded(STG, USDC, BYTES);
       const [assigned] = await oracle.assignedOracle(STG, USDC);
       expect(assigned).to.equal(uniV3Adapter.address);
     },
@@ -89,11 +89,7 @@ describe('Comprehensive Oracle Test', () => {
     extraCheck?: (oracle: any) => Promise<any>;
   }) {
     contract(title ?? oracleName, () => {
-      const ADD_SUPPORT_WITHOUT_DATA = ['addOrModifySupportForPair(address,address)', 'addSupportForPairIfNeeded(address,address)'] as const;
-      const ADD_SUPPORT_WITH_DATA = [
-        'addOrModifySupportForPair(address,address,bytes)',
-        'addSupportForPairIfNeeded(address,address,bytes)',
-      ] as const;
+      const ADD_SUPPORT = ['addOrModifySupportForPair', 'addSupportForPairIfNeeded'] as const;
       let amountIn: BigNumber, expectedAmountOut: BigNumber;
       let oracle: ITokenPriceOracle;
       let snapshotId: string;
@@ -145,26 +141,14 @@ describe('Comprehensive Oracle Test', () => {
         if (!canOracleWorkWithoutAddingExplicitSupport) {
           when('trying to quote without adding explicit support', () => {
             then('tx reverts', async () => {
-              const tx = oracle['quote(address,uint256,address)'](tokenIn, amountIn, tokenOut);
-              await expect(tx).to.have.reverted;
-            });
-          });
-          when('trying to quote with data, without adding explicit support', () => {
-            then('tx reverts', async () => {
-              const tx = oracle['quote(address,uint256,address,bytes)'](tokenIn, amountIn, tokenOut, BYTES);
+              const tx = oracle.quote(tokenIn, amountIn, tokenOut, BYTES);
               await expect(tx).to.have.reverted;
             });
           });
         } else {
           when('trying to quote without adding explicit support', () => {
             then('quote returns as expected', async () => {
-              const result = await oracle['quote(address,uint256,address)'](tokenIn, amountIn, tokenOut);
-              validateQuote(result);
-            });
-          });
-          when('trying to quote with data, without adding explicit support', () => {
-            then('quote with data returns as expected', async () => {
-              const result = await oracle['quote(address,uint256,address,bytes)'](tokenIn, amountIn, tokenOut, BYTES);
+              const result = await oracle.quote(tokenIn, amountIn, tokenOut, BYTES);
               validateQuote(result);
             });
           });
@@ -172,14 +156,7 @@ describe('Comprehensive Oracle Test', () => {
         executeWhenAddingSupportInDifferentContexts({
           then: 'quote returns as expected',
           validation: async () => {
-            const result = await oracle['quote(address,uint256,address)'](tokenIn, amountIn, tokenOut);
-            validateQuote(result);
-          },
-        });
-        executeWhenAddingSupportInDifferentContexts({
-          then: 'quote with data returns as expected',
-          validation: async () => {
-            const result = await oracle['quote(address,uint256,address,bytes)'](tokenIn, amountIn, tokenOut, BYTES);
+            const result = await oracle.quote(tokenIn, amountIn, tokenOut, BYTES);
             validateQuote(result);
           },
         });
@@ -201,15 +178,7 @@ describe('Comprehensive Oracle Test', () => {
       describe('reverts when adding support', () => {
         // Note: we don't check explicitly that 'PairCannotBeSupported' is thrown because some adapters
         // might let the underlying oracle fail differently
-        for (const func of ADD_SUPPORT_WITHOUT_DATA) {
-          when('support is added through ' + func + ' for an invalid pair', () => {
-            then('tx reverts', async () => {
-              const tx = oracle[func](constants.AddressZero, constants.AddressZero);
-              await expect(tx).to.have.reverted;
-            });
-          });
-        }
-        for (const func of ADD_SUPPORT_WITH_DATA) {
+        for (const func of ADD_SUPPORT) {
           when('support is added through ' + func + ' for an invalid pair', () => {
             then('tx reverts', async () => {
               const tx = oracle[func](constants.AddressZero, constants.AddressZero, BYTES);
@@ -219,22 +188,12 @@ describe('Comprehensive Oracle Test', () => {
         }
       });
       function executeWhenAddingSupportInDifferentContexts({ then: title, validation }: { then: string; validation: () => Promise<any> }) {
-        for (const func of ADD_SUPPORT_WITHOUT_DATA) {
+        for (const func of ADD_SUPPORT) {
           when('support is added through ' + func, () => {
-            given(async () => await oracle[func](tokenIn, tokenOut));
-            then(title, async () => await validation());
-          });
-          when('support is added through ' + func + ', in reverse order', () => {
-            given(async () => await oracle[func](tokenOut, tokenIn));
-            then(title, async () => await validation());
-          });
-        }
-        for (const func of ADD_SUPPORT_WITH_DATA) {
-          when('support is added with data through ' + func, () => {
             given(async () => await oracle[func](tokenIn, tokenOut, BYTES));
             then(title, async () => await validation());
           });
-          when('support is added with data through ' + func + ', in reverse order', () => {
+          when('support is added through ' + func + ', in reverse order', () => {
             given(async () => await oracle[func](tokenOut, tokenIn, BYTES));
             then(title, async () => await validation());
           });

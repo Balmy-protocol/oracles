@@ -71,27 +71,12 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
   function quote(
     address _tokenIn,
     uint256 _amountIn,
-    address _tokenOut
-  ) public view returns (uint256 _amountOut) {
-    address[] memory _pools = _poolsForPair[_keyForPair(_tokenIn, _tokenOut)];
-    if (_pools.length == 0) revert PairNotSupportedYet(_tokenIn, _tokenOut);
-    return UNISWAP_V3_ORACLE.quoteSpecificPoolsWithTimePeriod(_amountIn.toUint128(), _tokenIn, _tokenOut, _pools, period);
-  }
-
-  /// @inheritdoc ITokenPriceOracle
-  function quote(
-    address _tokenIn,
-    uint256 _amountIn,
     address _tokenOut,
     bytes calldata
   ) external view returns (uint256) {
-    return quote(_tokenIn, _amountIn, _tokenOut);
-  }
-
-  /// @inheritdoc ITokenPriceOracle
-  function addOrModifySupportForPair(address _tokenA, address _tokenB) public {
-    delete _poolsForPair[_keyForPair(_tokenA, _tokenB)];
-    _addOrModifySupportForPair(_tokenA, _tokenB);
+    address[] memory _pools = _poolsForPair[_keyForPair(_tokenIn, _tokenOut)];
+    if (_pools.length == 0) revert PairNotSupportedYet(_tokenIn, _tokenOut);
+    return UNISWAP_V3_ORACLE.quoteSpecificPoolsWithTimePeriod(_amountIn.toUint128(), _tokenIn, _tokenOut, _pools, period);
   }
 
   /// @inheritdoc ITokenPriceOracle
@@ -100,14 +85,8 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
     address _tokenB,
     bytes calldata
   ) external {
-    addOrModifySupportForPair(_tokenA, _tokenB);
-  }
-
-  /// @inheritdoc ITokenPriceOracle
-  function addSupportForPairIfNeeded(address _tokenA, address _tokenB) public {
-    if (!isPairAlreadySupported(_tokenA, _tokenB)) {
-      _addOrModifySupportForPair(_tokenA, _tokenB);
-    }
+    delete _poolsForPair[_keyForPair(_tokenA, _tokenB)];
+    _addOrModifySupportForPair(_tokenA, _tokenB);
   }
 
   /// @inheritdoc ITokenPriceOracle
@@ -116,7 +95,9 @@ contract UniswapV3Adapter is AccessControl, IUniswapV3Adapter {
     address _tokenB,
     bytes calldata
   ) external {
-    addSupportForPairIfNeeded(_tokenA, _tokenB);
+    if (!isPairAlreadySupported(_tokenA, _tokenB)) {
+      _addOrModifySupportForPair(_tokenA, _tokenB);
+    }
   }
 
   /// @inheritdoc IUniswapV3Adapter

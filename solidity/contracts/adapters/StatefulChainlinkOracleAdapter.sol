@@ -33,24 +33,10 @@ contract StatefulChainlinkOracleAdapter is ITokenPriceOracle {
   function quote(
     address _tokenIn,
     uint256 _amountIn,
-    address _tokenOut
-  ) public view returns (uint256 _amountOut) {
-    return CHAINLINK_ORACLE.quote(_tokenIn, _amountIn.toUint128(), _tokenOut);
-  }
-
-  /// @inheritdoc ITokenPriceOracle
-  function quote(
-    address _tokenIn,
-    uint256 _amountIn,
     address _tokenOut,
     bytes calldata
   ) external view returns (uint256 _amountOut) {
-    return quote(_tokenIn, _amountIn, _tokenOut);
-  }
-
-  /// @inheritdoc ITokenPriceOracle
-  function addOrModifySupportForPair(address _tokenA, address _tokenB) public {
-    CHAINLINK_ORACLE.reconfigureSupportForPair(_tokenA, _tokenB);
+    return CHAINLINK_ORACLE.quote(_tokenIn, _amountIn.toUint128(), _tokenOut);
   }
 
   /// @inheritdoc ITokenPriceOracle
@@ -59,12 +45,7 @@ contract StatefulChainlinkOracleAdapter is ITokenPriceOracle {
     address _tokenB,
     bytes calldata
   ) external {
-    addOrModifySupportForPair(_tokenA, _tokenB);
-  }
-
-  /// @inheritdoc ITokenPriceOracle
-  function addSupportForPairIfNeeded(address _tokenA, address _tokenB) public {
-    CHAINLINK_ORACLE.addSupportForPairIfNeeded(_tokenA, _tokenB);
+    CHAINLINK_ORACLE.reconfigureSupportForPair(_tokenA, _tokenB);
   }
 
   /// @inheritdoc ITokenPriceOracle
@@ -73,6 +54,6 @@ contract StatefulChainlinkOracleAdapter is ITokenPriceOracle {
     address _tokenB,
     bytes calldata
   ) external {
-    addSupportForPairIfNeeded(_tokenA, _tokenB);
+    CHAINLINK_ORACLE.addSupportForPairIfNeeded(_tokenA, _tokenB);
   }
 }
