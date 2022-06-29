@@ -2,10 +2,11 @@ import chai, { expect } from 'chai';
 import { ethers } from 'hardhat';
 import { given, then, when } from '@utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-import { OracleAggregatorMock, OracleAggregatorMock__factory, ITokenPriceOracle } from '@typechained';
+import { OracleAggregatorMock, OracleAggregatorMock__factory, BaseOracle, ERC165__factory, ITokenPriceOracle__factory } from '@typechained';
 import { snapshot } from '@utils/evm';
 import { smock, FakeContract } from '@defi-wonderland/smock';
-import { BigNumber } from 'ethers';
+import { BigNumber, utils } from 'ethers';
+const { makeInterfaceId } = require('@openzeppelin/test-helpers');
 
 chai.use(smock.matchers);
 
@@ -17,7 +18,7 @@ describe('OracleAggregator', () => {
   let superAdmin: SignerWithAddress, admin: SignerWithAddress;
   let oracleAggregator: OracleAggregatorMock;
   let superAdminRole: string, adminRole: string;
-  let oracle1: FakeContract<ITokenPriceOracle>, oracle2: FakeContract<ITokenPriceOracle>;
+  let oracle1: FakeContract<BaseOracle>, oracle2: FakeContract<BaseOracle>;
   let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
@@ -25,8 +26,8 @@ describe('OracleAggregator', () => {
     const oracleAggregatorFactory: OracleAggregatorMock__factory = await ethers.getContractFactory(
       'solidity/contracts/OracleAggregator.sol:OracleAggregator'
     );
-    oracle1 = await smock.fake('ITokenPriceOracle');
-    oracle2 = await smock.fake('ITokenPriceOracle');
+    oracle1 = await deployFakeOracle();
+    oracle2 = await deployFakeOracle();
     oracleAggregator = await oracleAggregatorFactory.deploy([oracle1.address, oracle2.address], superAdmin.address, [admin.address]);
     superAdminRole = await oracleAggregator.SUPER_ADMIN_ROLE();
     adminRole = await oracleAggregator.ADMIN_ROLE();
@@ -80,4 +81,17 @@ describe('OracleAggregator', () => {
       });
     });
   });
+  async function deployFakeOracle() {
+    const ERC_165_INTERFACE_ID = getInterfaceId(ERC165__factory.createInterface());
+    const PRICE_ORACLE_INTERFACE_ID = getInterfaceId(ITokenPriceOracle__factory.createInterface());
+    const oracle = await smock.fake<BaseOracle>('BaseOracle');
+    oracle.supportsInterface.returns(
+      ({ _interfaceId }: { _interfaceId: string }) => _interfaceId === ERC_165_INTERFACE_ID || _interfaceId === PRICE_ORACLE_INTERFACE_ID
+    );
+    return oracle;
+  }
+  function getInterfaceId(interface_: utils.Interface) {
+    const functions = 'functions' in interface_ ? Object.keys(interface_.functions) : interface_;
+    return makeInterfaceId.ERC165(functions);
+  }
 });
