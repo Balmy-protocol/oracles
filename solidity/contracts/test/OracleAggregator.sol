@@ -12,7 +12,7 @@ contract OracleAggregatorMock is OracleAggregator {
   mapping(address => mapping(address => InternalCall)) public internalAddOrModifyCalled;
 
   constructor(
-    ITokenPriceOracle[] memory _initialOracles,
+    address[] memory _initialOracles,
     address _superAdmin,
     address[] memory _initialAdmins
   ) OracleAggregator(_initialOracles, _superAdmin, _initialAdmins) {}

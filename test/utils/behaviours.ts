@@ -8,7 +8,7 @@ import { getStatic } from 'ethers/lib/utils';
 import { wallet } from '.';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { given, then, when } from './bdd';
-const { makeInterfaceId } = require('@openzeppelin/test-helpers');
+import { ERC615Interface, getInterfaceId } from './erc165';
 
 chai.use(chaiAsPromised);
 
@@ -212,18 +212,11 @@ export const shouldSupportInterface = ({
 }: {
   contract: () => Contract;
   interfaceName: string;
-  interface: utils.Interface | { actual: utils.Interface; inheritedFrom: utils.Interface[] };
+  interface: ERC615Interface
 }) => {
   when(`asked if ${interfaceName} is supported`, () => {
     then('result is true', async () => {
-      let functions: string[];
-      if ('actual' in interface_) {
-        const allInheritedFunctions = interface_.inheritedFrom.flatMap((int) => Object.keys(int.functions));
-        functions = Object.keys(interface_.actual.functions).filter((func) => !allInheritedFunctions.includes(func));
-      } else {
-        functions = Object.keys(interface_.functions);
-      }
-      const interfaceId = makeInterfaceId.ERC165(functions);
+      const interfaceId = getInterfaceId(interface_);
       expect(await contract().supportsInterface(interfaceId)).to.be.true;
     });
   });
@@ -240,8 +233,7 @@ export const shouldNotSupportInterface = ({
 }) => {
   when(`asked if ${interfaceName} is supported`, () => {
     then('result is false', async () => {
-      const functions = Object.keys(interface_.functions);
-      const interfaceId = makeInterfaceId.ERC165(functions);
+      const interfaceId = getInterfaceId(interface_);
       expect(await contract().supportsInterface(interfaceId)).to.be.false;
     });
   });
