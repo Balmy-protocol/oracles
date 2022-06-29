@@ -255,7 +255,7 @@ describe('OracleAggregator', () => {
         await behaviours.txShouldRevertWithMessage({
           contract: oracleAggregator.connect(admin),
           func: 'forceOracle',
-          args: [TOKEN_A, TOKEN_B, constants.AddressZero],
+          args: [TOKEN_A, TOKEN_B, constants.AddressZero, BYTES],
           message: `AddressIsNotOracle`,
         });
       });
@@ -263,7 +263,7 @@ describe('OracleAggregator', () => {
     when('oracle is forced', () => {
       let tx: TransactionResponse;
       given(async () => {
-        tx = await oracleAggregator.connect(admin).forceOracle(TOKEN_A, TOKEN_B, oracle2.address);
+        tx = await oracleAggregator.connect(admin).forceOracle(TOKEN_A, TOKEN_B, oracle2.address, BYTES);
       });
       then(`oracle is assigned correctly`, async () => {
         const { oracle, forced } = await oracleAggregator.assignedOracle(TOKEN_A, TOKEN_B);
@@ -273,11 +273,14 @@ describe('OracleAggregator', () => {
       then('event is emitted', async () => {
         await expect(tx).to.emit(oracleAggregator, 'OracleAssigned').withArgs(TOKEN_A, TOKEN_B, oracle2.address);
       });
+      then('oracle is configured', async () => {
+        expect(oracle2.addOrModifySupportForPair).to.be.calledWith(TOKEN_A, TOKEN_B, BYTES);
+      });
     });
     shouldBeExecutableOnlyByRole({
       contract: () => oracleAggregator,
       funcAndSignature: 'forceOracle',
-      params: [TOKEN_A, TOKEN_B, TOKEN_A],
+      params: [TOKEN_A, TOKEN_B, TOKEN_A, BYTES],
       addressWithRole: () => admin,
       role: () => adminRole,
     });
