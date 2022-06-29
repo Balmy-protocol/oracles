@@ -57,6 +57,15 @@ interface IOracleAggregator is ITokenPriceOracle {
   function availableOracles() external view returns (ITokenPriceOracle[] memory);
 
   /**
+   * @notice Returns the oracle that would be assigned to the pair if `addOrModifySupportForPair`
+   *         was called by the same caller
+   * @param tokenA One of the pair's tokens
+   * @param tokenB The other of the pair's tokens
+   * @return The oracle that would be assigned (or the zero address if none could be assigned)
+   */
+  function previewAddOrModifySupportForPair(address tokenA, address tokenB) external view returns (ITokenPriceOracle);
+
+  /**
    * @notice Sets a new oracle for the given pair. After it's sent, only other admins will be able
    *         to modify the pair's oracle
    * @dev Can only be called by users with the admin role
