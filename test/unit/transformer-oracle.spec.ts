@@ -3,7 +3,17 @@ import { ethers } from 'hardhat';
 import { constants } from 'ethers';
 import { behaviours } from '@utils';
 import { then, when } from '@utils/bdd';
-import { ITransformerRegistry, ITokenPriceOracle, TransformerOracle, TransformerOracle__factory } from '@typechained';
+import {
+  ITransformerRegistry,
+  ITokenPriceOracle,
+  TransformerOracle,
+  TransformerOracle__factory,
+  IERC165__factory,
+  Multicall__factory,
+  ITokenPriceOracle__factory,
+  ITransformerOracle__factory,
+  IERC20__factory,
+} from '@typechained';
 import { snapshot } from '@utils/evm';
 import { smock, FakeContract } from '@defi-wonderland/smock';
 
@@ -56,6 +66,37 @@ describe('TransformerOracle', () => {
         const returnedOracle = await transformerOracle.UNDERLYING_ORACLE();
         expect(returnedOracle).to.equal(underlyingOracle.address);
       });
+    });
+  });
+
+  describe('supportsInterface', () => {
+    behaviours.shouldSupportInterface({
+      contract: () => transformerOracle,
+      interfaceName: 'IERC165',
+      interface: IERC165__factory.createInterface(),
+    });
+    behaviours.shouldSupportInterface({
+      contract: () => transformerOracle,
+      interfaceName: 'Multicall',
+      interface: Multicall__factory.createInterface(),
+    });
+    behaviours.shouldSupportInterface({
+      contract: () => transformerOracle,
+      interfaceName: 'ITokenPriceOracle',
+      interface: ITokenPriceOracle__factory.createInterface(),
+    });
+    behaviours.shouldSupportInterface({
+      contract: () => transformerOracle,
+      interfaceName: 'ITransformerOracle',
+      interface: {
+        actual: ITransformerOracle__factory.createInterface(),
+        inheritedFrom: [ITokenPriceOracle__factory.createInterface()],
+      },
+    });
+    behaviours.shouldNotSupportInterface({
+      contract: () => transformerOracle,
+      interfaceName: 'IERC20',
+      interface: IERC20__factory.createInterface(),
     });
   });
 });

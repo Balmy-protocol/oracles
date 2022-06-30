@@ -54,4 +54,9 @@ contract TransformerOracle is BaseOracle, ITransformerOracle {
   ) external {
     // TODO: Implement
   }
+
+  /// @inheritdoc IERC165
+  function supportsInterface(bytes4 _interfaceId) public view override returns (bool) {
+    return _interfaceId == type(ITransformerOracle).interfaceId || super.supportsInterface(_interfaceId);
+  }
 }
