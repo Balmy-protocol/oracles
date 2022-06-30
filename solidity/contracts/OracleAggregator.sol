@@ -3,10 +3,10 @@ pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/access/AccessControl.sol';
 import '@mean-finance/dca-v2-core/contracts/libraries/TokenSorting.sol';
-import './base/BaseOracle.sol';
+import './base/SimpleOracle.sol';
 import '../interfaces/IOracleAggregator.sol';
 
-contract OracleAggregator is AccessControl, BaseOracle, IOracleAggregator {
+contract OracleAggregator is AccessControl, SimpleOracle, IOracleAggregator {
   bytes32 public constant SUPER_ADMIN_ROLE = keccak256('SUPER_ADMIN_ROLE');
   bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
 
@@ -46,7 +46,7 @@ contract OracleAggregator is AccessControl, BaseOracle, IOracleAggregator {
   }
 
   /// @inheritdoc ITokenPriceOracle
-  function isPairAlreadySupported(address _tokenA, address _tokenB) public view returns (bool) {
+  function isPairAlreadySupported(address _tokenA, address _tokenB) public view override(ITokenPriceOracle, SimpleOracle) returns (bool) {
     ITokenPriceOracle _oracle = assignedOracle(_tokenA, _tokenB).oracle;
     // We check if the oracle still supports the pair, since it might have lost support
     return address(_oracle) != address(0) && _oracle.isPairAlreadySupported(_tokenA, _tokenB);
@@ -58,7 +58,7 @@ contract OracleAggregator is AccessControl, BaseOracle, IOracleAggregator {
     uint256 _amountIn,
     address _tokenOut,
     bytes memory _data
-  ) public view returns (uint256 _amountOut) {
+  ) external view returns (uint256 _amountOut) {
     ITokenPriceOracle _oracle = assignedOracle(_tokenIn, _tokenOut).oracle;
     if (address(_oracle) == address(0)) revert PairNotSupportedYet(_tokenIn, _tokenOut);
     return _oracle.quote(_tokenIn, _amountIn, _tokenOut, _data);
@@ -68,37 +68,23 @@ contract OracleAggregator is AccessControl, BaseOracle, IOracleAggregator {
   function addOrModifySupportForPair(
     address _tokenA,
     address _tokenB,
-    bytes memory _data
-  ) public {
-    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
+    bytes calldata _data
+  ) external override(ITokenPriceOracle, SimpleOracle) {
     /* 
       Only modify if one of the following is true:
         - There is no current oracle
         - The current oracle hasn't been forced by an admin
         - The caller is an admin
     */
-    bool _shouldModify = !_assignedOracleForPair(__tokenA, __tokenB).forced || hasRole(ADMIN_ROLE, msg.sender);
+    bool _shouldModify = !assignedOracle(_tokenA, _tokenB).forced || hasRole(ADMIN_ROLE, msg.sender);
     if (_shouldModify) {
-      _addOrModifySupportForPair(__tokenA, __tokenB, _data);
-    }
-  }
-
-  /// @inheritdoc ITokenPriceOracle
-  function addSupportForPairIfNeeded(
-    address _tokenA,
-    address _tokenB,
-    bytes memory _data
-  ) public {
-    if (!isPairAlreadySupported(_tokenA, _tokenB)) {
-      (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
-      _addOrModifySupportForPair(__tokenA, __tokenB, _data);
+      _addOrModifySupportForPair(_tokenA, _tokenB, _data);
     }
   }
 
   /// @inheritdoc IOracleAggregator
   function assignedOracle(address _tokenA, address _tokenB) public view returns (OracleAssignment memory) {
-    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
-    return _assignedOracleForPair(__tokenA, __tokenB);
+    return _assignedOracle[_keyForPair(_tokenA, _tokenB)];
   }
 
   /// @inheritdoc IOracleAggregator
@@ -152,13 +138,12 @@ contract OracleAggregator is AccessControl, BaseOracle, IOracleAggregator {
   /**
    * @notice Checks all oracles again and re-assigns the first that supports the given pair.
    *         It will also reconfigure the assigned oracle
-   * @dev We expect tokens to be sorted (tokenA < tokenB)
    */
   function _addOrModifySupportForPair(
     address _tokenA,
     address _tokenB,
-    bytes memory _data
-  ) internal virtual {
+    bytes calldata _data
+  ) internal virtual override {
     uint256 _length = _availableOracles.length;
     for (uint256 i; i < _length; i++) {
       ITokenPriceOracle _oracle = _availableOracles[i];
@@ -171,7 +156,6 @@ contract OracleAggregator is AccessControl, BaseOracle, IOracleAggregator {
     revert PairCannotBeSupported(_tokenA, _tokenB);
   }
 
-  /// @dev We expect tokens to be sorted (tokenA < tokenB)
   function _setOracle(
     address _tokenA,
     address _tokenB,
@@ -182,13 +166,8 @@ contract OracleAggregator is AccessControl, BaseOracle, IOracleAggregator {
     emit OracleAssigned(_tokenA, _tokenB, _oracle);
   }
 
-  /// @dev We expect tokens to be sorted (tokenA < tokenB)
-  function _assignedOracleForPair(address _tokenA, address _tokenB) internal view returns (OracleAssignment memory) {
-    return _assignedOracle[_keyForPair(_tokenA, _tokenB)];
-  }
-
-  /// @dev We expect tokens to be sorted (tokenA < tokenB)
   function _keyForPair(address _tokenA, address _tokenB) internal pure returns (bytes32) {
-    return keccak256(abi.encodePacked(_tokenA, _tokenB));
+    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
+    return keccak256(abi.encodePacked(__tokenA, __tokenB));
   }
 }

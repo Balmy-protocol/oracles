@@ -176,16 +176,6 @@ describe('OracleAggregator', () => {
   });
 
   describe('addOrModifySupportForPair', () => {
-    when(`pair's addreses are inverted`, () => {
-      given(async () => {
-        await oracleAggregator.addOrModifySupportForPair(TOKEN_B, TOKEN_A, BYTES);
-      });
-      then(`correct order is sent to internal add support`, async () => {
-        const { wasCalled, data } = await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B);
-        expect(wasCalled).to.be.true;
-        expect(data).to.eql(BYTES);
-      });
-    });
     when('no oracle has been assigned', () => {
       given(async () => {
         await oracleAggregator.addOrModifySupportForPair(TOKEN_A, TOKEN_B, BYTES);
@@ -226,52 +216,6 @@ describe('OracleAggregator', () => {
       then('pair is not modified', async () => {
         const { wasCalled } = await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B);
         expect(wasCalled).to.be.false;
-      });
-    });
-  });
-
-  describe('addSupportForPairIfNeeded', () => {
-    when(`pair's addreses are inverted`, () => {
-      given(async () => {
-        await oracleAggregator.addSupportForPairIfNeeded(TOKEN_A, TOKEN_B, BYTES);
-      });
-      then(`correct order is sent to internal add support`, async () => {
-        const { wasCalled, data } = await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B);
-        expect(wasCalled).to.be.true;
-        expect(data).to.eql(BYTES);
-      });
-    });
-    when('pair does not have an assigned oracle', () => {
-      given(async () => {
-        await oracleAggregator.addSupportForPairIfNeeded(TOKEN_A, TOKEN_B, BYTES);
-      });
-      then('internal add support is called', async () => {
-        const { wasCalled, data } = await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B);
-        expect(wasCalled).to.be.true;
-        expect(data).to.eql(BYTES);
-      });
-    });
-    when('pair already has an assigned oracle and it still supports the pair', () => {
-      given(async () => {
-        oracle1.isPairAlreadySupported.returns(true);
-        await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, true);
-        await oracleAggregator.addSupportForPairIfNeeded(TOKEN_A, TOKEN_B, BYTES);
-      });
-      then('internal add is not called', async () => {
-        const { wasCalled } = await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B);
-        expect(wasCalled).to.be.false;
-      });
-    });
-    when('pair already has an assigned oracle but it does not support the pair anymore', () => {
-      given(async () => {
-        oracle1.isPairAlreadySupported.returns(false);
-        await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, true);
-        await oracleAggregator.addSupportForPairIfNeeded(TOKEN_A, TOKEN_B, BYTES);
-      });
-      then('internal add support is called', async () => {
-        const { wasCalled, data } = await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B);
-        expect(wasCalled).to.be.true;
-        expect(data).to.eql(BYTES);
       });
     });
   });
