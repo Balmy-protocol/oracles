@@ -1,13 +1,18 @@
 import hre, { deployments, ethers } from 'hardhat';
-import { evm, wallet } from '@utils';
+import { behaviours, evm, wallet } from '@utils';
 import { contract, given, then, when } from '@utils/bdd';
 import { expect } from 'chai';
 import { getNodeUrl } from 'utils/env';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-import { ITokenPriceOracle, OracleAggregator } from '@typechained';
+import { BaseOracle, ITokenPriceOracle__factory, Multicall__factory, OracleAggregator } from '@typechained';
 import { convertPriceToBigNumberWithDecimals, getTokenData } from '../utils/defillama';
 import { BigNumber, constants, utils } from 'ethers';
-import { DeterministicFactory, DeterministicFactory__factory } from '@mean-finance/deterministic-factory/typechained';
+import {
+  DeterministicFactory,
+  DeterministicFactory__factory,
+  IERC165__factory,
+  IERC20__factory,
+} from '@mean-finance/deterministic-factory/typechained';
 import { snapshot } from '@utils/evm';
 import { setTestChainId } from 'utils/deploy';
 
@@ -91,11 +96,11 @@ describe('Comprehensive Oracle Test', () => {
     contract(title ?? oracleName, () => {
       const ADD_SUPPORT = ['addOrModifySupportForPair', 'addSupportForPairIfNeeded'] as const;
       let amountIn: BigNumber, expectedAmountOut: BigNumber;
-      let oracle: ITokenPriceOracle;
+      let oracle: BaseOracle;
       let snapshotId: string;
       before(async () => {
         await deployments.fixture([oracleName], { keepExistingDeployments: true });
-        oracle = await ethers.getContract<ITokenPriceOracle>(oracleName);
+        oracle = await ethers.getContract<BaseOracle>(oracleName);
         const { timestamp } = await ethers.provider.getBlock(BLOCK_NUMBER);
         const tokenInData = await getTokenData(CHAIN.chain, tokenIn, timestamp);
         const tokenOutData = await getTokenData(CHAIN.chain, tokenOut, timestamp);
@@ -160,20 +165,6 @@ describe('Comprehensive Oracle Test', () => {
             validateQuote(result);
           },
         });
-        function validateQuote(quote: BigNumber) {
-          const TRESHOLD_PERCENTAGE = 2; // 2% price diff tolerance
-
-          const threshold = expectedAmountOut.mul(TRESHOLD_PERCENTAGE * 10).div(100 * 10);
-          const [upperThreshold, lowerThreshold] = [expectedAmountOut.add(threshold), expectedAmountOut.sub(threshold)];
-          const diff = quote.sub(expectedAmountOut);
-          const sign = diff.isNegative() ? '-' : '+';
-          const diffPercentage = diff.abs().mul(10000).div(expectedAmountOut).toNumber() / 100;
-
-          expect(
-            quote.lte(upperThreshold) && quote.gte(lowerThreshold),
-            `Expected ${quote.toString()} to be within [${lowerThreshold.toString()},${upperThreshold.toString()}]. Diff was ${sign}${diffPercentage}%`
-          ).to.be.true;
-        }
       });
       describe('reverts when adding support', () => {
         // Note: we don't check explicitly that 'PairCannotBeSupported' is thrown because some adapters
@@ -198,6 +189,55 @@ describe('Comprehensive Oracle Test', () => {
             then(title, async () => await validation());
           });
         }
+      }
+      describe('multicall', () => {
+        when('adding support and quoting in one tx', () => {
+          let returnedQuote: string;
+          given(async () => {
+            const { data: data1 } = await oracle.populateTransaction.addSupportForPairIfNeeded(tokenIn, tokenOut, []);
+            const { data: data2 } = await oracle.populateTransaction.quote(tokenIn, amountIn, tokenOut, []);
+            [, returnedQuote] = await oracle.callStatic.multicall([data1!, data2!]);
+          });
+          then('returned quote is valid', async () => {
+            validateQuote(BigNumber.from(returnedQuote));
+          });
+        });
+      });
+      describe('supportsInterface', () => {
+        behaviours.shouldSupportInterface({
+          contract: () => oracle,
+          interfaceName: 'IERC165',
+          interface: IERC165__factory.createInterface(),
+        });
+        behaviours.shouldSupportInterface({
+          contract: () => oracle,
+          interfaceName: 'ITokenPriceOracle',
+          interface: ITokenPriceOracle__factory.createInterface(),
+        });
+        behaviours.shouldSupportInterface({
+          contract: () => oracle,
+          interfaceName: 'Multicall',
+          interface: Multicall__factory.createInterface(),
+        });
+        behaviours.shouldNotSupportInterface({
+          contract: () => oracle,
+          interfaceName: 'IERC20',
+          interface: IERC20__factory.createInterface(),
+        });
+      });
+      function validateQuote(quote: BigNumber) {
+        const TRESHOLD_PERCENTAGE = 2; // 2% price diff tolerance
+
+        const threshold = expectedAmountOut.mul(TRESHOLD_PERCENTAGE * 10).div(100 * 10);
+        const [upperThreshold, lowerThreshold] = [expectedAmountOut.add(threshold), expectedAmountOut.sub(threshold)];
+        const diff = quote.sub(expectedAmountOut);
+        const sign = diff.isNegative() ? '-' : '+';
+        const diffPercentage = diff.abs().mul(10000).div(expectedAmountOut).toNumber() / 100;
+
+        expect(
+          quote.lte(upperThreshold) && quote.gte(lowerThreshold),
+          `Expected ${quote.toString()} to be within [${lowerThreshold.toString()},${upperThreshold.toString()}]. Diff was ${sign}${diffPercentage}%`
+        ).to.be.true;
       }
     });
   }

@@ -4,7 +4,18 @@ import { BigNumber, constants } from 'ethers';
 import { behaviours } from '@utils';
 import { given, then, when } from '@utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-import { UniswapV3AdapterMock, UniswapV3AdapterMock__factory, IStaticOracle, IUniswapV3Pool } from '@typechained';
+import {
+  UniswapV3AdapterMock,
+  UniswapV3AdapterMock__factory,
+  IStaticOracle,
+  IUniswapV3Pool,
+  IERC165__factory,
+  ITokenPriceOracle__factory,
+  IUniswapV3Adapter__factory,
+  IAccessControl__factory,
+  IERC20__factory,
+  Multicall__factory,
+} from '@typechained';
 import { snapshot } from '@utils/evm';
 import { smock, FakeContract } from '@defi-wonderland/smock';
 import moment from 'moment';
@@ -383,6 +394,42 @@ describe('UniswapV3Adapter', () => {
       params: [[{ tokenA: TOKEN_A, tokenB: TOKEN_B }], [true]],
       addressWithRole: () => admin,
       role: () => adminRole,
+    });
+  });
+
+  describe('supportsInterface', () => {
+    behaviours.shouldSupportInterface({
+      contract: () => adapter,
+      interfaceName: 'IERC165',
+      interface: IERC165__factory.createInterface(),
+    });
+    behaviours.shouldSupportInterface({
+      contract: () => adapter,
+      interfaceName: 'Multicall',
+      interface: Multicall__factory.createInterface(),
+    });
+    behaviours.shouldSupportInterface({
+      contract: () => adapter,
+      interfaceName: 'ITokenPriceOracle',
+      interface: ITokenPriceOracle__factory.createInterface(),
+    });
+    behaviours.shouldSupportInterface({
+      contract: () => adapter,
+      interfaceName: 'IUniswapV3Adapter',
+      interface: {
+        actual: IUniswapV3Adapter__factory.createInterface(),
+        inheritedFrom: [ITokenPriceOracle__factory.createInterface()],
+      },
+    });
+    behaviours.shouldSupportInterface({
+      contract: () => adapter,
+      interfaceName: 'IAccessControl',
+      interface: IAccessControl__factory.createInterface(),
+    });
+    behaviours.shouldNotSupportInterface({
+      contract: () => adapter,
+      interfaceName: 'IERC20',
+      interface: IERC20__factory.createInterface(),
     });
   });
 

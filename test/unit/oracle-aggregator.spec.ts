@@ -4,7 +4,17 @@ import { BigNumber, constants } from 'ethers';
 import { behaviours } from '@utils';
 import { given, then, when } from '@utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-import { OracleAggregatorMock, OracleAggregatorMock__factory, ITokenPriceOracle } from '@typechained';
+import {
+  OracleAggregatorMock,
+  OracleAggregatorMock__factory,
+  ITokenPriceOracle,
+  IOracleAggregator__factory,
+  ITokenPriceOracle__factory,
+  IERC165__factory,
+  IERC20__factory,
+  IAccessControl__factory,
+  Multicall__factory,
+} from '@typechained';
 import { snapshot } from '@utils/evm';
 import { smock, FakeContract } from '@defi-wonderland/smock';
 import { shouldBeExecutableOnlyByRole } from '@utils/behaviours';
@@ -425,6 +435,42 @@ describe('OracleAggregator', () => {
       params: [[]],
       addressWithRole: () => admin,
       role: () => adminRole,
+    });
+  });
+
+  describe('supportsInterface', () => {
+    behaviours.shouldSupportInterface({
+      contract: () => oracleAggregator,
+      interfaceName: 'IERC165',
+      interface: IERC165__factory.createInterface(),
+    });
+    behaviours.shouldSupportInterface({
+      contract: () => oracleAggregator,
+      interfaceName: 'Multicall',
+      interface: Multicall__factory.createInterface(),
+    });
+    behaviours.shouldSupportInterface({
+      contract: () => oracleAggregator,
+      interfaceName: 'ITokenPriceOracle',
+      interface: ITokenPriceOracle__factory.createInterface(),
+    });
+    behaviours.shouldSupportInterface({
+      contract: () => oracleAggregator,
+      interfaceName: 'IOracleAggregator',
+      interface: {
+        actual: IOracleAggregator__factory.createInterface(),
+        inheritedFrom: [ITokenPriceOracle__factory.createInterface()],
+      },
+    });
+    behaviours.shouldSupportInterface({
+      contract: () => oracleAggregator,
+      interfaceName: 'IAccessControl',
+      interface: IAccessControl__factory.createInterface(),
+    });
+    behaviours.shouldNotSupportInterface({
+      contract: () => oracleAggregator,
+      interfaceName: 'IERC20',
+      interface: IERC20__factory.createInterface(),
     });
   });
 });

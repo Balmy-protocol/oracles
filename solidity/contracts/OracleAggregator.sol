@@ -2,11 +2,11 @@
 pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/access/AccessControl.sol';
-import '@openzeppelin/contracts/utils/Multicall.sol';
 import '@mean-finance/dca-v2-core/contracts/libraries/TokenSorting.sol';
+import './base/BaseOracle.sol';
 import '../interfaces/IOracleAggregator.sol';
 
-contract OracleAggregator is AccessControl, Multicall, IOracleAggregator {
+contract OracleAggregator is AccessControl, BaseOracle, IOracleAggregator {
   bytes32 public constant SUPER_ADMIN_ROLE = keccak256('SUPER_ADMIN_ROLE');
   bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
 
@@ -139,6 +139,14 @@ contract OracleAggregator is AccessControl, Multicall, IOracleAggregator {
     }
 
     emit OracleListUpdated(_oracles);
+  }
+
+  /// @inheritdoc IERC165
+  function supportsInterface(bytes4 _interfaceId) public view virtual override(AccessControl, BaseOracle) returns (bool) {
+    return
+      _interfaceId == type(IOracleAggregator).interfaceId ||
+      AccessControl.supportsInterface(_interfaceId) ||
+      BaseOracle.supportsInterface(_interfaceId);
   }
 
   /**

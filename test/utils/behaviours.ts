@@ -1,13 +1,14 @@
 import { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import chai from 'chai';
-import { Contract, ContractFactory, ContractInterface, Signer, Wallet } from 'ethers';
+import { Contract, ContractFactory, ContractInterface, Signer, utils, Wallet } from 'ethers';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { Provider } from '@ethersproject/providers';
 import { getStatic } from 'ethers/lib/utils';
 import { wallet } from '.';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { given, then, when } from './bdd';
+const { makeInterfaceId } = require('@openzeppelin/test-helpers');
 
 chai.use(chaiAsPromised);
 
@@ -202,6 +203,48 @@ export const fnShouldOnlyBeCallableByGovernance = (
     const fn = delayedContract().connect(impersonator)[fnName] as (...args: unknown[]) => unknown;
     return fn(...argsArray);
   }
+};
+
+export const shouldSupportInterface = ({
+  contract,
+  interfaceName,
+  interface: interface_,
+}: {
+  contract: () => Contract;
+  interfaceName: string;
+  interface: utils.Interface | { actual: utils.Interface; inheritedFrom: utils.Interface[] };
+}) => {
+  when(`asked if ${interfaceName} is supported`, () => {
+    then('result is true', async () => {
+      let functions: string[];
+      if ('actual' in interface_) {
+        const allInheritedFunctions = interface_.inheritedFrom.flatMap((int) => Object.keys(int.functions));
+        functions = Object.keys(interface_.actual.functions).filter((func) => !allInheritedFunctions.includes(func));
+      } else {
+        functions = Object.keys(interface_.functions);
+      }
+      const interfaceId = makeInterfaceId.ERC165(functions);
+      expect(await contract().supportsInterface(interfaceId)).to.be.true;
+    });
+  });
+};
+
+export const shouldNotSupportInterface = ({
+  contract,
+  interfaceName,
+  interface: interface_,
+}: {
+  contract: () => Contract;
+  interfaceName: string;
+  interface: utils.Interface;
+}) => {
+  when(`asked if ${interfaceName} is supported`, () => {
+    then('result is faklse', async () => {
+      const functions = Object.keys(interface_.functions);
+      const interfaceId = makeInterfaceId.ERC165(functions);
+      expect(await contract().supportsInterface(interfaceId)).to.be.false;
+    });
+  });
 };
 
 export const shouldBeExecutableOnlyByRole = ({
