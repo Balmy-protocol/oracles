@@ -139,8 +139,11 @@ contract UniswapV3Adapter is AccessControl, BaseOracle, IUniswapV3Adapter {
   }
 
   /// @inheritdoc IERC165
-  function supportsInterface(bytes4 interfaceId) public view virtual override(AccessControl, BaseOracle) returns (bool) {
-    return AccessControl.supportsInterface(interfaceId) || BaseOracle.supportsInterface(interfaceId);
+  function supportsInterface(bytes4 _interfaceId) public view virtual override(AccessControl, BaseOracle) returns (bool) {
+    return
+      _interfaceId == type(IUniswapV3Adapter).interfaceId ||
+      AccessControl.supportsInterface(_interfaceId) ||
+      BaseOracle.supportsInterface(_interfaceId);
   }
 
   function _addOrModifySupportForPair(address _tokenA, address _tokenB) internal {

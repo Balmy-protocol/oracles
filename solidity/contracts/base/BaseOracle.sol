@@ -9,6 +9,9 @@ import '../../interfaces/ITokenPriceOracle.sol';
 abstract contract BaseOracle is Multicall, ERC165, ITokenPriceOracle {
   /// @inheritdoc IERC165
   function supportsInterface(bytes4 _interfaceId) public view virtual override returns (bool) {
-    return _interfaceId == type(ITokenPriceOracle).interfaceId || super.supportsInterface(_interfaceId);
+    return
+      _interfaceId == type(ITokenPriceOracle).interfaceId ||
+      _interfaceId == type(Multicall).interfaceId ||
+      super.supportsInterface(_interfaceId);
   }
 }

@@ -1,10 +1,10 @@
 import hre, { deployments, ethers } from 'hardhat';
-import { evm, wallet } from '@utils';
+import { behaviours, evm, wallet } from '@utils';
 import { contract, given, then, when } from '@utils/bdd';
 import { expect } from 'chai';
 import { getNodeUrl } from 'utils/env';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-import { BaseOracle, ITokenPriceOracle__factory, OracleAggregator } from '@typechained';
+import { BaseOracle, ITokenPriceOracle__factory, Multicall__factory, OracleAggregator } from '@typechained';
 import { convertPriceToBigNumberWithDecimals, getTokenData } from '../utils/defillama';
 import { BigNumber, constants, utils } from 'ethers';
 import {
@@ -15,7 +15,6 @@ import {
 } from '@mean-finance/deterministic-factory/typechained';
 import { snapshot } from '@utils/evm';
 import { setTestChainId } from 'utils/deploy';
-const { makeInterfaceId } = require('@openzeppelin/test-helpers');
 
 const CHAIN = { chain: 'optimism', chainId: 10 };
 const BLOCK_NUMBER = 12350000;
@@ -205,30 +204,26 @@ describe('Comprehensive Oracle Test', () => {
         });
       });
       describe('supportsInterface', () => {
-        isInterfaceSupportedTest({
-          name: 'IERC165',
-          interface_: IERC165__factory.createInterface(),
-          expected: true,
+        behaviours.shouldSupportInterface({
+          contract: () => oracle,
+          interfaceName: 'IERC165',
+          interface: IERC165__factory.createInterface(),
         });
-        isInterfaceSupportedTest({
-          name: 'ITokenPriceOracle',
-          interface_: ITokenPriceOracle__factory.createInterface(),
-          expected: true,
+        behaviours.shouldSupportInterface({
+          contract: () => oracle,
+          interfaceName: 'ITokenPriceOracle',
+          interface: ITokenPriceOracle__factory.createInterface(),
         });
-        isInterfaceSupportedTest({
-          name: 'IERC20',
-          interface_: IERC20__factory.createInterface(),
-          expected: false,
+        behaviours.shouldSupportInterface({
+          contract: () => oracle,
+          interfaceName: 'Multicall',
+          interface: Multicall__factory.createInterface(),
         });
-        function isInterfaceSupportedTest({ name, interface_, expected }: { name: string; interface_: utils.Interface; expected: boolean }) {
-          when(`asked if ${name} is supported`, () => {
-            then('result is as expected', async () => {
-              const functions = Object.keys(interface_.functions);
-              const interfaceId = makeInterfaceId.ERC165(functions);
-              expect(await oracle.supportsInterface(interfaceId)).to.equal(expected);
-            });
-          });
-        }
+        behaviours.shouldNotSupportInterface({
+          contract: () => oracle,
+          interfaceName: 'IERC20',
+          interface: IERC20__factory.createInterface(),
+        });
       });
       function validateQuote(quote: BigNumber) {
         const TRESHOLD_PERCENTAGE = 2; // 2% price diff tolerance
