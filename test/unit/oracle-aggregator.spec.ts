@@ -186,37 +186,36 @@ describe('OracleAggregator', () => {
   });
 
   describe('addOrModifySupportForPair', () => {
+    given(() => {
+      oracle1.isPairAlreadySupported.returns(true);
+    });
     when('no oracle has been assigned', () => {
       given(async () => {
         await oracleAggregator.addOrModifySupportForPair(TOKEN_A, TOKEN_B, BYTES);
       });
-      then('pair is modified', async () => {
-        const { wasCalled, data } = await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B);
-        expect(wasCalled).to.be.true;
-        expect(data).to.eql(BYTES);
-      });
+      thenPairIsModified();
     });
     when(`oracle is assigned but it hasn't been forced`, () => {
       given(async () => {
         await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, false);
         await oracleAggregator.addOrModifySupportForPair(TOKEN_A, TOKEN_B, BYTES);
       });
-      then('pair is modified', async () => {
-        const { wasCalled, data } = await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B);
-        expect(wasCalled).to.be.true;
-        expect(data).to.eql(BYTES);
-      });
+      thenPairIsModified();
     });
     when(`oracle was forced but caller is admin`, () => {
       given(async () => {
         await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, true);
         await oracleAggregator.connect(admin).addOrModifySupportForPair(TOKEN_A, TOKEN_B, BYTES);
       });
-      then('pair is modified', async () => {
-        const { wasCalled, data } = await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B);
-        expect(wasCalled).to.be.true;
-        expect(data).to.eql(BYTES);
+      thenPairIsModified();
+    });
+    when(`oracle was forced but it lost support`, () => {
+      given(async () => {
+        oracle1.isPairAlreadySupported.returns(false);
+        await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, true);
+        await oracleAggregator.addOrModifySupportForPair(TOKEN_A, TOKEN_B, BYTES);
       });
+      thenPairIsModified();
     });
     when(`oracle was forced and caller is not admin`, () => {
       given(async () => {
@@ -228,6 +227,13 @@ describe('OracleAggregator', () => {
         expect(wasCalled).to.be.false;
       });
     });
+    function thenPairIsModified() {
+      then('pair is modified', async () => {
+        const { wasCalled, data } = await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B);
+        expect(wasCalled).to.be.true;
+        expect(data).to.eql(BYTES);
+      });
+    }
   });
 
   describe('assignedOracle', () => {

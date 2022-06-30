@@ -72,14 +72,7 @@ contract OracleAggregator is AccessControl, SimpleOracle, IOracleAggregator {
     address _tokenB,
     bytes calldata _data
   ) external override(ITokenPriceOracle, SimpleOracle) {
-    /* 
-      Only modify if one of the following is true:
-        - There is no current oracle
-        - The current oracle hasn't been forced by an admin
-        - The caller is an admin
-    */
-    bool _shouldModify = !assignedOracle(_tokenA, _tokenB).forced || hasRole(ADMIN_ROLE, msg.sender);
-    if (_shouldModify) {
+    if (_canModifySupportForPair(_tokenA, _tokenB)) {
       _addOrModifySupportForPair(_tokenA, _tokenB, _data);
     }
   }
@@ -149,15 +142,32 @@ contract OracleAggregator is AccessControl, SimpleOracle, IOracleAggregator {
     address _tokenB,
     bytes calldata _data
   ) internal virtual override {
+    ITokenPriceOracle _oracle = _findFirstOracleThatCanSupportPair(_tokenA, _tokenB);
+    if (address(_oracle) == address(0)) revert PairCannotBeSupported(_tokenA, _tokenB);
+    _setOracle(_tokenA, _tokenB, _oracle, _data, false);
+  }
+
+  function _canModifySupportForPair(address _tokenA, address _tokenB) internal view returns (bool) {
+    /* 
+      Only modify if one of the following is true:
+        - There is no current oracle
+        - The current oracle hasn't been forced by an admin
+        - The current oracle has been forced but it has lost support for the pair
+        - The caller is an admin
+    */
+    OracleAssignment memory _assignment = assignedOracle(_tokenA, _tokenB);
+    return !_assignment.forced || hasRole(ADMIN_ROLE, msg.sender) || !_assignment.oracle.isPairAlreadySupported(_tokenA, _tokenB);
+  }
+
+  function _findFirstOracleThatCanSupportPair(address _tokenA, address _tokenB) internal view returns (ITokenPriceOracle) {
     uint256 _length = _availableOracles.length;
     for (uint256 i; i < _length; i++) {
       ITokenPriceOracle _oracle = _availableOracles[i];
       if (_oracle.canSupportPair(_tokenA, _tokenB)) {
-        _setOracle(_tokenA, _tokenB, _oracle, _data, false);
-        return;
+        return _oracle;
       }
     }
-    revert PairCannotBeSupported(_tokenA, _tokenB);
+    return ITokenPriceOracle(address(0));
   }
 
   function _setOracle(
