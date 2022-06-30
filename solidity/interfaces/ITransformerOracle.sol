@@ -9,7 +9,7 @@ import './ITokenPriceOracle.sol';
  * @notice This oracle takes the transformer registry, and will transform some dependent tokens into their underlying
  *         tokens before quoting. We do this because it's hard to quote `yield-bearing(USDC) => yield-bearing(ETH)`.
  *         But we can easily do something like `yield-bearing(USDC) => USDC => ETH => yield-bearing(ETH)`. So the
- *         idea is to use the tranformer registry to transform between dependent and their underlying, and then
+ *         idea is to use the transformer registry to transform between dependent and their underlying, and then
  *         quote the underlyings.
  */
 interface ITransformerOracle is ITokenPriceOracle {
