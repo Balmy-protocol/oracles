@@ -59,6 +59,7 @@ interface IOracleAggregator is ITokenPriceOracle {
   /**
    * @notice Returns the oracle that would be assigned to the pair if `addOrModifySupportForPair`
    *         was called by the same caller
+   * @dev tokenA and tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order
    * @param tokenA One of the pair's tokens
    * @param tokenB The other of the pair's tokens
    * @return The oracle that would be assigned (or the zero address if none could be assigned)
