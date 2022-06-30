@@ -36,10 +36,8 @@ describe('OracleAggregator', () => {
 
   beforeEach('Deploy and configure', async () => {
     await snapshot.revert(snapshotId);
-    oracle1['addOrModifySupportForPair(address,address)'].reset();
-    oracle1['addOrModifySupportForPair(address,address,bytes)'].reset();
-    oracle2['addOrModifySupportForPair(address,address)'].reset();
-    oracle2['addOrModifySupportForPair(address,address,bytes)'].reset();
+    oracle1.addOrModifySupportForPair.reset();
+    oracle2.addOrModifySupportForPair.reset();
     oracle1.canSupportPair.returns(true);
     oracle2.canSupportPair.returns(true);
   });
@@ -144,8 +142,8 @@ describe('OracleAggregator', () => {
       then('tx is reverted with reason', async () => {
         await behaviours.txShouldRevertWithMessage({
           contract: oracleAggregator,
-          func: 'quote(address,uint256,address)',
-          args: [TOKEN_A, 1000, TOKEN_B],
+          func: 'quote',
+          args: [TOKEN_A, 1000, TOKEN_B, BYTES],
           message: `PairNotSupportedYet`,
         });
       });
@@ -155,11 +153,11 @@ describe('OracleAggregator', () => {
       let amountOut: BigNumber;
       given(async () => {
         await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, false);
-        oracle1['quote(address,uint256,address,bytes)'].returns(RESULT);
-        amountOut = await oracleAggregator['quote(address,uint256,address,bytes)'](TOKEN_A, 1000, TOKEN_B, BYTES);
+        oracle1.quote.returns(RESULT);
+        amountOut = await oracleAggregator.quote(TOKEN_A, 1000, TOKEN_B, BYTES);
       });
       then('oracle was called', async () => {
-        expect(oracle1['quote(address,uint256,address,bytes)']).to.have.been.calledWith(TOKEN_A, 1000, TOKEN_B, BYTES);
+        expect(oracle1.quote).to.have.been.calledWith(TOKEN_A, 1000, TOKEN_B, BYTES);
       });
       then('result is what the oracle returned', () => {
         expect(amountOut).to.equal(RESULT);
@@ -170,7 +168,7 @@ describe('OracleAggregator', () => {
   describe('addOrModifySupportForPair', () => {
     when(`pair's addreses are inverted`, () => {
       given(async () => {
-        await oracleAggregator['addOrModifySupportForPair(address,address,bytes)'](TOKEN_B, TOKEN_A, BYTES);
+        await oracleAggregator.addOrModifySupportForPair(TOKEN_B, TOKEN_A, BYTES);
       });
       then(`correct order is sent to internal add support`, async () => {
         const { wasCalled, data } = await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B);
@@ -180,7 +178,7 @@ describe('OracleAggregator', () => {
     });
     when('no oracle has been assigned', () => {
       given(async () => {
-        await oracleAggregator['addOrModifySupportForPair(address,address,bytes)'](TOKEN_A, TOKEN_B, BYTES);
+        await oracleAggregator.addOrModifySupportForPair(TOKEN_A, TOKEN_B, BYTES);
       });
       then('pair is modified', async () => {
         const { wasCalled, data } = await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B);
@@ -191,7 +189,7 @@ describe('OracleAggregator', () => {
     when(`oracle is assigned but it hasn't been forced`, () => {
       given(async () => {
         await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, false);
-        await oracleAggregator['addOrModifySupportForPair(address,address,bytes)'](TOKEN_A, TOKEN_B, BYTES);
+        await oracleAggregator.addOrModifySupportForPair(TOKEN_A, TOKEN_B, BYTES);
       });
       then('pair is modified', async () => {
         const { wasCalled, data } = await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B);
@@ -202,7 +200,7 @@ describe('OracleAggregator', () => {
     when(`oracle was forced but caller is admin`, () => {
       given(async () => {
         await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, true);
-        await oracleAggregator.connect(admin)['addOrModifySupportForPair(address,address,bytes)'](TOKEN_A, TOKEN_B, BYTES);
+        await oracleAggregator.connect(admin).addOrModifySupportForPair(TOKEN_A, TOKEN_B, BYTES);
       });
       then('pair is modified', async () => {
         const { wasCalled, data } = await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B);
@@ -213,7 +211,7 @@ describe('OracleAggregator', () => {
     when(`oracle was forced and caller is not admin`, () => {
       given(async () => {
         await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, true);
-        await oracleAggregator['addOrModifySupportForPair(address,address)'](TOKEN_A, TOKEN_B);
+        await oracleAggregator.addOrModifySupportForPair(TOKEN_A, TOKEN_B, BYTES);
       });
       then('pair is not modified', async () => {
         const { wasCalled } = await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B);
@@ -225,7 +223,7 @@ describe('OracleAggregator', () => {
   describe('addSupportForPairIfNeeded', () => {
     when(`pair's addreses are inverted`, () => {
       given(async () => {
-        await oracleAggregator['addSupportForPairIfNeeded(address,address,bytes)'](TOKEN_A, TOKEN_B, BYTES);
+        await oracleAggregator.addSupportForPairIfNeeded(TOKEN_A, TOKEN_B, BYTES);
       });
       then(`correct order is sent to internal add support`, async () => {
         const { wasCalled, data } = await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B);
@@ -235,7 +233,7 @@ describe('OracleAggregator', () => {
     });
     when('pair does not have an assigned oracle', () => {
       given(async () => {
-        await oracleAggregator['addSupportForPairIfNeeded(address,address,bytes)'](TOKEN_A, TOKEN_B, BYTES);
+        await oracleAggregator.addSupportForPairIfNeeded(TOKEN_A, TOKEN_B, BYTES);
       });
       then('internal add support is called', async () => {
         const { wasCalled, data } = await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B);
@@ -247,7 +245,7 @@ describe('OracleAggregator', () => {
       given(async () => {
         oracle1.isPairAlreadySupported.returns(true);
         await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, true);
-        await oracleAggregator['addSupportForPairIfNeeded(address,address,bytes)'](TOKEN_A, TOKEN_B, BYTES);
+        await oracleAggregator.addSupportForPairIfNeeded(TOKEN_A, TOKEN_B, BYTES);
       });
       then('internal add is not called', async () => {
         const { wasCalled } = await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B);
@@ -258,7 +256,7 @@ describe('OracleAggregator', () => {
       given(async () => {
         oracle1.isPairAlreadySupported.returns(false);
         await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, true);
-        await oracleAggregator['addSupportForPairIfNeeded(address,address,bytes)'](TOKEN_A, TOKEN_B, BYTES);
+        await oracleAggregator.addSupportForPairIfNeeded(TOKEN_A, TOKEN_B, BYTES);
       });
       then('internal add support is called', async () => {
         const { wasCalled, data } = await oracleAggregator.internalAddOrModifyCalled(TOKEN_A, TOKEN_B);
@@ -333,12 +331,10 @@ describe('OracleAggregator', () => {
         tx = await oracleAggregator.internalAddOrModifySupportForPair(TOKEN_A, TOKEN_B, BYTES);
       });
       then('oracle 1 is called', async () => {
-        expect(oracle1['addOrModifySupportForPair(address,address,bytes)']).to.be.calledWith(TOKEN_A, TOKEN_B, BYTES);
-        expect(oracle1['addOrModifySupportForPair(address,address)']).to.not.have.been.called;
+        expect(oracle1.addOrModifySupportForPair).to.be.calledWith(TOKEN_A, TOKEN_B, BYTES);
       });
       then('oracle 2 is not called', async () => {
-        expect(oracle2['addOrModifySupportForPair(address,address,bytes)']).to.not.have.been.called;
-        expect(oracle2['addOrModifySupportForPair(address,address)']).to.not.have.been.called;
+        expect(oracle2.addOrModifySupportForPair).to.not.have.been.called;
       });
       then('now oracle 1 will be used', async () => {
         const { oracle, forced } = await oracleAggregator.assignedOracle(TOKEN_A, TOKEN_B);
@@ -357,12 +353,10 @@ describe('OracleAggregator', () => {
         tx = await oracleAggregator.internalAddOrModifySupportForPair(TOKEN_A, TOKEN_B, BYTES);
       });
       then('oracle 2 is called', async () => {
-        expect(oracle2['addOrModifySupportForPair(address,address,bytes)']).to.be.calledWith(TOKEN_A, TOKEN_B, BYTES);
-        expect(oracle2['addOrModifySupportForPair(address,address)']).to.not.have.been.called;
+        expect(oracle2.addOrModifySupportForPair).to.be.calledWith(TOKEN_A, TOKEN_B, BYTES);
       });
       then('oracle 1 is not called', async () => {
-        expect(oracle1['addOrModifySupportForPair(address,address,bytes)']).to.not.have.been.called;
-        expect(oracle1['addOrModifySupportForPair(address,address)']).to.not.have.been.called;
+        expect(oracle1.addOrModifySupportForPair).to.not.have.been.called;
       });
       then('now oracle 2 will be used', async () => {
         const { oracle, forced } = await oracleAggregator.assignedOracle(TOKEN_A, TOKEN_B);

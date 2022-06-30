@@ -86,10 +86,9 @@ describe('StatefulChainlinkOracleAdapter', () => {
       });
     });
     when('sending the tokens in inverse order', () => {
-      let isAlreadySupported: boolean;
       given(async () => {
         oracle.planForPair.returns(0);
-        isAlreadySupported = await adapter.isPairAlreadySupported(TOKEN_B, TOKEN_A);
+        await adapter.isPairAlreadySupported(TOKEN_B, TOKEN_A);
       });
       then('oracle is called correctly', async () => {
         expect(oracle.planForPair).to.have.been.calledOnceWith(TOKEN_A, TOKEN_B);
@@ -101,7 +100,7 @@ describe('StatefulChainlinkOracleAdapter', () => {
     when('quote amount is over uint128', () => {
       let tx: Promise<BigNumber>;
       given(async () => {
-        tx = adapter['quote(address,uint256,address)'](TOKEN_A, BigNumber.from(2).pow(128), TOKEN_B);
+        tx = adapter.quote(TOKEN_A, BigNumber.from(2).pow(128), TOKEN_B, []);
       });
       then('tx is reverted with reason error', async () => {
         expect(tx).to.have.revertedWith(`SafeCast: value doesn't fit in 128 bits`);
@@ -113,7 +112,7 @@ describe('StatefulChainlinkOracleAdapter', () => {
       let returnedQuote: BigNumber;
       given(async () => {
         oracle.quote.returns(RESULT);
-        returnedQuote = await adapter['quote(address,uint256,address)'](TOKEN_A, MAX_AMOUNT_IN, TOKEN_B);
+        returnedQuote = await adapter.quote(TOKEN_A, MAX_AMOUNT_IN, TOKEN_B, []);
       });
       then('the oracle is called correctly', async () => {
         expect(oracle.quote).to.have.been.calledOnceWith(TOKEN_A, MAX_AMOUNT_IN, TOKEN_B);
@@ -127,7 +126,7 @@ describe('StatefulChainlinkOracleAdapter', () => {
   describe('addOrModifySupportForPair', () => {
     when('adapter is called', () => {
       given(async () => {
-        await adapter['addOrModifySupportForPair(address,address)'](TOKEN_A, TOKEN_B);
+        await adapter.addOrModifySupportForPair(TOKEN_A, TOKEN_B, []);
       });
       then('oracle is called with the same parameters', () => {
         expect(oracle.reconfigureSupportForPair).to.have.been.calledOnceWith(TOKEN_A, TOKEN_B);
@@ -138,7 +137,7 @@ describe('StatefulChainlinkOracleAdapter', () => {
   describe('addSupportForPairIfNeeded', () => {
     when('adapter is called', () => {
       given(async () => {
-        await adapter['addSupportForPairIfNeeded(address,address)'](TOKEN_A, TOKEN_B);
+        await adapter.addSupportForPairIfNeeded(TOKEN_A, TOKEN_B, []);
       });
       then('oracle is called with the same parameters', () => {
         expect(oracle.addSupportForPairIfNeeded).to.have.been.calledOnceWith(TOKEN_A, TOKEN_B);

@@ -13,6 +13,7 @@ describe('OracleAggregator', () => {
   const TOKEN_A = '0x0000000000000000000000000000000000000001';
   const TOKEN_B = '0x0000000000000000000000000000000000000002';
   const TOKEN_C = '0x0000000000000000000000000000000000000003';
+  const BYTES = '0xf2c047db4a7cf81f935c'; // Some random bytes
   let superAdmin: SignerWithAddress, admin: SignerWithAddress;
   let oracleAggregator: OracleAggregatorMock;
   let superAdminRole: string, adminRole: string;
@@ -45,7 +46,7 @@ describe('OracleAggregator', () => {
       });
       describe('and then an admin updates the support', () => {
         given(async () => {
-          await oracleAggregator.connect(admin)['addOrModifySupportForPair(address,address)'](TOKEN_A, TOKEN_B);
+          await oracleAggregator.connect(admin).addOrModifySupportForPair(TOKEN_A, TOKEN_B, BYTES);
         });
         then('a oracle that takes precedence will be assigned', async () => {
           const { oracle, forced } = await oracleAggregator.assignedOracle(TOKEN_A, TOKEN_B);
@@ -62,13 +63,13 @@ describe('OracleAggregator', () => {
     when('executing multiple quotes', () => {
       let result1: string, result2: string;
       given(async () => {
-        oracle1['quote(address,uint256,address,bytes)'].returns(QUOTE_ORACLE_1);
-        oracle2['quote(address,uint256,address,bytes)'].returns(QUOTE_ORACLE_2);
+        oracle1.quote.returns(QUOTE_ORACLE_1);
+        oracle2.quote.returns(QUOTE_ORACLE_2);
         await oracleAggregator.connect(admin).forceOracle(TOKEN_A, TOKEN_B, oracle1.address);
         await oracleAggregator.connect(admin).forceOracle(TOKEN_A, TOKEN_C, oracle2.address);
 
-        const { data: quote1Data } = await oracleAggregator.populateTransaction['quote(address,uint256,address)'](TOKEN_A, 1, TOKEN_B);
-        const { data: quote2Data } = await oracleAggregator.populateTransaction['quote(address,uint256,address)'](TOKEN_A, 1, TOKEN_C);
+        const { data: quote1Data } = await oracleAggregator.populateTransaction.quote(TOKEN_A, 1, TOKEN_B, BYTES);
+        const { data: quote2Data } = await oracleAggregator.populateTransaction.quote(TOKEN_A, 1, TOKEN_C, BYTES);
         [result1, result2] = await oracleAggregator.callStatic.multicall([quote1Data!, quote2Data!]);
       });
       then('first quote was returned correctly', async () => {

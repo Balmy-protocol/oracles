@@ -56,26 +56,12 @@ contract OracleAggregator is AccessControl, Multicall, IOracleAggregator {
   function quote(
     address _tokenIn,
     uint256 _amountIn,
-    address _tokenOut
-  ) external view returns (uint256 _amountOut) {
-    return quote(_tokenIn, _amountIn, _tokenOut, '');
-  }
-
-  /// @inheritdoc ITokenPriceOracle
-  function quote(
-    address _tokenIn,
-    uint256 _amountIn,
     address _tokenOut,
     bytes memory _data
   ) public view returns (uint256 _amountOut) {
     ITokenPriceOracle _oracle = assignedOracle(_tokenIn, _tokenOut).oracle;
     if (address(_oracle) == address(0)) revert PairNotSupportedYet(_tokenIn, _tokenOut);
     return _oracle.quote(_tokenIn, _amountIn, _tokenOut, _data);
-  }
-
-  /// @inheritdoc ITokenPriceOracle
-  function addOrModifySupportForPair(address _tokenA, address _tokenB) external {
-    addOrModifySupportForPair(_tokenA, _tokenB, '');
   }
 
   /// @inheritdoc ITokenPriceOracle
@@ -95,11 +81,6 @@ contract OracleAggregator is AccessControl, Multicall, IOracleAggregator {
     if (_shouldModify) {
       _addOrModifySupportForPair(__tokenA, __tokenB, _data);
     }
-  }
-
-  /// @inheritdoc ITokenPriceOracle
-  function addSupportForPairIfNeeded(address _tokenA, address _tokenB) external {
-    addSupportForPairIfNeeded(_tokenA, _tokenB, '');
   }
 
   /// @inheritdoc ITokenPriceOracle

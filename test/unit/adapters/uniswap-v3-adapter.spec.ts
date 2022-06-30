@@ -171,8 +171,8 @@ describe('UniswapV3Adapter', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.txShouldRevertWithMessage({
           contract: adapter,
-          func: 'quote(address,uint256,address)',
-          args: [TOKEN_A, 0, TOKEN_B],
+          func: 'quote',
+          args: [TOKEN_A, 0, TOKEN_B, []],
           message: 'PairNotSupportedYet',
         });
       });
@@ -181,7 +181,7 @@ describe('UniswapV3Adapter', () => {
       let tx: Promise<BigNumber>;
       given(async () => {
         await adapter.setPools(TOKEN_A, TOKEN_B, [pool1.address, pool2.address]);
-        tx = adapter['quote(address,uint256,address)'](TOKEN_A, BigNumber.from(2).pow(128), TOKEN_B);
+        tx = adapter.quote(TOKEN_A, BigNumber.from(2).pow(128), TOKEN_B, []);
       });
       then('tx is reverted with reason error', async () => {
         expect(tx).to.have.revertedWith(`SafeCast: value doesn't fit in 128 bits`);
@@ -194,7 +194,7 @@ describe('UniswapV3Adapter', () => {
       given(async () => {
         oracle.quoteSpecificPoolsWithTimePeriod.returns(RESULT);
         await adapter.setPools(TOKEN_A, TOKEN_B, [pool1.address, pool2.address]);
-        returnedQuote = await adapter['quote(address,uint256,address)'](TOKEN_A, MAX_AMOUNT_IN, TOKEN_B);
+        returnedQuote = await adapter.quote(TOKEN_A, MAX_AMOUNT_IN, TOKEN_B, []);
       });
       then('the oracle is called correctly', async () => {
         expect(oracle.quoteSpecificPoolsWithTimePeriod).to.have.been.calledOnceWith(
@@ -212,30 +212,30 @@ describe('UniswapV3Adapter', () => {
   });
 
   describe('addOrModifySupportForPair', () => {
-    whenPairHasNoPoolsThenCallingEndsInRevert('addOrModifySupportForPair(address,address)');
-    whenPairHasPoolsButItIsDenylistedThenCallingEndsInRevert('addOrModifySupportForPair(address,address)');
+    whenPairHasNoPoolsThenCallingEndsInRevert('addOrModifySupportForPair');
+    whenPairHasPoolsButItIsDenylistedThenCallingEndsInRevert('addOrModifySupportForPair');
     testAddSupportForPair({
       when: 'there are no pools stored before hand',
-      func: 'addOrModifySupportForPair(address,address)',
+      func: 'addOrModifySupportForPair',
     });
     testAddSupportForPair({
       when: 'there are some pools stored before hand',
-      func: 'addOrModifySupportForPair(address,address)',
+      func: 'addOrModifySupportForPair',
       context: () => adapter.setPools(TOKEN_A, TOKEN_B, [pool1.address, pool2.address]),
     });
   });
 
   describe('addSupportForPairIfNeeded', () => {
-    whenPairHasNoPoolsThenCallingEndsInRevert('addSupportForPairIfNeeded(address,address)');
-    whenPairHasPoolsButItIsDenylistedThenCallingEndsInRevert('addSupportForPairIfNeeded(address,address)');
+    whenPairHasNoPoolsThenCallingEndsInRevert('addSupportForPairIfNeeded');
+    whenPairHasPoolsButItIsDenylistedThenCallingEndsInRevert('addSupportForPairIfNeeded');
     testAddSupportForPair({
       when: 'there are no pools stored before hand',
-      func: 'addSupportForPairIfNeeded(address,address)',
+      func: 'addSupportForPairIfNeeded',
     });
     when('there are some pools stored before hand', () => {
       given(async () => {
         oracle.getAllPoolsForPair.returns([pool1.address, pool2.address]);
-        await adapter.setPools(TOKEN_A, TOKEN_B, [pool1.address]), await adapter['addSupportForPairIfNeeded(address,address)'](TOKEN_A, TOKEN_B);
+        await adapter.setPools(TOKEN_A, TOKEN_B, [pool1.address]), await adapter.addSupportForPairIfNeeded(TOKEN_A, TOKEN_B, []);
       });
       then('oracle is never called', () => {
         expect(oracle.prepareAllAvailablePoolsWithCardinality).to.not.have.been.called;
@@ -406,7 +406,7 @@ describe('UniswapV3Adapter', () => {
         await behaviours.txShouldRevertWithMessage({
           contract: adapter,
           func,
-          args: [TOKEN_A, TOKEN_B],
+          args: [TOKEN_A, TOKEN_B, []],
           message: 'PairCannotBeSupported',
         });
       });
@@ -423,7 +423,7 @@ describe('UniswapV3Adapter', () => {
         await behaviours.txShouldRevertWithMessage({
           contract: adapter,
           func,
-          args: [TOKEN_A, TOKEN_B],
+          args: [TOKEN_A, TOKEN_B, []],
           message: 'PairCannotBeSupported',
         });
       });
@@ -436,7 +436,7 @@ describe('UniswapV3Adapter', () => {
     context,
   }: {
     when: string;
-    func: 'addOrModifySupportForPair(address,address)' | 'addSupportForPairIfNeeded(address,address)';
+    func: 'addOrModifySupportForPair' | 'addSupportForPairIfNeeded';
     context?: () => Promise<any>;
   }) {
     when(title, () => {
@@ -444,7 +444,7 @@ describe('UniswapV3Adapter', () => {
       given(async () => {
         await context?.();
         oracle.prepareAllAvailablePoolsWithCardinality.returns([pool1.address, pool2.address]);
-        tx = await adapter[func](TOKEN_A, TOKEN_B);
+        tx = await adapter[func](TOKEN_A, TOKEN_B, []);
       });
       then('oracle is called correctly', () => {
         const cardinality = BigNumber.from(INITIAL_PERIOD).mul(INITIAL_CARDINALITY).div(60).add(1);
