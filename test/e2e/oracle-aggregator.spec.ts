@@ -5,8 +5,8 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { OracleAggregatorMock, OracleAggregatorMock__factory, BaseOracle, ERC165__factory, ITokenPriceOracle__factory } from '@typechained';
 import { snapshot } from '@utils/evm';
 import { smock, FakeContract } from '@defi-wonderland/smock';
-import { BigNumber, utils } from 'ethers';
-const { makeInterfaceId } = require('@openzeppelin/test-helpers');
+import { BigNumber } from 'ethers';
+import { getInterfaceId } from '@utils/erc165';
 
 chai.use(smock.matchers);
 
@@ -89,9 +89,5 @@ describe('OracleAggregator', () => {
       ({ _interfaceId }: { _interfaceId: string }) => _interfaceId === ERC_165_INTERFACE_ID || _interfaceId === PRICE_ORACLE_INTERFACE_ID
     );
     return oracle;
-  }
-  function getInterfaceId(interface_: utils.Interface) {
-    const functions = 'functions' in interface_ ? Object.keys(interface_.functions) : interface_;
-    return makeInterfaceId.ERC165(functions);
   }
 });

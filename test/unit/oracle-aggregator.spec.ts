@@ -1,6 +1,6 @@
 import chai, { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { BigNumber, constants, utils } from 'ethers';
+import { BigNumber, constants } from 'ethers';
 import { behaviours } from '@utils';
 import { given, then, when } from '@utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
@@ -19,6 +19,7 @@ import { snapshot } from '@utils/evm';
 import { smock, FakeContract } from '@defi-wonderland/smock';
 import { shouldBeExecutableOnlyByRole } from '@utils/behaviours';
 import { TransactionResponse } from 'ethers/node_modules/@ethersproject/providers';
+import { getInterfaceId } from '@utils/erc165';
 
 chai.use(smock.matchers);
 
@@ -443,9 +444,5 @@ describe('OracleAggregator', () => {
       ({ _interfaceId }: { _interfaceId: string }) => _interfaceId === ERC_165_INTERFACE_ID || _interfaceId === PRICE_ORACLE_INTERFACE_ID
     );
     return oracle;
-  }
-  function getInterfaceId(interface_: utils.Interface) {
-    const functions = 'functions' in interface_ ? Object.keys(interface_.functions) : interface_;
-    return makeInterfaceId.ERC165(functions);
   }
 });
