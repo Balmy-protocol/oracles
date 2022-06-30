@@ -6,9 +6,9 @@ import '@openzeppelin/contracts/utils/math/SafeCast.sol';
 import '@mean-finance/dca-v2-core/contracts/libraries/TokenSorting.sol';
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
 import '../../interfaces//adapters/IUniswapV3Adapter.sol';
-import '../base/BaseOracle.sol';
+import '../base/SimpleOracle.sol';
 
-contract UniswapV3Adapter is AccessControl, BaseOracle, IUniswapV3Adapter {
+contract UniswapV3Adapter is AccessControl, SimpleOracle, IUniswapV3Adapter {
   using SafeCast for uint256;
 
   bytes32 public constant SUPER_ADMIN_ROLE = keccak256('SUPER_ADMIN_ROLE');
@@ -64,7 +64,7 @@ contract UniswapV3Adapter is AccessControl, BaseOracle, IUniswapV3Adapter {
   }
 
   /// @inheritdoc ITokenPriceOracle
-  function isPairAlreadySupported(address _tokenA, address _tokenB) public view returns (bool) {
+  function isPairAlreadySupported(address _tokenA, address _tokenB) public view override(ITokenPriceOracle, SimpleOracle) returns (bool) {
     return _poolsForPair[_keyForPair(_tokenA, _tokenB)].length > 0;
   }
 
@@ -78,27 +78,6 @@ contract UniswapV3Adapter is AccessControl, BaseOracle, IUniswapV3Adapter {
     address[] memory _pools = _poolsForPair[_keyForPair(_tokenIn, _tokenOut)];
     if (_pools.length == 0) revert PairNotSupportedYet(_tokenIn, _tokenOut);
     return UNISWAP_V3_ORACLE.quoteSpecificPoolsWithTimePeriod(_amountIn.toUint128(), _tokenIn, _tokenOut, _pools, period);
-  }
-
-  /// @inheritdoc ITokenPriceOracle
-  function addOrModifySupportForPair(
-    address _tokenA,
-    address _tokenB,
-    bytes calldata
-  ) external {
-    delete _poolsForPair[_keyForPair(_tokenA, _tokenB)];
-    _addOrModifySupportForPair(_tokenA, _tokenB);
-  }
-
-  /// @inheritdoc ITokenPriceOracle
-  function addSupportForPairIfNeeded(
-    address _tokenA,
-    address _tokenB,
-    bytes calldata
-  ) external {
-    if (!isPairAlreadySupported(_tokenA, _tokenB)) {
-      _addOrModifySupportForPair(_tokenA, _tokenB);
-    }
   }
 
   /// @inheritdoc IUniswapV3Adapter
@@ -146,7 +125,11 @@ contract UniswapV3Adapter is AccessControl, BaseOracle, IUniswapV3Adapter {
       BaseOracle.supportsInterface(_interfaceId);
   }
 
-  function _addOrModifySupportForPair(address _tokenA, address _tokenB) internal {
+  function _addOrModifySupportForPair(
+    address _tokenA,
+    address _tokenB,
+    bytes calldata
+  ) internal override {
     bytes32 _pairKey = _keyForPair(_tokenA, _tokenB);
     if (_isPairDenylisted[_pairKey]) revert PairCannotBeSupported(_tokenA, _tokenB);
 
@@ -155,8 +138,24 @@ contract UniswapV3Adapter is AccessControl, BaseOracle, IUniswapV3Adapter {
     if (_pools.length == 0) revert PairCannotBeSupported(_tokenA, _tokenB);
 
     address[] storage _storagePools = _poolsForPair[_pairKey];
-    for (uint256 i; i < _pools.length; i++) {
-      _storagePools.push(_pools[i]);
+    uint256 _currentPools = _storagePools.length;
+    uint256 _min = _currentPools < _pools.length ? _currentPools : _pools.length;
+
+    uint256 i;
+    for (; i < _min; i++) {
+      // Rewrite storage
+      _storagePools[i] = _pools[i];
+    }
+    if (_currentPools < _pools.length) {
+      // If have more pools than before, then push
+      for (; i < _pools.length; i++) {
+        _storagePools.push(_pools[i]);
+      }
+    } else if (_currentPools > _pools.length) {
+      // If have less pools than before, then remove extra pools
+      for (; i < _currentPools; i++) {
+        _storagePools.pop();
+      }
     }
 
     emit UpdatedSupport(_tokenA, _tokenB, _pools);

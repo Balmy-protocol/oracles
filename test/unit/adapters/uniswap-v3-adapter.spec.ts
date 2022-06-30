@@ -222,42 +222,72 @@ describe('UniswapV3Adapter', () => {
     });
   });
 
-  describe('addOrModifySupportForPair', () => {
-    whenPairHasNoPoolsThenCallingEndsInRevert('addOrModifySupportForPair');
-    whenPairHasPoolsButItIsDenylistedThenCallingEndsInRevert('addOrModifySupportForPair');
-    testAddSupportForPair({
-      when: 'there are no pools stored before hand',
-      func: 'addOrModifySupportForPair',
+  describe('_addOrModifySupportForPair', () => {
+    when('pairs has no pools', () => {
+      given(() => {
+        oracle.getAllPoolsForPair.returns([]);
+      });
+      then('tx is reverted with reason error', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: adapter,
+          func: 'internalAddOrModifySupportForPair',
+          args: [TOKEN_A, TOKEN_B, []],
+          message: 'PairCannotBeSupported',
+        });
+      });
     });
-    testAddSupportForPair({
-      when: 'there are some pools stored before hand',
-      func: 'addOrModifySupportForPair',
-      context: () => adapter.setPools(TOKEN_A, TOKEN_B, [pool1.address, pool2.address]),
+    when('pair is denylisted', () => {
+      given(async () => {
+        oracle.getAllPoolsForPair.returns([pool1.address]);
+        await adapter.connect(admin).setDenylisted([{ tokenA: TOKEN_A, tokenB: TOKEN_B }], [true]);
+      });
+      then('tx is reverted with reason error', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: adapter,
+          func: 'internalAddOrModifySupportForPair',
+          args: [TOKEN_A, TOKEN_B, []],
+          message: 'PairCannotBeSupported',
+        });
+      });
     });
-  });
-
-  describe('addSupportForPairIfNeeded', () => {
-    whenPairHasNoPoolsThenCallingEndsInRevert('addSupportForPairIfNeeded');
-    whenPairHasPoolsButItIsDenylistedThenCallingEndsInRevert('addSupportForPairIfNeeded');
-    testAddSupportForPair({
-      when: 'there are no pools stored before hand',
-      func: 'addSupportForPairIfNeeded',
+    when('there are no pools stored before hand', () => {
+      let tx: TransactionResponse;
+      given(async () => {
+        oracle.prepareAllAvailablePoolsWithCardinality.returns([pool1.address, pool2.address]);
+        tx = await adapter.internalAddOrModifySupportForPair(TOKEN_A, TOKEN_B, []);
+      });
+      then('oracle is called correctly', () => {
+        const cardinality = BigNumber.from(INITIAL_PERIOD).mul(INITIAL_CARDINALITY).div(60).add(1);
+        expect(oracle.prepareAllAvailablePoolsWithCardinality).to.have.been.calledOnceWith(TOKEN_A, TOKEN_B, cardinality);
+      });
+      then('all returned pools are stored', async () => {
+        const pools = await adapter.getPoolsPreparedForPair(TOKEN_A, TOKEN_B);
+        expect(pools).to.eql([pool1.address, pool2.address]);
+      });
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(adapter, 'UpdatedSupport').withArgs(TOKEN_A, TOKEN_B, [pool1.address, pool2.address]);
+      });
     });
     when('there are some pools stored before hand', () => {
+      let tx: TransactionResponse;
       given(async () => {
-        oracle.getAllPoolsForPair.returns([pool1.address, pool2.address]);
-        await adapter.setPools(TOKEN_A, TOKEN_B, [pool1.address]), await adapter.addSupportForPairIfNeeded(TOKEN_A, TOKEN_B, []);
+        await adapter.setPools(TOKEN_A, TOKEN_B, [pool1.address, pool2.address]);
+        oracle.prepareAllAvailablePoolsWithCardinality.returns([pool2.address]);
+        tx = await adapter.internalAddOrModifySupportForPair(TOKEN_A, TOKEN_B, []);
       });
-      then('oracle is never called', () => {
-        expect(oracle.prepareAllAvailablePoolsWithCardinality).to.not.have.been.called;
+      then('oracle is called correctly', () => {
+        const cardinality = BigNumber.from(INITIAL_PERIOD).mul(INITIAL_CARDINALITY).div(60).add(1);
+        expect(oracle.prepareAllAvailablePoolsWithCardinality).to.have.been.calledOnceWith(TOKEN_A, TOKEN_B, cardinality);
       });
-      then('stored pools remain are not changed', async () => {
+      then('all returned pools are stored', async () => {
         const pools = await adapter.getPoolsPreparedForPair(TOKEN_A, TOKEN_B);
-        expect(pools).to.eql([pool1.address]);
+        expect(pools).to.eql([pool2.address]);
+      });
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(adapter, 'UpdatedSupport').withArgs(TOKEN_A, TOKEN_B, [pool2.address]);
       });
     });
   });
-
   describe('setPeriod', () => {
     when('period is lower than min period', () => {
       then('tx is reverted with reason error', async () => {
@@ -442,68 +472,5 @@ describe('UniswapV3Adapter', () => {
       expect(actualPairs[i].tokenB).to.equal(pairs[i].tokenB);
     }
     expect(actualDenylisted).to.eql(denylisted);
-  }
-
-  function whenPairHasNoPoolsThenCallingEndsInRevert(func: string) {
-    when('pairs have no pools', () => {
-      given(() => {
-        oracle.getAllPoolsForPair.returns([]);
-      });
-      then('tx is reverted with reason error', async () => {
-        await behaviours.txShouldRevertWithMessage({
-          contract: adapter,
-          func,
-          args: [TOKEN_A, TOKEN_B, []],
-          message: 'PairCannotBeSupported',
-        });
-      });
-    });
-  }
-
-  function whenPairHasPoolsButItIsDenylistedThenCallingEndsInRevert(func: string) {
-    when('pairs is denylisted', () => {
-      given(async () => {
-        oracle.getAllPoolsForPair.returns([pool1.address]);
-        await adapter.connect(admin).setDenylisted([{ tokenA: TOKEN_A, tokenB: TOKEN_B }], [true]);
-      });
-      then('tx is reverted with reason error', async () => {
-        await behaviours.txShouldRevertWithMessage({
-          contract: adapter,
-          func,
-          args: [TOKEN_A, TOKEN_B, []],
-          message: 'PairCannotBeSupported',
-        });
-      });
-    });
-  }
-
-  function testAddSupportForPair({
-    when: title,
-    func,
-    context,
-  }: {
-    when: string;
-    func: 'addOrModifySupportForPair' | 'addSupportForPairIfNeeded';
-    context?: () => Promise<any>;
-  }) {
-    when(title, () => {
-      let tx: TransactionResponse;
-      given(async () => {
-        await context?.();
-        oracle.prepareAllAvailablePoolsWithCardinality.returns([pool1.address, pool2.address]);
-        tx = await adapter[func](TOKEN_A, TOKEN_B, []);
-      });
-      then('oracle is called correctly', () => {
-        const cardinality = BigNumber.from(INITIAL_PERIOD).mul(INITIAL_CARDINALITY).div(60).add(1);
-        expect(oracle.prepareAllAvailablePoolsWithCardinality).to.have.been.calledOnceWith(TOKEN_A, TOKEN_B, cardinality);
-      });
-      then('all returned pools are stored', async () => {
-        const pools = await adapter.getPoolsPreparedForPair(TOKEN_A, TOKEN_B);
-        expect(pools).to.eql([pool1.address, pool2.address]);
-      });
-      then('event is emitted', async () => {
-        await expect(tx).to.emit(adapter, 'UpdatedSupport').withArgs(TOKEN_A, TOKEN_B, [pool1.address, pool2.address]);
-      });
-    });
   }
 });
