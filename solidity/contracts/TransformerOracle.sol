@@ -23,7 +23,12 @@ contract TransformerOracle is BaseOracle, ITransformerOracle {
   }
 
   /// @inheritdoc ITransformerOracle
-  function mapPairToUnderlying(address _tokenA, address _tokenB) public view returns (address _underlyingTokenA, address _underlyingTokenB) {
+  function mapPairToUnderlying(address _tokenA, address _tokenB)
+    public
+    view
+    virtual
+    returns (address _underlyingTokenA, address _underlyingTokenB)
+  {
     address[] memory _tokens = new address[](2);
     _tokens[0] = _tokenA;
     _tokens[1] = _tokenB;
@@ -34,12 +39,14 @@ contract TransformerOracle is BaseOracle, ITransformerOracle {
 
   /// @inheritdoc ITokenPriceOracle
   function canSupportPair(address _tokenA, address _tokenB) external view returns (bool) {
-    // TODO: Implement
+    (address _underlyingTokenA, address _underlyingTokenB) = mapPairToUnderlying(_tokenA, _tokenB);
+    return UNDERLYING_ORACLE.canSupportPair(_underlyingTokenA, _underlyingTokenB);
   }
 
   /// @inheritdoc ITokenPriceOracle
   function isPairAlreadySupported(address _tokenA, address _tokenB) external view returns (bool) {
-    // TODO: Implement
+    (address _underlyingTokenA, address _underlyingTokenB) = mapPairToUnderlying(_tokenA, _tokenB);
+    return UNDERLYING_ORACLE.isPairAlreadySupported(_underlyingTokenA, _underlyingTokenB);
   }
 
   /// @inheritdoc ITokenPriceOracle
@@ -58,7 +65,8 @@ contract TransformerOracle is BaseOracle, ITransformerOracle {
     address _tokenB,
     bytes calldata _data
   ) external {
-    // TODO: Implement
+    (address _underlyingTokenA, address _underlyingTokenB) = mapPairToUnderlying(_tokenA, _tokenB);
+    UNDERLYING_ORACLE.addOrModifySupportForPair(_underlyingTokenA, _underlyingTokenB, _data);
   }
 
   /// @inheritdoc ITokenPriceOracle
@@ -67,7 +75,8 @@ contract TransformerOracle is BaseOracle, ITransformerOracle {
     address _tokenB,
     bytes calldata _data
   ) external {
-    // TODO: Implement
+    (address _underlyingTokenA, address _underlyingTokenB) = mapPairToUnderlying(_tokenA, _tokenB);
+    UNDERLYING_ORACLE.addSupportForPairIfNeeded(_underlyingTokenA, _underlyingTokenB, _data);
   }
 
   /// @inheritdoc IERC165

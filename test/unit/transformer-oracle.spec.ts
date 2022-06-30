@@ -6,8 +6,8 @@ import { given, then, when } from '@utils/bdd';
 import {
   ITransformerRegistry,
   ITokenPriceOracle,
-  TransformerOracle,
-  TransformerOracle__factory,
+  TransformerOracleMock,
+  TransformerOracleMock__factory,
   IERC165__factory,
   Multicall__factory,
   ITokenPriceOracle__factory,
@@ -25,16 +25,17 @@ describe('TransformerOracle', () => {
   const TOKEN_B = '0x0000000000000000000000000000000000000002';
   const UNDERLYING_TOKEN_A = '0x0000000000000000000000000000000000000003';
   const UNDERLYING_TOKEN_B = '0x0000000000000000000000000000000000000004';
+  const BYTES = '0xf2c047db4a7cf81f935c'; // Some random bytes
 
-  let transformerOracleFactory: TransformerOracle__factory;
-  let transformerOracle: TransformerOracle;
+  let transformerOracleFactory: TransformerOracleMock__factory;
+  let transformerOracle: TransformerOracleMock;
   let underlyingOracle: FakeContract<ITokenPriceOracle>;
   let registry: FakeContract<ITransformerRegistry>;
   let transformerA: FakeContract<ITransformer>, transformerB: FakeContract<ITransformer>;
   let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
-    transformerOracleFactory = await ethers.getContractFactory('solidity/contracts/TransformerOracle.sol:TransformerOracle');
+    transformerOracleFactory = await ethers.getContractFactory('solidity/contracts/test/TransformerOracle.sol:TransformerOracleMock');
     registry = await smock.fake<ITransformerRegistry>('ITransformerRegistry');
     underlyingOracle = await smock.fake<ITokenPriceOracle>('ITokenPriceOracle');
     transformerA = await smock.fake<ITransformer>('ITransformer');
@@ -45,6 +46,10 @@ describe('TransformerOracle', () => {
 
   beforeEach('Deploy and configure', async () => {
     await snapshot.revert(snapshotId);
+    underlyingOracle.canSupportPair.reset();
+    underlyingOracle.isPairAlreadySupported.reset();
+    underlyingOracle.addOrModifySupportForPair.reset();
+    underlyingOracle.addSupportForPairIfNeeded.reset();
     registry.transformers.reset();
     transformerA.getUnderlying.reset();
     transformerB.getUnderlying.reset();
@@ -162,6 +167,28 @@ describe('TransformerOracle', () => {
     }
   });
 
+  executeRedirectTest({
+    func: 'canSupportPair',
+    params: (mappedTokenA, mappedTokenB) => [mappedTokenA, mappedTokenB],
+    returns: true,
+  });
+
+  executeRedirectTest({
+    func: 'isPairAlreadySupported',
+    params: (mappedTokenA, mappedTokenB) => [mappedTokenA, mappedTokenB],
+    returns: true,
+  });
+
+  executeRedirectTest({
+    func: 'addOrModifySupportForPair',
+    params: (mappedTokenA, mappedTokenB) => [mappedTokenA, mappedTokenB, BYTES],
+  });
+
+  executeRedirectTest({
+    func: 'addSupportForPairIfNeeded',
+    params: (mappedTokenA, mappedTokenB) => [mappedTokenA, mappedTokenB, BYTES],
+  });
+
   describe('supportsInterface', () => {
     behaviours.shouldSupportInterface({
       contract: () => transformerOracle,
@@ -192,4 +219,57 @@ describe('TransformerOracle', () => {
       interface: IERC20__factory.createInterface(),
     });
   });
+
+  function executeRedirectTest<T extends keyof ITokenPriceOracle['functions']>({
+    returns,
+    func,
+    params,
+  }: {
+    returns?: any;
+    params: (mappedTokenA: string, mappedTokenB: string) => Parameters<ITokenPriceOracle['functions'][T]>;
+    func: T;
+  }) {
+    describe(func, () => {
+      executeTest({
+        when: 'mapped are tokenA and tokenB',
+        mappedA: TOKEN_A,
+        mappedB: TOKEN_B,
+      });
+      executeTest({
+        when: 'mapped are tokenA and underlyingTokenB',
+        mappedA: TOKEN_A,
+        mappedB: UNDERLYING_TOKEN_B,
+      });
+      executeTest({
+        when: 'mapped are underlyingTokenA and tokenB',
+        mappedA: UNDERLYING_TOKEN_A,
+        mappedB: TOKEN_B,
+      });
+      executeTest({
+        when: 'mapped are underlyingTokenA and underlyingTokenB',
+        mappedA: UNDERLYING_TOKEN_A,
+        mappedB: UNDERLYING_TOKEN_B,
+      });
+    });
+    function executeTest({ when: title, mappedA, mappedB }: { when: string; mappedA: string; mappedB: string }) {
+      when(title, () => {
+        let returned: any;
+        given(async () => {
+          await transformerOracle.setUnderlying(TOKEN_A, TOKEN_B, mappedA, mappedB);
+          if (returns) {
+            underlyingOracle[func].returns(returns);
+          }
+          returned = await (transformerOracle[func] as any)(...params(TOKEN_A, TOKEN_B));
+        });
+        then('oracle is called with the correct parameters', () => {
+          expect(underlyingOracle[func]).to.have.been.calledOnceWith(...params(mappedA, mappedB));
+        });
+        if (returns) {
+          then('return value is what the oracle returned', () => {
+            expect(returned).to.equal(returns);
+          });
+        }
+      });
+    }
+  }
 });
