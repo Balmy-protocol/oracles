@@ -7,18 +7,19 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import {
   OracleAggregatorMock,
   OracleAggregatorMock__factory,
-  ITokenPriceOracle,
   IOracleAggregator__factory,
   ITokenPriceOracle__factory,
   IERC165__factory,
   IERC20__factory,
   IAccessControl__factory,
   Multicall__factory,
+  BaseOracle,
 } from '@typechained';
 import { snapshot } from '@utils/evm';
 import { smock, FakeContract } from '@defi-wonderland/smock';
 import { shouldBeExecutableOnlyByRole } from '@utils/behaviours';
 import { TransactionResponse } from 'ethers/node_modules/@ethersproject/providers';
+import { getInterfaceId } from '@utils/erc165';
 
 chai.use(smock.matchers);
 
@@ -30,14 +31,14 @@ describe('OracleAggregator', () => {
   let oracleAggregatorFactory: OracleAggregatorMock__factory;
   let oracleAggregator: OracleAggregatorMock;
   let superAdminRole: string, adminRole: string;
-  let oracle1: FakeContract<ITokenPriceOracle>, oracle2: FakeContract<ITokenPriceOracle>;
+  let oracle1: FakeContract<BaseOracle>, oracle2: FakeContract<BaseOracle>;
   let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
     [, superAdmin, admin] = await ethers.getSigners();
     oracleAggregatorFactory = await ethers.getContractFactory('solidity/contracts/test/OracleAggregator.sol:OracleAggregatorMock');
-    oracle1 = await smock.fake('ITokenPriceOracle');
-    oracle2 = await smock.fake('ITokenPriceOracle');
+    oracle1 = await deployFakeOracle();
+    oracle2 = await deployFakeOracle();
     oracleAggregator = await oracleAggregatorFactory.deploy([oracle1.address, oracle2.address], superAdmin.address, [admin.address]);
     superAdminRole = await oracleAggregator.SUPER_ADMIN_ROLE();
     adminRole = await oracleAggregator.ADMIN_ROLE();
@@ -59,6 +60,15 @@ describe('OracleAggregator', () => {
           contract: oracleAggregatorFactory,
           args: [[], constants.AddressZero, []],
           message: 'ZeroAddress',
+        });
+      });
+    });
+    when('initial oracles are not valid oracles', () => {
+      then('tx is reverted with reason error', async () => {
+        await behaviours.deployShouldRevertWithMessage({
+          contract: oracleAggregatorFactory,
+          args: [[constants.AddressZero], superAdmin.address, []],
+          message: 'AddressIsNotOracle',
         });
       });
     });
@@ -240,18 +250,14 @@ describe('OracleAggregator', () => {
   });
 
   describe('forceOracle', () => {
-    when(`oracle is forced and pair's addreses are inverted`, () => {
-      let tx: TransactionResponse;
-      given(async () => {
-        tx = await oracleAggregator.connect(admin).forceOracle(TOKEN_B, TOKEN_A, oracle1.address);
-      });
-      then(`oracle is assigned correctly`, async () => {
-        const { oracle, forced } = await oracleAggregator.assignedOracle(TOKEN_A, TOKEN_B);
-        expect(oracle).to.equal(oracle1.address);
-        expect(forced).to.be.true;
-      });
-      then('event is emitted', async () => {
-        await expect(tx).to.emit(oracleAggregator, 'OracleAssigned').withArgs(TOKEN_A, TOKEN_B, oracle1.address);
+    when('the given address it not an oracle', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: oracleAggregator.connect(admin),
+          func: 'forceOracle',
+          args: [TOKEN_A, TOKEN_B, constants.AddressZero],
+          message: `AddressIsNotOracle`,
+        });
       });
     });
     when('oracle is forced', () => {
@@ -338,20 +344,33 @@ describe('OracleAggregator', () => {
   });
 
   describe('setAvailableOracles', () => {
-    const NEW_ORACLE_1 = '0x0000000000000000000000000000000000000001';
-    const NEW_ORACLE_2 = '0x0000000000000000000000000000000000000002';
-    const NEW_ORACLE_3 = '0x0000000000000000000000000000000000000003';
+    let newOracle1: FakeContract<BaseOracle>, newOracle2: FakeContract<BaseOracle>, newOracle3: FakeContract<BaseOracle>;
+    given(async () => {
+      newOracle1 = await deployFakeOracle();
+      newOracle2 = await deployFakeOracle();
+      newOracle3 = await deployFakeOracle();
+    });
+    when('one of the given addresses it not an oracle', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: oracleAggregator.connect(admin),
+          func: 'setAvailableOracles',
+          args: [[constants.AddressZero]],
+          message: `AddressIsNotOracle`,
+        });
+      });
+    });
     setOraclesTest({
       when: 'the number of oracles stay the same',
-      newOracles: () => [NEW_ORACLE_1, NEW_ORACLE_2],
+      newOracles: () => [newOracle1.address, newOracle2.address],
     });
     setOraclesTest({
       when: 'the number of oracles increased',
-      newOracles: () => [NEW_ORACLE_1, NEW_ORACLE_2, NEW_ORACLE_3],
+      newOracles: () => [newOracle1.address, newOracle2.address, newOracle3.address],
     });
     setOraclesTest({
       when: 'the number of oracles is reduced',
-      newOracles: () => [NEW_ORACLE_1],
+      newOracles: () => [newOracle1.address],
     });
     setOraclesTest({
       when: 'changing order of current added oracles',
@@ -417,4 +436,13 @@ describe('OracleAggregator', () => {
       interface: IERC20__factory.createInterface(),
     });
   });
+  async function deployFakeOracle() {
+    const ERC_165_INTERFACE_ID = getInterfaceId(IERC165__factory.createInterface());
+    const PRICE_ORACLE_INTERFACE_ID = getInterfaceId(ITokenPriceOracle__factory.createInterface());
+    const oracle = await smock.fake<BaseOracle>('BaseOracle');
+    oracle.supportsInterface.returns(
+      ({ _interfaceId }: { _interfaceId: string }) => _interfaceId === ERC_165_INTERFACE_ID || _interfaceId === PRICE_ORACLE_INTERFACE_ID
+    );
+    return oracle;
+  }
 });

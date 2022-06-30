@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity >=0.8.7 <0.9.0;
 
+import '@openzeppelin/contracts/utils/introspection/ERC165Checker.sol';
 import '@openzeppelin/contracts/access/AccessControl.sol';
 import '@mean-finance/dca-v2-core/contracts/libraries/TokenSorting.sol';
 import './base/SimpleOracle.sol';
@@ -15,7 +16,7 @@ contract OracleAggregator is AccessControl, SimpleOracle, IOracleAggregator {
   mapping(bytes32 => OracleAssignment) internal _assignedOracle; // key(tokenA, tokenB) => oracle
 
   constructor(
-    ITokenPriceOracle[] memory _initialOracles,
+    address[] memory _initialOracles,
     address _superAdmin,
     address[] memory _initialAdmins
   ) {
@@ -28,7 +29,8 @@ contract OracleAggregator is AccessControl, SimpleOracle, IOracleAggregator {
 
     if (_initialOracles.length > 0) {
       for (uint256 i; i < _initialOracles.length; i++) {
-        _availableOracles.push(_initialOracles[i]);
+        _revertIfNotOracle(_initialOracles[i]);
+        _availableOracles.push(ITokenPriceOracle(_initialOracles[i]));
       }
       emit OracleListUpdated(_initialOracles);
     }
@@ -96,26 +98,28 @@ contract OracleAggregator is AccessControl, SimpleOracle, IOracleAggregator {
   function forceOracle(
     address _tokenA,
     address _tokenB,
-    ITokenPriceOracle _oracle
+    address _oracle
   ) external onlyRole(ADMIN_ROLE) {
-    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
-    _setOracle(__tokenA, __tokenB, _oracle, true);
+    _revertIfNotOracle(_oracle);
+    _setOracle(_tokenA, _tokenB, ITokenPriceOracle(_oracle), true);
   }
 
   /// @inheritdoc IOracleAggregator
-  function setAvailableOracles(ITokenPriceOracle[] calldata _oracles) external onlyRole(ADMIN_ROLE) {
+  function setAvailableOracles(address[] calldata _oracles) external onlyRole(ADMIN_ROLE) {
     uint256 _currentAvailableOracles = _availableOracles.length;
     uint256 _min = _currentAvailableOracles < _oracles.length ? _currentAvailableOracles : _oracles.length;
 
     uint256 i;
     for (; i < _min; i++) {
       // Rewrite storage
-      _availableOracles[i] = _oracles[i];
+      _revertIfNotOracle(_oracles[i]);
+      _availableOracles[i] = ITokenPriceOracle(_oracles[i]);
     }
     if (_currentAvailableOracles < _oracles.length) {
       // If have more oracles than before, then push
       for (; i < _oracles.length; i++) {
-        _availableOracles.push(_oracles[i]);
+        _revertIfNotOracle(_oracles[i]);
+        _availableOracles.push(ITokenPriceOracle(_oracles[i]));
       }
     } else if (_currentAvailableOracles > _oracles.length) {
       // If have less oracles than before, then remove extra oracles
@@ -164,6 +168,11 @@ contract OracleAggregator is AccessControl, SimpleOracle, IOracleAggregator {
   ) internal {
     _assignedOracle[_keyForPair(_tokenA, _tokenB)] = OracleAssignment({oracle: _oracle, forced: _forced});
     emit OracleAssigned(_tokenA, _tokenB, _oracle);
+  }
+
+  function _revertIfNotOracle(address _oracleToCheck) internal view {
+    bool _isOracle = ERC165Checker.supportsInterface(_oracleToCheck, type(ITokenPriceOracle).interfaceId);
+    if (!_isOracle) revert AddressIsNotOracle(_oracleToCheck);
   }
 
   function _keyForPair(address _tokenA, address _tokenB) internal pure returns (bytes32) {

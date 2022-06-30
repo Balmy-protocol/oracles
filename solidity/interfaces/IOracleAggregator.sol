@@ -22,10 +22,16 @@ interface IOracleAggregator is ITokenPriceOracle {
   error ZeroAddress();
 
   /**
+   * @notice Thrown when trying to register an address that is not an oracle
+   * @param notOracle The address that was not a oracle
+   */
+  error AddressIsNotOracle(address notOracle);
+
+  /**
    * @notice Emitted when the list of oracles is updated
    * @param oracles The new list of oracles
    */
-  event OracleListUpdated(ITokenPriceOracle[] oracles);
+  event OracleListUpdated(address[] oracles);
 
   /**
    * @notice Emitted when an oracle is assigned to a pair
@@ -62,7 +68,7 @@ interface IOracleAggregator is ITokenPriceOracle {
   function forceOracle(
     address tokenA,
     address tokenB,
-    ITokenPriceOracle oracle
+    address oracle
   ) external;
 
   /**
@@ -70,5 +76,5 @@ interface IOracleAggregator is ITokenPriceOracle {
    * @dev Can only be called by users with the admin role
    * @param oracles The new list of oracles to set
    */
-  function setAvailableOracles(ITokenPriceOracle[] calldata oracles) external;
+  function setAvailableOracles(address[] calldata oracles) external;
 }
