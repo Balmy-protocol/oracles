@@ -212,7 +212,7 @@ export const shouldSupportInterface = ({
 }: {
   contract: () => Contract;
   interfaceName: string;
-  interface: ERC615Interface
+  interface: ERC615Interface;
 }) => {
   when(`asked if ${interfaceName} is supported`, () => {
     then('result is true', async () => {
