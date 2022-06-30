@@ -239,7 +239,7 @@ export const shouldNotSupportInterface = ({
   interface: utils.Interface;
 }) => {
   when(`asked if ${interfaceName} is supported`, () => {
-    then('result is faklse', async () => {
+    then('result is false', async () => {
       const functions = Object.keys(interface_.functions);
       const interfaceId = makeInterfaceId.ERC165(functions);
       expect(await contract().supportsInterface(interfaceId)).to.be.false;
