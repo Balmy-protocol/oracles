@@ -4,6 +4,11 @@ pragma solidity >=0.8.7 <0.9.0;
 import './base/BaseOracle.sol';
 import '../interfaces/ITransformerOracle.sol';
 
+/**
+ * @notice This implementation of `ITransformerOracle` assumes that all tokens being transformed only have one underlying token.
+ *         This is true when this implementation was writter, but it may not be true in the future. If that happens, then another
+ *         implementation will be needed
+ */
 contract TransformerOracle is BaseOracle, ITransformerOracle {
   /// @inheritdoc ITransformerOracle
   ITransformerRegistry public immutable REGISTRY;
@@ -15,6 +20,16 @@ contract TransformerOracle is BaseOracle, ITransformerOracle {
     if (address(_registry) == address(0) || address(_underlyingOracle) == address(0)) revert ZeroAddress();
     REGISTRY = _registry;
     UNDERLYING_ORACLE = _underlyingOracle;
+  }
+
+  /// @inheritdoc ITransformerOracle
+  function mapPairToUnderlying(address _tokenA, address _tokenB) public view returns (address _underlyingTokenA, address _underlyingTokenB) {
+    address[] memory _tokens = new address[](2);
+    _tokens[0] = _tokenA;
+    _tokens[1] = _tokenB;
+    ITransformer[] memory _transformers = REGISTRY.transformers(_tokens);
+    _underlyingTokenA = _mapToUnderlyingIfExists(_tokenA, _transformers[0]);
+    _underlyingTokenB = _mapToUnderlyingIfExists(_tokenB, _transformers[1]);
   }
 
   /// @inheritdoc ITokenPriceOracle
@@ -58,5 +73,17 @@ contract TransformerOracle is BaseOracle, ITransformerOracle {
   /// @inheritdoc IERC165
   function supportsInterface(bytes4 _interfaceId) public view override returns (bool) {
     return _interfaceId == type(ITransformerOracle).interfaceId || super.supportsInterface(_interfaceId);
+  }
+
+  /**
+   * @notice Takes a token and a associated transformer (could not exist). If the transformer exists, this
+   *         function will return the underlying token. If it doesn't exist, then it will return the given token
+   */
+  function _mapToUnderlyingIfExists(address _token, ITransformer _transformer) internal view returns (address) {
+    if (address(_transformer) == address(0)) {
+      return _token;
+    }
+    address[] memory _underlying = _transformer.getUnderlying(_token);
+    return _underlying[0];
   }
 }

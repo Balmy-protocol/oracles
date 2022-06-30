@@ -29,4 +29,15 @@ interface ITransformerOracle is ITokenPriceOracle {
    * @return The address of the underlying oracle
    */
   function UNDERLYING_ORACLE() external view returns (ITokenPriceOracle);
+
+  /**
+   * @notice Takes a pair of tokens, and checks if any of them is registered as a dependent on the registry.
+   *         If any of them are, then they are transformed to their underlying tokens. If they aren't, then
+   *         they are simply returned
+   * @param tokenA One of the pair's tokens
+   * @param tokenB The other of the pair's tokens
+   * @return underlyingTokenA tokenA's underlying token (if exists), or tokenA if there is no underlying token
+   * @return underlyingTokenB tokenB's underlying token (if exists), or tokenB if there is no underlying token
+   */
+  function mapPairToUnderlying(address tokenA, address tokenB) external view returns (address underlyingTokenA, address underlyingTokenB);
 }
