@@ -31,7 +31,7 @@ contract OracleAggregatorMock is OracleAggregator {
     ITokenPriceOracle _oracle,
     bool _forced
   ) external {
-    _setOracle(_tokenA, _tokenB, _oracle, _forced);
+    _assignedOracle[_keyForPair(_tokenA, _tokenB)] = OracleAssignment({oracle: _oracle, forced: _forced});
   }
 
   function _addOrModifySupportForPair(

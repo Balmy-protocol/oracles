@@ -59,7 +59,7 @@ contract OracleAggregator is AccessControl, SimpleOracle, IOracleAggregator {
     address _tokenIn,
     uint256 _amountIn,
     address _tokenOut,
-    bytes memory _data
+    bytes calldata _data
   ) external view returns (uint256 _amountOut) {
     ITokenPriceOracle _oracle = assignedOracle(_tokenIn, _tokenOut).oracle;
     if (address(_oracle) == address(0)) revert PairNotSupportedYet(_tokenIn, _tokenOut);
@@ -98,10 +98,11 @@ contract OracleAggregator is AccessControl, SimpleOracle, IOracleAggregator {
   function forceOracle(
     address _tokenA,
     address _tokenB,
-    address _oracle
+    address _oracle,
+    bytes calldata _data
   ) external onlyRole(ADMIN_ROLE) {
     _revertIfNotOracle(_oracle);
-    _setOracle(_tokenA, _tokenB, ITokenPriceOracle(_oracle), true);
+    _setOracle(_tokenA, _tokenB, ITokenPriceOracle(_oracle), _data, true);
   }
 
   /// @inheritdoc IOracleAggregator
@@ -152,8 +153,7 @@ contract OracleAggregator is AccessControl, SimpleOracle, IOracleAggregator {
     for (uint256 i; i < _length; i++) {
       ITokenPriceOracle _oracle = _availableOracles[i];
       if (_oracle.canSupportPair(_tokenA, _tokenB)) {
-        _oracle.addOrModifySupportForPair(_tokenA, _tokenB, _data);
-        _setOracle(_tokenA, _tokenB, _oracle, false);
+        _setOracle(_tokenA, _tokenB, _oracle, _data, false);
         return;
       }
     }
@@ -164,8 +164,10 @@ contract OracleAggregator is AccessControl, SimpleOracle, IOracleAggregator {
     address _tokenA,
     address _tokenB,
     ITokenPriceOracle _oracle,
+    bytes calldata _data,
     bool _forced
   ) internal {
+    _oracle.addOrModifySupportForPair(_tokenA, _tokenB, _data);
     _assignedOracle[_keyForPair(_tokenA, _tokenB)] = OracleAssignment({oracle: _oracle, forced: _forced});
     emit OracleAssigned(_tokenA, _tokenB, _oracle);
   }

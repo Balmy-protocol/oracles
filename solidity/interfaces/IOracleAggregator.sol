@@ -64,11 +64,13 @@ interface IOracleAggregator is ITokenPriceOracle {
    * @param tokenA One of the pair's tokens
    * @param tokenB The other of the pair's tokens
    * @param oracle The oracle to set
+   * @param data Custom data that the oracle might need to operate
    */
   function forceOracle(
     address tokenA,
     address tokenB,
-    address oracle
+    address oracle,
+    bytes calldata data
   ) external;
 
   /**

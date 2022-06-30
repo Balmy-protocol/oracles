@@ -43,7 +43,7 @@ describe('OracleAggregator', () => {
       given(async () => {
         oracle1.canSupportPair.returns(true);
         oracle2.canSupportPair.returns(true);
-        await oracleAggregator.connect(admin).forceOracle(TOKEN_A, TOKEN_B, oracle2.address);
+        await oracleAggregator.connect(admin).forceOracle(TOKEN_A, TOKEN_B, oracle2.address, BYTES);
       });
       describe('and then an admin updates the support', () => {
         given(async () => {
@@ -66,8 +66,8 @@ describe('OracleAggregator', () => {
       given(async () => {
         oracle1.quote.returns(QUOTE_ORACLE_1);
         oracle2.quote.returns(QUOTE_ORACLE_2);
-        await oracleAggregator.connect(admin).forceOracle(TOKEN_A, TOKEN_B, oracle1.address);
-        await oracleAggregator.connect(admin).forceOracle(TOKEN_A, TOKEN_C, oracle2.address);
+        await oracleAggregator.connect(admin).forceOracle(TOKEN_A, TOKEN_B, oracle1.address, BYTES);
+        await oracleAggregator.connect(admin).forceOracle(TOKEN_A, TOKEN_C, oracle2.address, BYTES);
 
         const { data: quote1Data } = await oracleAggregator.populateTransaction.quote(TOKEN_A, 1, TOKEN_B, BYTES);
         const { data: quote2Data } = await oracleAggregator.populateTransaction.quote(TOKEN_A, 1, TOKEN_C, BYTES);
