@@ -72,7 +72,8 @@ contract OracleAggregator is AccessControl, SimpleOracle, IOracleAggregator {
     address _tokenB,
     bytes calldata _data
   ) external override(ITokenPriceOracle, SimpleOracle) {
-    if (_canModifySupportForPair(_tokenA, _tokenB)) {
+    OracleAssignment memory _assignment = assignedOracle(_tokenA, _tokenB);
+    if (_canModifySupportForPair(_tokenA, _tokenB, _assignment)) {
       _addOrModifySupportForPair(_tokenA, _tokenB, _data);
     }
   }
@@ -85,6 +86,12 @@ contract OracleAggregator is AccessControl, SimpleOracle, IOracleAggregator {
   /// @inheritdoc IOracleAggregator
   function availableOracles() external view returns (ITokenPriceOracle[] memory) {
     return _availableOracles;
+  }
+
+  /// @inheritdoc IOracleAggregator
+  function previewAddOrModifySupportForPair(address _tokenA, address _tokenB) external view returns (ITokenPriceOracle) {
+    OracleAssignment memory _assignment = assignedOracle(_tokenA, _tokenB);
+    return _canModifySupportForPair(_tokenA, _tokenB, _assignment) ? _findFirstOracleThatCanSupportPair(_tokenA, _tokenB) : _assignment.oracle;
   }
 
   /// @inheritdoc IOracleAggregator
@@ -147,7 +154,11 @@ contract OracleAggregator is AccessControl, SimpleOracle, IOracleAggregator {
     _setOracle(_tokenA, _tokenB, _oracle, _data, false);
   }
 
-  function _canModifySupportForPair(address _tokenA, address _tokenB) internal view returns (bool) {
+  function _canModifySupportForPair(
+    address _tokenA,
+    address _tokenB,
+    OracleAssignment memory _assignment
+  ) internal view returns (bool) {
     /* 
       Only modify if one of the following is true:
         - There is no current oracle
@@ -155,7 +166,6 @@ contract OracleAggregator is AccessControl, SimpleOracle, IOracleAggregator {
         - The current oracle has been forced but it has lost support for the pair
         - The caller is an admin
     */
-    OracleAssignment memory _assignment = assignedOracle(_tokenA, _tokenB);
     return !_assignment.forced || hasRole(ADMIN_ROLE, msg.sender) || !_assignment.oracle.isPairAlreadySupported(_tokenA, _tokenB);
   }
 

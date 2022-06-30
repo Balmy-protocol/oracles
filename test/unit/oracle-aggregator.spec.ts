@@ -1,6 +1,6 @@
 import chai, { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { BigNumber, constants } from 'ethers';
+import { BigNumber, constants, Signer, utils } from 'ethers';
 import { behaviours } from '@utils';
 import { given, then, when } from '@utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
@@ -253,6 +253,75 @@ describe('OracleAggregator', () => {
         expect(oracle).to.equal(oracle1.address);
       });
     });
+  });
+
+  describe('previewAddOrModifySupportForPair', () => {
+    given(() => {
+      oracle1.isPairAlreadySupported.returns(true);
+      oracle2.isPairAlreadySupported.returns(true);
+    });
+    when('no oracle has been assigned', () => {
+      thenOracleIsCalculatedCorrectly();
+    });
+    when(`oracle is assigned but it hasn't been forced`, () => {
+      given(async () => {
+        await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, false);
+      });
+      thenOracleIsCalculatedCorrectly();
+    });
+    when(`oracle was forced but caller is admin`, () => {
+      given(async () => {
+        await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, true);
+      });
+      thenOracleIsCalculatedCorrectly(() => admin);
+    });
+    when(`oracle was forced but it lost support`, () => {
+      given(async () => {
+        oracle1.isPairAlreadySupported.returns(false);
+        await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle1.address, true);
+      });
+      thenOracleIsCalculatedCorrectly();
+    });
+    when(`oracle was forced and caller is not admin`, () => {
+      given(async () => {
+        await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, oracle2.address, true);
+      });
+      then('then returned oracle is the one that was asigned', async () => {
+        const returnedOracle = await oracleAggregator.previewAddOrModifySupportForPair(TOKEN_A, TOKEN_B);
+        expect(returnedOracle).to.equal(oracle2.address);
+      });
+    });
+    function thenOracleIsCalculatedCorrectly(signer?: () => Signer) {
+      describe('and oracle 1 can support the given pair', () => {
+        given(async () => {
+          oracle1.canSupportPair.returns(true);
+        });
+        thenReturnedOracleIs(() => oracle1.address);
+      });
+      describe('and oracle 1 cant support the given pair', () => {
+        given(async () => {
+          oracle1.canSupportPair.returns(false);
+          oracle2.canSupportPair.returns(true);
+        });
+        thenReturnedOracleIs(() => oracle2.address);
+      });
+      describe('but no oracle can support the given pair', () => {
+        given(async () => {
+          oracle1.canSupportPair.returns(false);
+          oracle2.canSupportPair.returns(false);
+        });
+        thenReturnedOracleIs(() => constants.AddressZero);
+      });
+      function thenReturnedOracleIs(expected: () => string) {
+        then('then returned oracle is as expected', async () => {
+          const returnedOracle = signer
+            ? await oracleAggregator.connect(signer()).previewAddOrModifySupportForPair(TOKEN_A, TOKEN_B)
+            : await oracleAggregator.previewAddOrModifySupportForPair(TOKEN_A, TOKEN_B);
+
+          expect(returnedOracle).to.equal(expected());
+        });
+      }
+    }
   });
 
   describe('forceOracle', () => {
