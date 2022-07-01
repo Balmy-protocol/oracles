@@ -20,6 +20,9 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
   /// @inheritdoc ITransformerOracle
   ITokenPriceOracle public immutable UNDERLYING_ORACLE;
 
+  /// @inheritdoc ITransformerOracle
+  mapping(address => bool) public willAvoidMappingToUnderlying;
+
   constructor(
     ITransformerRegistry _registry,
     ITokenPriceOracle _underlyingOracle,
@@ -46,6 +49,22 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
     ITransformer[] memory _transformers = _getTransformers(_tokenA, _tokenB);
     _underlyingTokenA = _mapToUnderlyingIfExists(_tokenA, _transformers[0]);
     _underlyingTokenB = _mapToUnderlyingIfExists(_tokenB, _transformers[1]);
+  }
+
+  /// @inheritdoc ITransformerOracle
+  function shouldMapToUnderlying(address[] calldata _dependents) external onlyRole(ADMIN_ROLE) {
+    for (uint256 i; i < _dependents.length; i++) {
+      willAvoidMappingToUnderlying[_dependents[i]] = false;
+    }
+    emit DependentsWillMapToUnderlying(_dependents);
+  }
+
+  /// @inheritdoc ITransformerOracle
+  function avoidMappingToUnderlying(address[] calldata _dependents) external onlyRole(ADMIN_ROLE) {
+    for (uint256 i; i < _dependents.length; i++) {
+      willAvoidMappingToUnderlying[_dependents[i]] = true;
+    }
+    emit DependentsWillAvoidMappingToUnderlying(_dependents);
   }
 
   /// @inheritdoc ITokenPriceOracle

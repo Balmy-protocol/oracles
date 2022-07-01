@@ -19,6 +19,7 @@ import {
 import { snapshot } from '@utils/evm';
 import { smock, FakeContract } from '@defi-wonderland/smock';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { TransactionResponse } from '@ethersproject/providers';
 
 chai.use(smock.matchers);
 
@@ -196,6 +197,53 @@ describe('TransformerOracle', () => {
         }
       });
     }
+  });
+
+  describe('avoidMappingToUnderlying', () => {
+    when('token is set to avoid mapping', () => {
+      let tx: TransactionResponse;
+      given(async () => {
+        tx = await transformerOracle.connect(admin).avoidMappingToUnderlying([TOKEN_A]);
+      });
+      then('token will avoid mapping', async () => {
+        const willAvoid = await transformerOracle.willAvoidMappingToUnderlying(TOKEN_A);
+        expect(willAvoid).to.be.true;
+      });
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(transformerOracle, 'DependentsWillAvoidMappingToUnderlying').withArgs([TOKEN_A]);
+      });
+    });
+    behaviours.shouldBeExecutableOnlyByRole({
+      contract: () => transformerOracle,
+      funcAndSignature: 'avoidMappingToUnderlying',
+      params: [[TOKEN_A]],
+      addressWithRole: () => admin,
+      role: () => adminRole,
+    });
+  });
+
+  describe('shouldMapToUnderlying', () => {
+    when('token is set to map again', () => {
+      let tx: TransactionResponse;
+      given(async () => {
+        await transformerOracle.connect(admin).avoidMappingToUnderlying([TOKEN_A]);
+        tx = await transformerOracle.connect(admin).shouldMapToUnderlying([TOKEN_A]);
+      });
+      then('token will not avoid mapping', async () => {
+        const willAvoid = await transformerOracle.willAvoidMappingToUnderlying(TOKEN_A);
+        expect(willAvoid).to.be.false;
+      });
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(transformerOracle, 'DependentsWillMapToUnderlying').withArgs([TOKEN_A]);
+      });
+    });
+    behaviours.shouldBeExecutableOnlyByRole({
+      contract: () => transformerOracle,
+      funcAndSignature: 'shouldMapToUnderlying',
+      params: [[TOKEN_A]],
+      addressWithRole: () => admin,
+      role: () => adminRole,
+    });
   });
 
   executeRedirectTest({
