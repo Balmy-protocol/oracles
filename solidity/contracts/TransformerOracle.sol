@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity >=0.8.7 <0.9.0;
 
+import '@openzeppelin/contracts/access/AccessControl.sol';
 import './base/BaseOracle.sol';
 import '../interfaces/ITransformerOracle.sol';
 
@@ -9,17 +10,30 @@ import '../interfaces/ITransformerOracle.sol';
  *         This is true when this implementation was written, but it may not be true in the future. If that happens, then another
  *         implementation will be needed
  */
-contract TransformerOracle is BaseOracle, ITransformerOracle {
+contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
+  bytes32 public constant SUPER_ADMIN_ROLE = keccak256('SUPER_ADMIN_ROLE');
+  bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
+
   /// @inheritdoc ITransformerOracle
   ITransformerRegistry public immutable REGISTRY;
 
   /// @inheritdoc ITransformerOracle
   ITokenPriceOracle public immutable UNDERLYING_ORACLE;
 
-  constructor(ITransformerRegistry _registry, ITokenPriceOracle _underlyingOracle) {
-    if (address(_registry) == address(0) || address(_underlyingOracle) == address(0)) revert ZeroAddress();
+  constructor(
+    ITransformerRegistry _registry,
+    ITokenPriceOracle _underlyingOracle,
+    address _superAdmin,
+    address[] memory _initialAdmins
+  ) {
+    if (address(_registry) == address(0) || address(_underlyingOracle) == address(0) || _superAdmin == address(0)) revert ZeroAddress();
     REGISTRY = _registry;
     UNDERLYING_ORACLE = _underlyingOracle;
+    _setupRole(SUPER_ADMIN_ROLE, _superAdmin);
+    _setRoleAdmin(ADMIN_ROLE, SUPER_ADMIN_ROLE);
+    for (uint256 i; i < _initialAdmins.length; i++) {
+      _setupRole(ADMIN_ROLE, _initialAdmins[i]);
+    }
   }
 
   /// @inheritdoc ITransformerOracle
@@ -98,8 +112,11 @@ contract TransformerOracle is BaseOracle, ITransformerOracle {
   }
 
   /// @inheritdoc IERC165
-  function supportsInterface(bytes4 _interfaceId) public view override returns (bool) {
-    return _interfaceId == type(ITransformerOracle).interfaceId || super.supportsInterface(_interfaceId);
+  function supportsInterface(bytes4 _interfaceId) public view override(AccessControl, BaseOracle) returns (bool) {
+    return
+      _interfaceId == type(ITransformerOracle).interfaceId ||
+      AccessControl.supportsInterface(_interfaceId) ||
+      BaseOracle.supportsInterface(_interfaceId);
   }
 
   /**

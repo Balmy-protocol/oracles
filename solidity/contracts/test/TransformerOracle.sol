@@ -6,7 +6,12 @@ import '../TransformerOracle.sol';
 contract TransformerOracleMock is TransformerOracle {
   mapping(address => mapping(address => address[])) internal _underlyingPair;
 
-  constructor(ITransformerRegistry _registry, ITokenPriceOracle _underlyingOracle) TransformerOracle(_registry, _underlyingOracle) {}
+  constructor(
+    ITransformerRegistry _registry,
+    ITokenPriceOracle _underlyingOracle,
+    address _superAdmin,
+    address[] memory _initialAdmins
+  ) TransformerOracle(_registry, _underlyingOracle, _superAdmin, _initialAdmins) {}
 
   function setUnderlying(
     address _tokenA,

@@ -14,9 +14,11 @@ import {
   ITransformerOracle__factory,
   IERC20__factory,
   ITransformer,
+  IAccessControl__factory,
 } from '@typechained';
 import { snapshot } from '@utils/evm';
 import { smock, FakeContract } from '@defi-wonderland/smock';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 
 chai.use(smock.matchers);
 
@@ -27,20 +29,25 @@ describe('TransformerOracle', () => {
   const UNDERLYING_TOKEN_B = '0x0000000000000000000000000000000000000004';
   const BYTES = '0xf2c047db4a7cf81f935c'; // Some random bytes
 
+  let superAdmin: SignerWithAddress, admin: SignerWithAddress;
   let transformerOracleFactory: TransformerOracleMock__factory;
   let transformerOracle: TransformerOracleMock;
   let underlyingOracle: FakeContract<ITokenPriceOracle>;
   let registry: FakeContract<ITransformerRegistry>;
   let transformerA: FakeContract<ITransformer>, transformerB: FakeContract<ITransformer>;
+  let superAdminRole: string, adminRole: string;
   let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
+    [, superAdmin, admin] = await ethers.getSigners();
     transformerOracleFactory = await ethers.getContractFactory('solidity/contracts/test/TransformerOracle.sol:TransformerOracleMock');
     registry = await smock.fake<ITransformerRegistry>('ITransformerRegistry');
     underlyingOracle = await smock.fake<ITokenPriceOracle>('ITokenPriceOracle');
     transformerA = await smock.fake<ITransformer>('ITransformer');
     transformerB = await smock.fake<ITransformer>('ITransformer');
-    transformerOracle = await transformerOracleFactory.deploy(registry.address, underlyingOracle.address);
+    transformerOracle = await transformerOracleFactory.deploy(registry.address, underlyingOracle.address, superAdmin.address, [admin.address]);
+    superAdminRole = await transformerOracle.SUPER_ADMIN_ROLE();
+    adminRole = await transformerOracle.ADMIN_ROLE();
     snapshotId = await snapshot.take();
   });
 
@@ -65,7 +72,7 @@ describe('TransformerOracle', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: transformerOracleFactory,
-          args: [constants.AddressZero, underlyingOracle.address],
+          args: [constants.AddressZero, underlyingOracle.address, superAdmin.address, [admin.address]],
           message: 'ZeroAddress',
         });
       });
@@ -74,8 +81,17 @@ describe('TransformerOracle', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: transformerOracleFactory,
-          args: [registry.address, constants.AddressZero],
+          args: [registry.address, constants.AddressZero, superAdmin.address, [admin.address]],
           message: 'ZeroAddress',
+        });
+      });
+      when('super admin is zero address', () => {
+        then('tx is reverted with reason error', async () => {
+          await behaviours.deployShouldRevertWithMessage({
+            contract: transformerOracleFactory,
+            args: [registry.address, underlyingOracle.address, constants.AddressZero, [admin.address]],
+            message: 'ZeroAddress',
+          });
         });
       });
     });
@@ -87,6 +103,18 @@ describe('TransformerOracle', () => {
       then('registry is set correctly', async () => {
         const returnedOracle = await transformerOracle.UNDERLYING_ORACLE();
         expect(returnedOracle).to.equal(underlyingOracle.address);
+      });
+      then('super admin is set correctly', async () => {
+        const hasRole = await transformerOracle.hasRole(superAdminRole, superAdmin.address);
+        expect(hasRole).to.be.true;
+      });
+      then('initial admins are set correctly', async () => {
+        const hasRole = await transformerOracle.hasRole(adminRole, admin.address);
+        expect(hasRole).to.be.true;
+      });
+      then('super admin role is set as admin role', async () => {
+        const admin = await transformerOracle.getRoleAdmin(adminRole);
+        expect(admin).to.equal(superAdminRole);
       });
     });
   });
@@ -368,6 +396,11 @@ describe('TransformerOracle', () => {
         actual: ITransformerOracle__factory.createInterface(),
         inheritedFrom: [ITokenPriceOracle__factory.createInterface()],
       },
+    });
+    behaviours.shouldSupportInterface({
+      contract: () => transformerOracle,
+      interfaceName: 'IAccessControl',
+      interface: IAccessControl__factory.createInterface(),
     });
     behaviours.shouldNotSupportInterface({
       contract: () => transformerOracle,
