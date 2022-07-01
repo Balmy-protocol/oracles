@@ -50,15 +50,16 @@ interface ITransformerOracle is ITokenPriceOracle {
   function willAvoidMappingToUnderlying(address dependent) external view returns (bool);
 
   /**
-   * @notice Takes a pair of tokens, and checks if any of them is registered as a dependent on the registry.
-   *         If any of them are, then they are transformed to their underlying tokens. If they aren't, then
-   *         they are simply returned
+   * @notice Takes a pair of tokens, and maps them to their underlying counterparts if they exist, and if they
+   *         haven't been configured to avoid mapping
    * @param tokenA One of the pair's tokens
    * @param tokenB The other of the pair's tokens
-   * @return underlyingTokenA tokenA's underlying token (if exists), or tokenA if there is no underlying token
-   * @return underlyingTokenB tokenB's underlying token (if exists), or tokenB if there is no underlying token
+   * @return mappedTokenA tokenA's underlying token, if exists and isn't configured to avoid mapping.
+   *                      Otherwise tokenA
+   * @return mappedTokenB tokenB's underlying token, if exists and isn't configured to avoid mapping.
+   *                      Otherwise tokenB
    */
-  function mapPairToUnderlying(address tokenA, address tokenB) external view returns (address underlyingTokenA, address underlyingTokenB);
+  function getMappingForPair(address tokenA, address tokenB) external view returns (address mappedTokenA, address mappedTokenB);
 
   /**
    * @notice Determines that the given dependents will avoid mapping to their underlying counterparts, and

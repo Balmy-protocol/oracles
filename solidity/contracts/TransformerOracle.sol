@@ -40,15 +40,10 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
   }
 
   /// @inheritdoc ITransformerOracle
-  function mapPairToUnderlying(address _tokenA, address _tokenB)
-    public
-    view
-    virtual
-    returns (address _underlyingTokenA, address _underlyingTokenB)
-  {
+  function getMappingForPair(address _tokenA, address _tokenB) public view virtual returns (address _mappedTokenA, address _mappedTokenB) {
     ITransformer[] memory _transformers = _getTransformers(_tokenA, _tokenB);
-    _underlyingTokenA = _mapToUnderlyingIfExists(_tokenA, _transformers[0]);
-    _underlyingTokenB = _mapToUnderlyingIfExists(_tokenB, _transformers[1]);
+    _mappedTokenA = _mapToUnderlyingIfMustAndPossible(_tokenA, _transformers[0]);
+    _mappedTokenB = _mapToUnderlyingIfMustAndPossible(_tokenB, _transformers[1]);
   }
 
   /// @inheritdoc ITransformerOracle
@@ -69,14 +64,14 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
 
   /// @inheritdoc ITokenPriceOracle
   function canSupportPair(address _tokenA, address _tokenB) external view returns (bool) {
-    (address _underlyingTokenA, address _underlyingTokenB) = mapPairToUnderlying(_tokenA, _tokenB);
-    return UNDERLYING_ORACLE.canSupportPair(_underlyingTokenA, _underlyingTokenB);
+    (address _mappedTokenA, address _mappedTokenB) = getMappingForPair(_tokenA, _tokenB);
+    return UNDERLYING_ORACLE.canSupportPair(_mappedTokenA, _mappedTokenB);
   }
 
   /// @inheritdoc ITokenPriceOracle
   function isPairAlreadySupported(address _tokenA, address _tokenB) external view returns (bool) {
-    (address _underlyingTokenA, address _underlyingTokenB) = mapPairToUnderlying(_tokenA, _tokenB);
-    return UNDERLYING_ORACLE.isPairAlreadySupported(_underlyingTokenA, _underlyingTokenB);
+    (address _mappedTokenA, address _mappedTokenB) = getMappingForPair(_tokenA, _tokenB);
+    return UNDERLYING_ORACLE.isPairAlreadySupported(_mappedTokenA, _mappedTokenB);
   }
 
   /// @inheritdoc ITokenPriceOracle
@@ -116,8 +111,8 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
     address _tokenB,
     bytes calldata _data
   ) external {
-    (address _underlyingTokenA, address _underlyingTokenB) = mapPairToUnderlying(_tokenA, _tokenB);
-    UNDERLYING_ORACLE.addOrModifySupportForPair(_underlyingTokenA, _underlyingTokenB, _data);
+    (address _mappedTokenA, address _mappedTokenB) = getMappingForPair(_tokenA, _tokenB);
+    UNDERLYING_ORACLE.addOrModifySupportForPair(_mappedTokenA, _mappedTokenB, _data);
   }
 
   /// @inheritdoc ITokenPriceOracle
@@ -126,8 +121,8 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
     address _tokenB,
     bytes calldata _data
   ) external {
-    (address _underlyingTokenA, address _underlyingTokenB) = mapPairToUnderlying(_tokenA, _tokenB);
-    UNDERLYING_ORACLE.addSupportForPairIfNeeded(_underlyingTokenA, _underlyingTokenB, _data);
+    (address _mappedTokenA, address _mappedTokenB) = getMappingForPair(_tokenA, _tokenB);
+    UNDERLYING_ORACLE.addSupportForPairIfNeeded(_mappedTokenA, _mappedTokenB, _data);
   }
 
   /// @inheritdoc IERC165
@@ -139,11 +134,11 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
   }
 
   /**
-   * @notice Takes a token and a associated transformer (could not exist). If the transformer exists, this
-   *         function will return the underlying token. If it doesn't exist, then it will return the given token
+   * @notice Takes a token and a associated transformer (could not exist). If the transformer exists and the token is not
+   *         set to avoid mapping, this function will return the underlying token. Otherwise, it will return the given token
    */
-  function _mapToUnderlyingIfExists(address _token, ITransformer _transformer) internal view returns (address) {
-    if (address(_transformer) == address(0)) {
+  function _mapToUnderlyingIfMustAndPossible(address _token, ITransformer _transformer) internal view returns (address) {
+    if (address(_transformer) == address(0) || willAvoidMappingToUnderlying[_token]) {
       return _token;
     }
     address[] memory _underlying = _transformer.getUnderlying(_token);
