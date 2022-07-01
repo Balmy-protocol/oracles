@@ -121,129 +121,48 @@ describe('TransformerOracle', () => {
   });
 
   describe('getMappingForPair', () => {
-    describe('both should avoid mapping', () => {
-      getMappingForPairTest({
-        when: 'both tokens have underlying',
-        tokenA: { shouldAvoidMapping: true, hasUnderlying: true },
-        tokenB: { shouldAvoidMapping: true, hasUnderlying: true },
-      });
-
-      getMappingForPairTest({
-        when: 'only tokenA has underlying',
-        tokenA: { shouldAvoidMapping: true, hasUnderlying: true },
-        tokenB: { shouldAvoidMapping: true, hasUnderlying: false },
-      });
-
-      getMappingForPairTest({
-        when: 'only tokenB has underlying',
-        tokenA: { shouldAvoidMapping: true, hasUnderlying: false },
-        tokenB: { shouldAvoidMapping: true, hasUnderlying: true },
-      });
-
-      getMappingForPairTest({
-        when: 'neither of the tokens have underlying',
-        tokenA: { shouldAvoidMapping: true, hasUnderlying: false },
-        tokenB: { shouldAvoidMapping: true, hasUnderlying: false },
-      });
+    getMappingForPairTest({
+      when: 'both tokens have underlying',
+      underlyingTokenA: true,
+      underlyingTokenB: true,
     });
-    describe('tokenA should avoid mapping', () => {
-      getMappingForPairTest({
-        when: 'both tokens have underlying',
-        tokenA: { shouldAvoidMapping: true, hasUnderlying: true },
-        tokenB: { shouldAvoidMapping: false, hasUnderlying: true },
-      });
 
-      getMappingForPairTest({
-        when: 'only tokenA has underlying',
-        tokenA: { shouldAvoidMapping: true, hasUnderlying: true },
-        tokenB: { shouldAvoidMapping: false, hasUnderlying: false },
-      });
-
-      getMappingForPairTest({
-        when: 'only tokenB has underlying',
-        tokenA: { shouldAvoidMapping: true, hasUnderlying: false },
-        tokenB: { shouldAvoidMapping: false, hasUnderlying: true },
-      });
-
-      getMappingForPairTest({
-        when: 'neither of the tokens have underlying',
-        tokenA: { shouldAvoidMapping: true, hasUnderlying: false },
-        tokenB: { shouldAvoidMapping: false, hasUnderlying: false },
-      });
+    getMappingForPairTest({
+      when: 'only tokenA has underlying',
+      underlyingTokenA: true,
+      underlyingTokenB: false,
     });
-    describe('tokenB should avoid mapping', () => {
-      getMappingForPairTest({
-        when: 'both tokens have underlying',
-        tokenA: { shouldAvoidMapping: false, hasUnderlying: true },
-        tokenB: { shouldAvoidMapping: true, hasUnderlying: true },
-      });
 
-      getMappingForPairTest({
-        when: 'only tokenA has underlying',
-        tokenA: { shouldAvoidMapping: false, hasUnderlying: true },
-        tokenB: { shouldAvoidMapping: true, hasUnderlying: false },
-      });
-
-      getMappingForPairTest({
-        when: 'only tokenB has underlying',
-        tokenA: { shouldAvoidMapping: false, hasUnderlying: false },
-        tokenB: { shouldAvoidMapping: true, hasUnderlying: true },
-      });
-
-      getMappingForPairTest({
-        when: 'neither of the tokens have underlying',
-        tokenA: { shouldAvoidMapping: false, hasUnderlying: false },
-        tokenB: { shouldAvoidMapping: true, hasUnderlying: false },
-      });
+    getMappingForPairTest({
+      when: 'only tokenB has underlying',
+      underlyingTokenA: false,
+      underlyingTokenB: true,
     });
-    describe('none should avoid mapping', () => {
-      getMappingForPairTest({
-        when: 'both tokens have underlying',
-        tokenA: { shouldAvoidMapping: false, hasUnderlying: true },
-        tokenB: { shouldAvoidMapping: false, hasUnderlying: true },
-      });
 
-      getMappingForPairTest({
-        when: 'only tokenA has underlying',
-        tokenA: { shouldAvoidMapping: false, hasUnderlying: true },
-        tokenB: { shouldAvoidMapping: false, hasUnderlying: false },
-      });
-
-      getMappingForPairTest({
-        when: 'only tokenB has underlying',
-        tokenA: { shouldAvoidMapping: false, hasUnderlying: false },
-        tokenB: { shouldAvoidMapping: false, hasUnderlying: true },
-      });
-
-      getMappingForPairTest({
-        when: 'neither of the tokens have underlying',
-        tokenA: { shouldAvoidMapping: false, hasUnderlying: false },
-        tokenB: { shouldAvoidMapping: false, hasUnderlying: false },
-      });
+    getMappingForPairTest({
+      when: 'neither of the tokens have underlying',
+      underlyingTokenA: false,
+      underlyingTokenB: false,
     });
+
     function getMappingForPairTest({
       when: title,
-      tokenA,
-      tokenB,
+      underlyingTokenA: tokenAHasUnderlying,
+      underlyingTokenB: tokenBHasUnderlying,
     }: {
       when: string;
-      tokenA: { shouldAvoidMapping: boolean; hasUnderlying: boolean };
-      tokenB: { shouldAvoidMapping: boolean; hasUnderlying: boolean };
+      underlyingTokenA: boolean;
+      underlyingTokenB: boolean;
     }) {
       when(title, () => {
         let mappedTokenA: string, mappedTokenB: string;
         given(async () => {
-          const transformerTokenA = tokenA.hasUnderlying ? transformerA.address : constants.AddressZero;
-          const transformerTokenB = tokenB.hasUnderlying ? transformerB.address : constants.AddressZero;
-          registry.transformers.returns([transformerTokenA, transformerTokenB]);
-          if (tokenA.shouldAvoidMapping) await transformerOracle.connect(admin).avoidMappingToUnderlying([TOKEN_A]);
-          if (tokenB.shouldAvoidMapping) await transformerOracle.connect(admin).avoidMappingToUnderlying([TOKEN_B]);
+          const transformerTokenA = tokenAHasUnderlying ? transformerA.address : constants.AddressZero;
+          const transformerTokenB = tokenBHasUnderlying ? transformerB.address : constants.AddressZero;
+          await transformerOracle.setTransformersForPair(TOKEN_A, TOKEN_B, transformerTokenA, transformerTokenB);
           [mappedTokenA, mappedTokenB] = await transformerOracle.getMappingForPair(TOKEN_A, TOKEN_B);
         });
-        then('registry was called correctly', () => {
-          expect(registry.transformers).to.have.been.calledOnceWith([TOKEN_A, TOKEN_B]);
-        });
-        if (!tokenA.shouldAvoidMapping && tokenA.hasUnderlying) {
+        if (tokenAHasUnderlying) {
           then('underlying tokenA is returned correctly', () => {
             expect(mappedTokenA).to.equal(UNDERLYING_TOKEN_A);
           });
@@ -258,7 +177,7 @@ describe('TransformerOracle', () => {
             expect(transformerA.getUnderlying).to.not.have.been.called;
           });
         }
-        if (!tokenB.shouldAvoidMapping && tokenB.hasUnderlying) {
+        if (tokenBHasUnderlying) {
           then('underlying tokenB is returned correctly', () => {
             expect(mappedTokenB).to.equal(UNDERLYING_TOKEN_B);
           });
@@ -348,7 +267,7 @@ describe('TransformerOracle', () => {
 
   describe('quote', () => {
     const AMOUNT_IN = 1000000;
-    given(() => {
+    given(async () => {
       // UNDERLYING_TOKEN_A = TOKEN_A * 2
       transformerA.calculateTransformToUnderlying.returns(({ amountDependent }: { amountDependent: BigNumber }) => [
         { underlying: UNDERLYING_TOKEN_A, amount: amountDependent.mul(2) },
@@ -361,15 +280,17 @@ describe('TransformerOracle', () => {
 
       // UNDERLYING_TOKEN_A = UNDERLYING_TOKEN_B * 10
       underlyingOracle.quote.returns(({ amountIn }: { amountIn: BigNumber }) => amountIn.div(10));
+
+      // Set transformers
+      await transformerOracle.setTransformersForPair(TOKEN_A, TOKEN_B, transformerA.address, transformerB.address);
+      await transformerOracle.setTransformersForPair(TOKEN_A, UNDERLYING_TOKEN_B, transformerA.address, constants.AddressZero);
+      await transformerOracle.setTransformersForPair(UNDERLYING_TOKEN_A, TOKEN_B, constants.AddressZero, transformerB.address);
+      await transformerOracle.setTransformersForPair(UNDERLYING_TOKEN_A, UNDERLYING_TOKEN_B, constants.AddressZero, constants.AddressZero);
     });
     when('token in and token out have to be transformed', () => {
       let returnedQuote: BigNumber;
       given(async () => {
-        registry.transformers.returns([transformerA.address, transformerB.address]);
         returnedQuote = await transformerOracle.quote(TOKEN_A, AMOUNT_IN, TOKEN_B, BYTES);
-      });
-      then('registry was called correctly', () => {
-        expect(registry.transformers).to.have.been.calledOnceWith([TOKEN_A, TOKEN_B]);
       });
       then('transformer for token in was called correctly', () => {
         expect(transformerA.calculateTransformToUnderlying).to.have.been.calledOnceWith(TOKEN_A, AMOUNT_IN);
@@ -408,11 +329,7 @@ describe('TransformerOracle', () => {
     when('token in has to be transformed', () => {
       let returnedQuote: BigNumber;
       given(async () => {
-        registry.transformers.returns([transformerA.address, constants.AddressZero]);
         returnedQuote = await transformerOracle.quote(TOKEN_A, AMOUNT_IN, UNDERLYING_TOKEN_B, BYTES);
-      });
-      then('registry was called correctly', () => {
-        expect(registry.transformers).to.have.been.calledOnceWith([TOKEN_A, UNDERLYING_TOKEN_B]);
       });
       then('transformer for token in was called correctly', () => {
         expect(transformerA.calculateTransformToUnderlying).to.have.been.calledOnceWith(TOKEN_A, AMOUNT_IN);
@@ -437,11 +354,7 @@ describe('TransformerOracle', () => {
     when('token out has be transformed', () => {
       let returnedQuote: BigNumber;
       given(async () => {
-        registry.transformers.returns([constants.AddressZero, transformerB.address]);
         returnedQuote = await transformerOracle.quote(UNDERLYING_TOKEN_A, AMOUNT_IN, TOKEN_B, BYTES);
-      });
-      then('registry was called correctly', () => {
-        expect(registry.transformers).to.have.been.calledOnceWith([UNDERLYING_TOKEN_A, TOKEN_B]);
       });
       then('transformer for token out was called for underlyings correctly', () => {
         expect(transformerB.getUnderlying).to.have.been.calledOnceWith(TOKEN_B);
@@ -475,11 +388,7 @@ describe('TransformerOracle', () => {
     when('neither of the tokens has to be transformed', () => {
       let returnedQuote: BigNumber;
       given(async () => {
-        registry.transformers.returns([constants.AddressZero, constants.AddressZero]);
         returnedQuote = await transformerOracle.quote(UNDERLYING_TOKEN_A, AMOUNT_IN, UNDERLYING_TOKEN_B, BYTES);
-      });
-      then('registry was called correctly', () => {
-        expect(registry.transformers).to.have.been.calledOnceWith([UNDERLYING_TOKEN_A, UNDERLYING_TOKEN_B]);
       });
       then('transformer for token in was not called', () => {
         expect(transformerA.getUnderlying).to.not.have.been.called;
@@ -532,6 +441,74 @@ describe('TransformerOracle', () => {
       contract: () => transformerOracle,
       interfaceName: 'IERC20',
       interface: IERC20__factory.createInterface(),
+    });
+  });
+
+  describe('_getTransformers', () => {
+    given(() => {
+      registry.transformers.returns(({ dependents }: { dependents: string[] }) =>
+        dependents.map((dependent) => {
+          switch (dependent) {
+            case TOKEN_A:
+              return UNDERLYING_TOKEN_A;
+            case TOKEN_B:
+              return UNDERLYING_TOKEN_B;
+            default:
+              throw new Error('WTF');
+          }
+        })
+      );
+    });
+    when('tokenA and tokenB should not be mapped', () => {
+      let transformers: string[];
+      given(async () => {
+        await transformerOracle.connect(admin).avoidMappingToUnderlying([TOKEN_A, TOKEN_B]);
+        transformers = await transformerOracle.internalGetTransformers(TOKEN_A, TOKEN_B);
+      });
+      then('registry is never called', () => {
+        expect(registry.transformers).to.not.have.been.called;
+      });
+      then('zero addresses are returned', () => {
+        expect(transformers).to.eql([constants.AddressZero, constants.AddressZero]);
+      });
+    });
+    when('tokenA should not be mapped', () => {
+      let transformers: string[];
+      given(async () => {
+        await transformerOracle.connect(admin).avoidMappingToUnderlying([TOKEN_A]);
+        transformers = await transformerOracle.internalGetTransformers(TOKEN_A, TOKEN_B);
+      });
+      then('registry is called for tokenB', () => {
+        expect(registry.transformers).to.have.been.calledOnceWith([TOKEN_B]);
+      });
+      then('tokenB is mapped', () => {
+        expect(transformers).to.eql([constants.AddressZero, UNDERLYING_TOKEN_B]);
+      });
+    });
+    when('tokenB should not be mapped', () => {
+      let transformers: string[];
+      given(async () => {
+        await transformerOracle.connect(admin).avoidMappingToUnderlying([TOKEN_B]);
+        transformers = await transformerOracle.internalGetTransformers(TOKEN_A, TOKEN_B);
+      });
+      then('registry is called for tokenA', () => {
+        expect(registry.transformers).to.have.been.calledOnceWith([TOKEN_A]);
+      });
+      then('tokenA is mapped', () => {
+        expect(transformers).to.eql([UNDERLYING_TOKEN_A, constants.AddressZero]);
+      });
+    });
+    when('both should be mapped', () => {
+      let transformers: string[];
+      given(async () => {
+        transformers = await transformerOracle.internalGetTransformers(TOKEN_A, TOKEN_B);
+      });
+      then('registry is called for tokenA and tokenB', () => {
+        expect(registry.transformers).to.have.been.calledOnceWith([TOKEN_A, TOKEN_B]);
+      });
+      then('both tokens are mapped', () => {
+        expect(transformers).to.eql([UNDERLYING_TOKEN_A, UNDERLYING_TOKEN_B]);
+      });
     });
   });
 

@@ -42,8 +42,8 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
   /// @inheritdoc ITransformerOracle
   function getMappingForPair(address _tokenA, address _tokenB) public view virtual returns (address _mappedTokenA, address _mappedTokenB) {
     ITransformer[] memory _transformers = _getTransformers(_tokenA, _tokenB);
-    _mappedTokenA = _mapToUnderlyingIfMustAndPossible(_tokenA, _transformers[0]);
-    _mappedTokenB = _mapToUnderlyingIfMustAndPossible(_tokenB, _transformers[1]);
+    _mappedTokenA = _mapToUnderlyingIfExists(_tokenA, _transformers[0]);
+    _mappedTokenB = _mapToUnderlyingIfExists(_tokenB, _transformers[1]);
   }
 
   /// @inheritdoc ITransformerOracle
@@ -134,22 +134,44 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
   }
 
   /**
-   * @notice Takes a token and a associated transformer (could not exist). If the transformer exists and the token is not
-   *         set to avoid mapping, this function will return the underlying token. Otherwise, it will return the given token
+   * @notice Takes a token and a associated transformer (could not exist). If the transformer exists, this
+   *         function will return the underlying token. If it doesn't exist, then it will return the given token
    */
-  function _mapToUnderlyingIfMustAndPossible(address _token, ITransformer _transformer) internal view returns (address) {
-    if (address(_transformer) == address(0) || willAvoidMappingToUnderlying[_token]) {
+  function _mapToUnderlyingIfExists(address _token, ITransformer _transformer) internal view returns (address) {
+    if (address(_transformer) == address(0)) {
       return _token;
     }
     address[] memory _underlying = _transformer.getUnderlying(_token);
     return _underlying[0];
   }
 
-  function _getTransformers(address _tokenA, address _tokenB) internal view returns (ITransformer[] memory) {
-    address[] memory _tokens = new address[](2);
-    _tokens[0] = _tokenA;
-    _tokens[1] = _tokenB;
-    return REGISTRY.transformers(_tokens);
+  function _getTransformers(address _tokenA, address _tokenB) internal view virtual returns (ITransformer[] memory _transformers) {
+    bool _avoidMappingA = willAvoidMappingToUnderlying[_tokenA];
+    bool _avoidMappingB = willAvoidMappingToUnderlying[_tokenB];
+    if (!_avoidMappingA && !_avoidMappingB) {
+      address[] memory _tokens = new address[](2);
+      _tokens[0] = _tokenA;
+      _tokens[1] = _tokenB;
+      return REGISTRY.transformers(_tokens);
+    } else {
+      _transformers = new ITransformer[](2);
+      if (_avoidMappingA && _avoidMappingB) {
+        _transformers[0] = ITransformer(address(0));
+        _transformers[1] = ITransformer(address(0));
+      } else if (_avoidMappingA) {
+        address[] memory _tokens = new address[](1);
+        _tokens[0] = _tokenB;
+        ITransformer[] memory _returnedTransformers = REGISTRY.transformers(_tokens);
+        _transformers[0] = ITransformer(address(0));
+        _transformers[1] = _returnedTransformers[0];
+      } else {
+        address[] memory _tokens = new address[](1);
+        _tokens[0] = _tokenA;
+        ITransformer[] memory _returnedTransformers = REGISTRY.transformers(_tokens);
+        _transformers[0] = _returnedTransformers[0];
+        _transformers[1] = ITransformer(address(0));
+      }
+    }
   }
 
   function _toUnderlyingAmount(address _underlying, uint256 _amount)
