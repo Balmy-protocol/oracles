@@ -1,6 +1,6 @@
 import chai, { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { constants } from 'ethers';
+import { BigNumber, constants } from 'ethers';
 import { behaviours } from '@utils';
 import { given, then, when } from '@utils/bdd';
 import {
@@ -50,9 +50,12 @@ describe('TransformerOracle', () => {
     underlyingOracle.isPairAlreadySupported.reset();
     underlyingOracle.addOrModifySupportForPair.reset();
     underlyingOracle.addSupportForPairIfNeeded.reset();
+    underlyingOracle.quote.reset();
     registry.transformers.reset();
     transformerA.getUnderlying.reset();
     transformerB.getUnderlying.reset();
+    transformerA.calculateTransformToUnderlying.reset();
+    transformerB.calculateTransformToDependent.reset();
     transformerA.getUnderlying.returns([UNDERLYING_TOKEN_A]);
     transformerB.getUnderlying.returns([UNDERLYING_TOKEN_B]);
   });
@@ -187,6 +190,159 @@ describe('TransformerOracle', () => {
   executeRedirectTest({
     func: 'addSupportForPairIfNeeded',
     params: (mappedTokenA, mappedTokenB) => [mappedTokenA, mappedTokenB, BYTES],
+  });
+
+  describe('quote', () => {
+    const AMOUNT_IN = 1000000;
+    given(() => {
+      // UNDERLYING_TOKEN_A = TOKEN_A * 2
+      transformerA.calculateTransformToUnderlying.returns(({ amountDependent }: { amountDependent: BigNumber }) => [
+        { underlying: UNDERLYING_TOKEN_A, amount: amountDependent.mul(2) },
+      ]);
+
+      // UNDERLYING_TOKEN_B = TOKEN_B * 5
+      transformerB.calculateTransformToDependent.returns(({ underlying }: { underlying: { amount: BigNumber }[] }) =>
+        underlying[0].amount.div(5)
+      );
+
+      // UNDERLYING_TOKEN_A = UNDERLYING_TOKEN_B * 10
+      underlyingOracle.quote.returns(({ amountIn }: { amountIn: BigNumber }) => amountIn.div(10));
+    });
+    when('token in and token out have to be transformed', () => {
+      let returnedQuote: BigNumber;
+      given(async () => {
+        registry.transformers.returns([transformerA.address, transformerB.address]);
+        returnedQuote = await transformerOracle.quote(TOKEN_A, AMOUNT_IN, TOKEN_B, BYTES);
+      });
+      then('registry was called correctly', () => {
+        expect(registry.transformers).to.have.been.calledOnceWith([TOKEN_A, TOKEN_B]);
+      });
+      then('transformer for token in was called correctly', () => {
+        expect(transformerA.calculateTransformToUnderlying).to.have.been.calledOnceWith(TOKEN_A, AMOUNT_IN);
+      });
+      then('transformer for token out was called for underlyings correctly', () => {
+        expect(transformerB.getUnderlying).to.have.been.calledOnceWith(TOKEN_B);
+      });
+      then('underlying oracle was called correctly', () => {
+        // UNDERLYING_TOKEN_A = TOKEN_A * 2
+        expect(underlyingOracle.quote).to.have.been.calledOnceWith(UNDERLYING_TOKEN_A, AMOUNT_IN * 2, UNDERLYING_TOKEN_B, BYTES);
+      });
+      then('transformer for token out was called to calculate transform to dependent correctly', () => {
+        expect(transformerB.calculateTransformToDependent).to.have.been.calledOnce;
+        const call = transformerB.calculateTransformToDependent.getCall(0);
+        const [dependent, underlying]: [string, { underlying: string; amount: BigNumber }[]] = call.args as any;
+        expect(dependent).to.equal(TOKEN_B);
+        expect(underlying).to.have.lengthOf(1);
+        expect(underlying[0].underlying).to.equal(UNDERLYING_TOKEN_B);
+        /*
+         UNDERLYING_TOKEN_B = UNDERLYING_TOKEN_A / 10
+                 = TOKEN_A * 2 / 10
+                 = TOKEN_A / 5
+         */
+        expect(underlying[0].amount).to.equal(AMOUNT_IN / 5);
+      });
+      then('returned quote is as expected', () => {
+        /*
+         TOKEN_B = UNDERLYING_TOKEN_B / 5
+                 = UNDERLYING_TOKEN_A / 10 / 5
+                 = TOKEN_A * 2 / 10 / 5
+                 = TOKEN_A / 25
+        */
+        expect(returnedQuote).to.equal(AMOUNT_IN / 25);
+      });
+    });
+    when('token in has to be transformed', () => {
+      let returnedQuote: BigNumber;
+      given(async () => {
+        registry.transformers.returns([transformerA.address, constants.AddressZero]);
+        returnedQuote = await transformerOracle.quote(TOKEN_A, AMOUNT_IN, UNDERLYING_TOKEN_B, BYTES);
+      });
+      then('registry was called correctly', () => {
+        expect(registry.transformers).to.have.been.calledOnceWith([TOKEN_A, UNDERLYING_TOKEN_B]);
+      });
+      then('transformer for token in was called correctly', () => {
+        expect(transformerA.calculateTransformToUnderlying).to.have.been.calledOnceWith(TOKEN_A, AMOUNT_IN);
+      });
+      then('transformer for token out was not called', () => {
+        expect(transformerB.getUnderlying).to.not.have.been.called;
+        expect(transformerB.calculateTransformToDependent).to.not.have.been.called;
+      });
+      then('underlying oracle was called correctly', () => {
+        // UNDERLYING_TOKEN_A = TOKEN_A * 2
+        expect(underlyingOracle.quote).to.have.been.calledOnceWith(UNDERLYING_TOKEN_A, AMOUNT_IN * 2, UNDERLYING_TOKEN_B, BYTES);
+      });
+      then('returned quote is as expected', () => {
+        /* 
+         UNDERLYING_TOKEN_B = UNDERLYING_TOKEN_A / 10 
+                            = TOKEN_A * 2 / 10 
+                            = TOKEN_A / 5
+         */
+        expect(returnedQuote).to.equal(AMOUNT_IN / 5);
+      });
+    });
+    when('token out has be transformed', () => {
+      let returnedQuote: BigNumber;
+      given(async () => {
+        registry.transformers.returns([constants.AddressZero, transformerB.address]);
+        returnedQuote = await transformerOracle.quote(UNDERLYING_TOKEN_A, AMOUNT_IN, TOKEN_B, BYTES);
+      });
+      then('registry was called correctly', () => {
+        expect(registry.transformers).to.have.been.calledOnceWith([UNDERLYING_TOKEN_A, TOKEN_B]);
+      });
+      then('transformer for token out was called for underlyings correctly', () => {
+        expect(transformerB.getUnderlying).to.have.been.calledOnceWith(TOKEN_B);
+      });
+      then('underlying oracle was called correctly', () => {
+        expect(underlyingOracle.quote).to.have.been.calledOnceWith(UNDERLYING_TOKEN_A, AMOUNT_IN, UNDERLYING_TOKEN_B, BYTES);
+      });
+      then('transformer for token in was not called', () => {
+        expect(transformerA.getUnderlying).to.not.have.been.called;
+        expect(transformerA.calculateTransformToUnderlying).to.not.have.been.called;
+      });
+      then('transformer for token out was called to calculate transform to dependent correctly', () => {
+        expect(transformerB.calculateTransformToDependent).to.have.been.calledOnce;
+        const call = transformerB.calculateTransformToDependent.getCall(0);
+        const [dependent, underlying]: [string, { underlying: string; amount: BigNumber }[]] = call.args as any;
+        expect(dependent).to.equal(TOKEN_B);
+        expect(underlying).to.have.lengthOf(1);
+        expect(underlying[0].underlying).to.equal(UNDERLYING_TOKEN_B);
+        // UNDERLYING_TOKEN_B = UNDERLYING_TOKEN_A / 10
+        expect(underlying[0].amount).to.equal(AMOUNT_IN / 10);
+      });
+      then('returned quote is as expected', () => {
+        /* 
+         TOKEN_B = UNDERLYING_TOKEN_B / 5
+                 = UNDERLYING_TOKEN_A / 10 / 5
+                 = UNDERLYING_TOKEN_A / 50
+         */
+        expect(returnedQuote).to.equal(AMOUNT_IN / 50);
+      });
+    });
+    when('neither of the tokens has to be transformed', () => {
+      let returnedQuote: BigNumber;
+      given(async () => {
+        registry.transformers.returns([constants.AddressZero, constants.AddressZero]);
+        returnedQuote = await transformerOracle.quote(UNDERLYING_TOKEN_A, AMOUNT_IN, UNDERLYING_TOKEN_B, BYTES);
+      });
+      then('registry was called correctly', () => {
+        expect(registry.transformers).to.have.been.calledOnceWith([UNDERLYING_TOKEN_A, UNDERLYING_TOKEN_B]);
+      });
+      then('transformer for token in was not called', () => {
+        expect(transformerA.getUnderlying).to.not.have.been.called;
+        expect(transformerA.calculateTransformToUnderlying).to.not.have.been.called;
+      });
+      then('transformer for token out was not called', () => {
+        expect(transformerB.getUnderlying).to.not.have.been.called;
+        expect(transformerB.calculateTransformToDependent).to.not.have.been.called;
+      });
+      then('underlying oracle was called correctly', () => {
+        expect(underlyingOracle.quote).to.have.been.calledOnceWith(UNDERLYING_TOKEN_A, AMOUNT_IN, UNDERLYING_TOKEN_B, BYTES);
+      });
+      then('returned quote is as expected', () => {
+        // UNDERLYING_TOKEN_B = UNDERLYING_TOKEN_A / 10
+        expect(returnedQuote).to.equal(AMOUNT_IN / 10);
+      });
+    });
   });
 
   describe('supportsInterface', () => {

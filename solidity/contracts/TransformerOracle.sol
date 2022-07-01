@@ -6,7 +6,7 @@ import '../interfaces/ITransformerOracle.sol';
 
 /**
  * @notice This implementation of `ITransformerOracle` assumes that all tokens being transformed only have one underlying token.
- *         This is true when this implementation was writter, but it may not be true in the future. If that happens, then another
+ *         This is true when this implementation was written, but it may not be true in the future. If that happens, then another
  *         implementation will be needed
  */
 contract TransformerOracle is BaseOracle, ITransformerOracle {
@@ -29,10 +29,7 @@ contract TransformerOracle is BaseOracle, ITransformerOracle {
     virtual
     returns (address _underlyingTokenA, address _underlyingTokenB)
   {
-    address[] memory _tokens = new address[](2);
-    _tokens[0] = _tokenA;
-    _tokens[1] = _tokenB;
-    ITransformer[] memory _transformers = REGISTRY.transformers(_tokens);
+    ITransformer[] memory _transformers = _getTransformers(_tokenA, _tokenB);
     _underlyingTokenA = _mapToUnderlyingIfExists(_tokenA, _transformers[0]);
     _underlyingTokenB = _mapToUnderlyingIfExists(_tokenB, _transformers[1]);
   }
@@ -56,7 +53,28 @@ contract TransformerOracle is BaseOracle, ITransformerOracle {
     address _tokenOut,
     bytes calldata _data
   ) external view returns (uint256 _amountOut) {
-    // TODO: Implement
+    ITransformer[] memory _transformers = _getTransformers(_tokenIn, _tokenOut);
+    ITransformer _transformerTokenIn = _transformers[0];
+    ITransformer _transformerTokenOut = _transformers[1];
+    if (address(_transformerTokenIn) != address(0) && address(_transformerTokenOut) != address(0)) {
+      // If both tokens have a transformer, then we need to transform both in and out data
+      ITransformer.UnderlyingAmount[] memory _transformedIn = _transformerTokenIn.calculateTransformToUnderlying(_tokenIn, _amountIn);
+      address[] memory _underlyingOut = _transformerTokenOut.getUnderlying(_tokenOut);
+      uint256 _amountOutUnderlying = UNDERLYING_ORACLE.quote(_transformedIn[0].underlying, _transformedIn[0].amount, _underlyingOut[0], _data);
+      return _transformerTokenOut.calculateTransformToDependent(_tokenOut, _toUnderlyingAmount(_underlyingOut[0], _amountOutUnderlying));
+    } else if (address(_transformerTokenIn) != address(0)) {
+      // If token in has a transformer, then calculate how much amount it would be in underlying, and calculate the quote for that
+      ITransformer.UnderlyingAmount[] memory _transformedIn = _transformerTokenIn.calculateTransformToUnderlying(_tokenIn, _amountIn);
+      return UNDERLYING_ORACLE.quote(_transformedIn[0].underlying, _transformedIn[0].amount, _tokenOut, _data);
+    } else if (address(_transformerTokenOut) != address(0)) {
+      // If token out has a transformer, then calculate the quote for the underlying and then transform the result
+      address[] memory _underlyingOut = _transformerTokenOut.getUnderlying(_tokenOut);
+      uint256 _amountOutUnderlying = UNDERLYING_ORACLE.quote(_tokenIn, _amountIn, _underlyingOut[0], _data);
+      return _transformerTokenOut.calculateTransformToDependent(_tokenOut, _toUnderlyingAmount(_underlyingOut[0], _amountOutUnderlying));
+    } else {
+      // If there are no transformers, then just call the underlying oracle
+      return UNDERLYING_ORACLE.quote(_tokenIn, _amountIn, _tokenOut, _data);
+    }
   }
 
   /// @inheritdoc ITokenPriceOracle
@@ -94,5 +112,22 @@ contract TransformerOracle is BaseOracle, ITransformerOracle {
     }
     address[] memory _underlying = _transformer.getUnderlying(_token);
     return _underlying[0];
+  }
+
+  function _getTransformers(address _tokenA, address _tokenB) internal view returns (ITransformer[] memory) {
+    address[] memory _tokens = new address[](2);
+    _tokens[0] = _tokenA;
+    _tokens[1] = _tokenB;
+    return REGISTRY.transformers(_tokens);
+  }
+
+  function _toUnderlyingAmount(address _underlying, uint256 _amount)
+    internal
+    pure
+    returns (ITransformer.UnderlyingAmount[] memory _underlyingAmount)
+  {
+    _underlyingAmount = new ITransformer.UnderlyingAmount[](1);
+    _underlyingAmount[0].underlying = _underlying;
+    _underlyingAmount[0].amount = _amount;
   }
 }
