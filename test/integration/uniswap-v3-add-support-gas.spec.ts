@@ -15,8 +15,8 @@ const CHAIN = { chain: 'optimism', chainId: 10 };
 const BLOCK_NUMBER = 13838662;
 const BYTES = '0xf2c047db4a7cf81f935c'; // Some random bytes
 
-const WETH = '0x4200000000000000000000000000000000000006';
-const SNX = '0x8700daec35af8ff88c16bdf0418774cb3d7599b4';
+const DAI = '0xda10009cbd5d07dd0cecc66161fc93d7c9000da1';
+const RAI = '0x7fb688ccf682d58f86d7e38e03f9d22e7705448b';
 
 describe('Uniswap v3 Add Support - Gas Test', () => {
   let deployer: SignerWithAddress;
@@ -27,7 +27,7 @@ describe('Uniswap v3 Add Support - Gas Test', () => {
     const { deployer: deployerAddress } = await hre.getNamedAccounts();
     deployer = await ethers.getSigner(deployerAddress);
     await fork({ ...CHAIN, blockNumber: BLOCK_NUMBER });
-    await deployments.fixture(['UniswapV3Adapter'], { keepExistingDeployments: true });
+    await deployments.fixture(['UniswapV3Adapter'], { keepExistingDeployments: false });
     oracle = await ethers.getContract<UniswapV3Adapter>('UniswapV3Adapter');
     snapshotId = await snapshot.take();
   });
@@ -40,7 +40,7 @@ describe('Uniswap v3 Add Support - Gas Test', () => {
     when('adding support for a pair with many uninitialized pools fails', async () => {
       let tx: Promise<TransactionResponse>;
       given(() => {
-        tx = oracle.addSupportForPairIfNeeded(WETH, SNX, BYTES);
+        tx = oracle.addSupportForPairIfNeeded(DAI, RAI, BYTES);
       });
       then('tx is reverted', async () => {
         await expect(tx).to.have.reverted;
