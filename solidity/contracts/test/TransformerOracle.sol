@@ -4,31 +4,54 @@ pragma solidity >=0.8.7 <0.9.0;
 import '../TransformerOracle.sol';
 
 contract TransformerOracleMock is TransformerOracle {
-  mapping(address => mapping(address => address[])) internal _underlyingPair;
+  mapping(address => mapping(address => address[])) internal _mappingForPair;
+  mapping(address => mapping(address => ITransformer[])) internal _transformersForPair;
 
-  constructor(ITransformerRegistry _registry, ITokenPriceOracle _underlyingOracle) TransformerOracle(_registry, _underlyingOracle) {}
+  constructor(
+    ITransformerRegistry _registry,
+    ITokenPriceOracle _underlyingOracle,
+    address _superAdmin,
+    address[] memory _initialAdmins
+  ) TransformerOracle(_registry, _underlyingOracle, _superAdmin, _initialAdmins) {}
 
-  function setUnderlying(
+  function setMappingForPair(
     address _tokenA,
     address _tokenB,
-    address _underlyingTokenA,
-    address _underlyingTokenB
+    address _mappedTokenA,
+    address _mappedTokenB
   ) external {
-    _underlyingPair[_tokenA][_tokenB].push(_underlyingTokenA);
-    _underlyingPair[_tokenA][_tokenB].push(_underlyingTokenB);
+    _mappingForPair[_tokenA][_tokenB].push(_mappedTokenA);
+    _mappingForPair[_tokenA][_tokenB].push(_mappedTokenB);
   }
 
-  function mapPairToUnderlying(address _tokenA, address _tokenB)
-    public
-    view
-    override
-    returns (address _underlyingTokenA, address _underlyingTokenB)
-  {
-    address[] memory _underlying = _underlyingPair[_tokenA][_tokenB];
-    if (_underlying.length == 0) {
-      return super.mapPairToUnderlying(_tokenA, _tokenB);
+  function setTransformersForPair(
+    address _tokenA,
+    address _tokenB,
+    ITransformer _transformerTokenA,
+    ITransformer _transformerTokenB
+  ) external {
+    _transformersForPair[_tokenA][_tokenB] = [_transformerTokenA, _transformerTokenB];
+  }
+
+  function internalGetTransformers(address _tokenA, address _tokenB) external view returns (ITransformer[] memory) {
+    return _getTransformers(_tokenA, _tokenB);
+  }
+
+  function _getTransformers(address _tokenA, address _tokenB) internal view override returns (ITransformer[] memory) {
+    ITransformer[] memory _transformers = _transformersForPair[_tokenA][_tokenB];
+    if (_transformers.length > 0) {
+      return _transformers;
     } else {
-      return (_underlying[0], _underlying[1]);
+      return super._getTransformers(_tokenA, _tokenB);
+    }
+  }
+
+  function getMappingForPair(address _tokenA, address _tokenB) public view override returns (address _mappedTokenA, address _mappedTokenB) {
+    address[] memory _mapping = _mappingForPair[_tokenA][_tokenB];
+    if (_mapping.length == 0) {
+      return super.getMappingForPair(_tokenA, _tokenB);
+    } else {
+      return (_mapping[0], _mapping[1]);
     }
   }
 }
