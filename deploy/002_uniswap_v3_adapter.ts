@@ -38,7 +38,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   await deployThroughDeterministicFactory({
     deployer,
     name: 'UniswapV3Adapter',
-    salt: 'MF-Uniswap-V3-Adapter-V1',
+    salt: 'MF-Uniswap-V3-Adapter-V2',
     contract: 'solidity/contracts/adapters/UniswapV3Adapter.sol:UniswapV3Adapter',
     bytecode: UniswapV3Adapter__factory.bytecode,
     constructorArgs: {
