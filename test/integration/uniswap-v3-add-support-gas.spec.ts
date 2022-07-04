@@ -27,7 +27,7 @@ describe('Uniswap v3 Add Support - Gas Test', () => {
     const { deployer: deployerAddress } = await hre.getNamedAccounts();
     deployer = await ethers.getSigner(deployerAddress);
     await fork({ ...CHAIN, blockNumber: BLOCK_NUMBER });
-    await deployments.fixture(['UniswapV3Adapter'], { keepExistingDeployments: true });
+    await deployments.fixture(['UniswapV3Adapter'], { keepExistingDeployments: false });
     oracle = await ethers.getContract<UniswapV3Adapter>('UniswapV3Adapter');
     snapshotId = await snapshot.take();
   });
