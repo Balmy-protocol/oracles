@@ -161,6 +161,34 @@ contract UniswapV3Adapter is AccessControl, SimpleOracle, IUniswapV3Adapter {
     emit UpdatedSupport(_tokenA, _tokenB, _pools);
   }
 
+  function _getAllPoolsSortedByLiquidity(address _tokenA, address _tokenB) internal view returns (address[] memory _pools) {
+    _pools = UNISWAP_V3_ORACLE.getAllPoolsForPair(_tokenA, _tokenB);
+    if (_pools.length > 1) {
+      // Store liquidity by pool
+      uint128[] memory _poolLiquidity = new uint128[](_pools.length);
+      for (uint256 i; i < _pools.length; i++) {
+        _poolLiquidity[i] = IUniswapV3Pool(_pools[i]).liquidity();
+      }
+
+      // Sort both arrays together
+      for (uint256 i; i < _pools.length - 1; i++) {
+        uint256 _biggestLiquidityIndex = i;
+        for (uint256 j = i + 1; j < _pools.length; j++) {
+          if (_poolLiquidity[j] > _poolLiquidity[_biggestLiquidityIndex]) {
+            _biggestLiquidityIndex = j;
+          }
+        }
+        if (_biggestLiquidityIndex != i) {
+          // Swap pools
+          (_pools[i], _pools[_biggestLiquidityIndex]) = (_pools[_biggestLiquidityIndex], _pools[i]);
+
+          // Don't need to swap both ways, can just move the liquidity in i to its new place
+          _poolLiquidity[_biggestLiquidityIndex] = _poolLiquidity[i];
+        }
+      }
+    }
+  }
+
   function _keyForPair(address _tokenA, address _tokenB) internal pure returns (bytes32) {
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     return keccak256(abi.encodePacked(__tokenA, __tokenB));

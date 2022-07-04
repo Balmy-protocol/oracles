@@ -14,6 +14,10 @@ contract UniswapV3AdapterMock is UniswapV3Adapter {
     _addOrModifySupportForPair(_tokenA, _tokenB, _data);
   }
 
+  function internalGetAllPoolsSortedByLiquidity(address _tokenA, address _tokenB) external view returns (address[] memory) {
+    return _getAllPoolsSortedByLiquidity(_tokenA, _tokenB);
+  }
+
   function setPools(
     address _tokenA,
     address _tokenB,
