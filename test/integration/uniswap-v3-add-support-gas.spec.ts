@@ -13,13 +13,12 @@ import { snapshot } from '@utils/evm';
 
 const CHAIN = { chain: 'optimism', chainId: 10 };
 const BLOCK_NUMBER = 13838662;
-// const BLOCK_NUMBER = 12350000;
 const BYTES = '0xf2c047db4a7cf81f935c'; // Some random bytes
 
 const WETH = '0x4200000000000000000000000000000000000006';
 const SNX = '0x8700daec35af8ff88c16bdf0418774cb3d7599b4';
 
-describe.only('Uniswap v3 Add Support - Gas Test', () => {
+describe('Uniswap v3 Add Support - Gas Test', () => {
   let deployer: SignerWithAddress;
   let oracle: UniswapV3Adapter;
   let snapshotId: string;
