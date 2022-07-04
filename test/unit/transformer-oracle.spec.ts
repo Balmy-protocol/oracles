@@ -268,12 +268,12 @@ describe('TransformerOracle', () => {
   describe('quote', () => {
     const AMOUNT_IN = 1000000;
     given(async () => {
-      // UNDERLYING_TOKEN_A = TOKEN_A * 2
+      // UNDERLYING_TOKEN_A = DEPENDENT_TOKEN_A * 2
       transformerA.calculateTransformToUnderlying.returns(({ amountDependent }: { amountDependent: BigNumber }) => [
         { underlying: UNDERLYING_TOKEN_A, amount: amountDependent.mul(2) },
       ]);
 
-      // UNDERLYING_TOKEN_B = TOKEN_B * 5
+      // UNDERLYING_TOKEN_B = DEPENDENT_TOKEN_B * 5
       transformerB.calculateTransformToDependent.returns(({ underlying }: { underlying: { amount: BigNumber }[] }) =>
         underlying[0].amount.div(5)
       );
@@ -299,29 +299,29 @@ describe('TransformerOracle', () => {
         expect(transformerB.getUnderlying).to.have.been.calledOnceWith(TOKEN_B);
       });
       then('underlying oracle was called correctly', () => {
-        // UNDERLYING_TOKEN_A = TOKEN_A * 2
+        // UNDERLYING_TOKEN_A = DEPENDENT_TOKEN_A * 2
         expect(underlyingOracle.quote).to.have.been.calledOnceWith(UNDERLYING_TOKEN_A, AMOUNT_IN * 2, UNDERLYING_TOKEN_B, BYTES);
       });
       then('transformer for token out was called to calculate transform to dependent correctly', () => {
         expect(transformerB.calculateTransformToDependent).to.have.been.calledOnce;
         const call = transformerB.calculateTransformToDependent.getCall(0);
-        const [dependent, underlying]: [string, { underlying: string; amount: BigNumber }[]] = call.args as any;
+        const [dependent, underlying]: [string, ITransformer.UnderlyingAmountStruct[]] = call.args as any;
         expect(dependent).to.equal(TOKEN_B);
         expect(underlying).to.have.lengthOf(1);
         expect(underlying[0].underlying).to.equal(UNDERLYING_TOKEN_B);
         /*
          UNDERLYING_TOKEN_B = UNDERLYING_TOKEN_A / 10
-                 = TOKEN_A * 2 / 10
-                 = TOKEN_A / 5
+                            = DEPENDENT_TOKEN_A * 2 / 10
+                            = DEPENDENT_TOKEN_A / 5
          */
         expect(underlying[0].amount).to.equal(AMOUNT_IN / 5);
       });
       then('returned quote is as expected', () => {
         /*
-         TOKEN_B = UNDERLYING_TOKEN_B / 5
-                 = UNDERLYING_TOKEN_A / 10 / 5
-                 = TOKEN_A * 2 / 10 / 5
-                 = TOKEN_A / 25
+         DEPENDENT_TOKEN_B = UNDERLYING_TOKEN_B / 5
+                           = UNDERLYING_TOKEN_A / 10 / 5
+                           = DEPENDENT_TOKEN_A * 2 / 10 / 5
+                           = DEPENDENT_TOKEN_A / 25
         */
         expect(returnedQuote).to.equal(AMOUNT_IN / 25);
       });
@@ -339,14 +339,14 @@ describe('TransformerOracle', () => {
         expect(transformerB.calculateTransformToDependent).to.not.have.been.called;
       });
       then('underlying oracle was called correctly', () => {
-        // UNDERLYING_TOKEN_A = TOKEN_A * 2
+        // UNDERLYING_TOKEN_A = DEPENDENT_TOKEN_A * 2
         expect(underlyingOracle.quote).to.have.been.calledOnceWith(UNDERLYING_TOKEN_A, AMOUNT_IN * 2, UNDERLYING_TOKEN_B, BYTES);
       });
       then('returned quote is as expected', () => {
         /* 
          UNDERLYING_TOKEN_B = UNDERLYING_TOKEN_A / 10 
-                            = TOKEN_A * 2 / 10 
-                            = TOKEN_A / 5
+                            = DEPENDENT_TOKEN_A * 2 / 10 
+                            = DEPENDENT_TOKEN_A / 5
          */
         expect(returnedQuote).to.equal(AMOUNT_IN / 5);
       });
@@ -369,7 +369,7 @@ describe('TransformerOracle', () => {
       then('transformer for token out was called to calculate transform to dependent correctly', () => {
         expect(transformerB.calculateTransformToDependent).to.have.been.calledOnce;
         const call = transformerB.calculateTransformToDependent.getCall(0);
-        const [dependent, underlying]: [string, { underlying: string; amount: BigNumber }[]] = call.args as any;
+        const [dependent, underlying]: [string, ITransformer.UnderlyingAmountStruct[]] = call.args as any;
         expect(dependent).to.equal(TOKEN_B);
         expect(underlying).to.have.lengthOf(1);
         expect(underlying[0].underlying).to.equal(UNDERLYING_TOKEN_B);
@@ -378,9 +378,9 @@ describe('TransformerOracle', () => {
       });
       then('returned quote is as expected', () => {
         /* 
-         TOKEN_B = UNDERLYING_TOKEN_B / 5
-                 = UNDERLYING_TOKEN_A / 10 / 5
-                 = UNDERLYING_TOKEN_A / 50
+         DEPENDENT_TOKEN_B = UNDERLYING_TOKEN_B / 5
+                           = UNDERLYING_TOKEN_A / 10 / 5
+                           = UNDERLYING_TOKEN_A / 50
          */
         expect(returnedQuote).to.equal(AMOUNT_IN / 50);
       });
