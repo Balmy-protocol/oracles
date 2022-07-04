@@ -17,6 +17,18 @@ interface ITransformerOracle is ITokenPriceOracle {
   error ZeroAddress();
 
   /**
+   * @notice Emitted when new dependents are set to avoid mapping to their underlying counterparts
+   * @param dependents The tokens that will avoid mapping
+   */
+  event DependentsWillAvoidMappingToUnderlying(address[] dependents);
+
+  /**
+   * @notice Emitted when dependents are set to map to their underlying counterparts
+   * @param dependents The tokens that will map to underlying
+   */
+  event DependentsWillMapToUnderlying(address[] dependents);
+
+  /**
    * @notice Returns the address of the transformer registry
    * @dev Cannot be modified
    * @return The address of the transformer registry
@@ -31,13 +43,36 @@ interface ITransformerOracle is ITokenPriceOracle {
   function UNDERLYING_ORACLE() external view returns (ITokenPriceOracle);
 
   /**
-   * @notice Takes a pair of tokens, and checks if any of them is registered as a dependent on the registry.
-   *         If any of them are, then they are transformed to their underlying tokens. If they aren't, then
-   *         they are simply returned
+   * @notice Returns whether the given dependent will avoid mapping to their underlying counterparts
+   * @param dependent The dependent token to check
+   * @return Whether the given dependent will avoid mapping to their underlying counterparts
+   */
+  function willAvoidMappingToUnderlying(address dependent) external view returns (bool);
+
+  /**
+   * @notice Takes a pair of tokens, and maps them to their underlying counterparts if they exist, and if they
+   *         haven't been configured to avoid mapping
    * @param tokenA One of the pair's tokens
    * @param tokenB The other of the pair's tokens
-   * @return underlyingTokenA tokenA's underlying token (if exists), or tokenA if there is no underlying token
-   * @return underlyingTokenB tokenB's underlying token (if exists), or tokenB if there is no underlying token
+   * @return mappedTokenA tokenA's underlying token, if exists and isn't configured to avoid mapping.
+   *                      Otherwise tokenA
+   * @return mappedTokenB tokenB's underlying token, if exists and isn't configured to avoid mapping.
+   *                      Otherwise tokenB
    */
-  function mapPairToUnderlying(address tokenA, address tokenB) external view returns (address underlyingTokenA, address underlyingTokenB);
+  function getMappingForPair(address tokenA, address tokenB) external view returns (address mappedTokenA, address mappedTokenB);
+
+  /**
+   * @notice Determines that the given dependents will avoid mapping to their underlying counterparts, and
+   *         instead perform quotes with their own addreses. This comes in handy with situations such as
+   *         ETH/WETH, where some oracles use WETH instead of ETH
+   * @param dependents The dependent tokens that should avoid mapping to underlying
+   */
+  function avoidMappingToUnderlying(address[] calldata dependents) external;
+
+  /**
+   * @notice Determines that the given dependents go back to mapping to their underlying counterparts (the
+   *         default behaviour)
+   * @param dependents The dependent tokens that should go back to mapping to underlying
+   */
+  function shouldMapToUnderlying(address[] calldata dependents) external;
 }
