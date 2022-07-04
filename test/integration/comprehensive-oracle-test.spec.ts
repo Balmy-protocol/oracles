@@ -99,7 +99,7 @@ describe('Comprehensive Oracle Test', () => {
       let oracle: BaseOracle;
       let snapshotId: string;
       before(async () => {
-        await deployments.fixture([oracleName], { keepExistingDeployments: false });
+        await deployments.fixture([oracleName], { keepExistingDeployments: true });
         oracle = await ethers.getContract<BaseOracle>(oracleName);
         const { timestamp } = await ethers.provider.getBlock(BLOCK_NUMBER);
         const tokenInData = await getTokenData(CHAIN.chain, tokenIn, timestamp);
