@@ -159,10 +159,10 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
         _transformers[0] = ITransformer(address(0));
         _transformers[1] = ITransformer(address(0));
       } else if (_avoidMappingA) {
+        _transformers[0] = ITransformer(address(0));
         address[] memory _tokens = new address[](1);
         _tokens[0] = _tokenB;
         ITransformer[] memory _returnedTransformers = REGISTRY.transformers(_tokens);
-        _transformers[0] = ITransformer(address(0));
         _transformers[1] = _returnedTransformers[0];
       } else {
         address[] memory _tokens = new address[](1);
