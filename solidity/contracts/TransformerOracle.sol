@@ -40,15 +40,10 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
   }
 
   /// @inheritdoc ITransformerOracle
-  function mapPairToUnderlying(address _tokenA, address _tokenB)
-    public
-    view
-    virtual
-    returns (address _underlyingTokenA, address _underlyingTokenB)
-  {
+  function getMappingForPair(address _tokenA, address _tokenB) public view virtual returns (address _mappedTokenA, address _mappedTokenB) {
     ITransformer[] memory _transformers = _getTransformers(_tokenA, _tokenB);
-    _underlyingTokenA = _mapToUnderlyingIfExists(_tokenA, _transformers[0]);
-    _underlyingTokenB = _mapToUnderlyingIfExists(_tokenB, _transformers[1]);
+    _mappedTokenA = _mapToUnderlyingIfExists(_tokenA, _transformers[0]);
+    _mappedTokenB = _mapToUnderlyingIfExists(_tokenB, _transformers[1]);
   }
 
   /// @inheritdoc ITransformerOracle
@@ -69,14 +64,14 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
 
   /// @inheritdoc ITokenPriceOracle
   function canSupportPair(address _tokenA, address _tokenB) external view returns (bool) {
-    (address _underlyingTokenA, address _underlyingTokenB) = mapPairToUnderlying(_tokenA, _tokenB);
-    return UNDERLYING_ORACLE.canSupportPair(_underlyingTokenA, _underlyingTokenB);
+    (address _mappedTokenA, address _mappedTokenB) = getMappingForPair(_tokenA, _tokenB);
+    return UNDERLYING_ORACLE.canSupportPair(_mappedTokenA, _mappedTokenB);
   }
 
   /// @inheritdoc ITokenPriceOracle
   function isPairAlreadySupported(address _tokenA, address _tokenB) external view returns (bool) {
-    (address _underlyingTokenA, address _underlyingTokenB) = mapPairToUnderlying(_tokenA, _tokenB);
-    return UNDERLYING_ORACLE.isPairAlreadySupported(_underlyingTokenA, _underlyingTokenB);
+    (address _mappedTokenA, address _mappedTokenB) = getMappingForPair(_tokenA, _tokenB);
+    return UNDERLYING_ORACLE.isPairAlreadySupported(_mappedTokenA, _mappedTokenB);
   }
 
   /// @inheritdoc ITokenPriceOracle
@@ -116,8 +111,8 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
     address _tokenB,
     bytes calldata _data
   ) external {
-    (address _underlyingTokenA, address _underlyingTokenB) = mapPairToUnderlying(_tokenA, _tokenB);
-    UNDERLYING_ORACLE.addOrModifySupportForPair(_underlyingTokenA, _underlyingTokenB, _data);
+    (address _mappedTokenA, address _mappedTokenB) = getMappingForPair(_tokenA, _tokenB);
+    UNDERLYING_ORACLE.addOrModifySupportForPair(_mappedTokenA, _mappedTokenB, _data);
   }
 
   /// @inheritdoc ITokenPriceOracle
@@ -126,8 +121,8 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
     address _tokenB,
     bytes calldata _data
   ) external {
-    (address _underlyingTokenA, address _underlyingTokenB) = mapPairToUnderlying(_tokenA, _tokenB);
-    UNDERLYING_ORACLE.addSupportForPairIfNeeded(_underlyingTokenA, _underlyingTokenB, _data);
+    (address _mappedTokenA, address _mappedTokenB) = getMappingForPair(_tokenA, _tokenB);
+    UNDERLYING_ORACLE.addSupportForPairIfNeeded(_mappedTokenA, _mappedTokenB, _data);
   }
 
   /// @inheritdoc IERC165
@@ -150,11 +145,33 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
     return _underlying[0];
   }
 
-  function _getTransformers(address _tokenA, address _tokenB) internal view returns (ITransformer[] memory) {
-    address[] memory _tokens = new address[](2);
-    _tokens[0] = _tokenA;
-    _tokens[1] = _tokenB;
-    return REGISTRY.transformers(_tokens);
+  function _getTransformers(address _tokenA, address _tokenB) internal view virtual returns (ITransformer[] memory _transformers) {
+    bool _avoidMappingA = willAvoidMappingToUnderlying[_tokenA];
+    bool _avoidMappingB = willAvoidMappingToUnderlying[_tokenB];
+    if (!_avoidMappingA && !_avoidMappingB) {
+      address[] memory _tokens = new address[](2);
+      _tokens[0] = _tokenA;
+      _tokens[1] = _tokenB;
+      return REGISTRY.transformers(_tokens);
+    } else {
+      _transformers = new ITransformer[](2);
+      if (_avoidMappingA && _avoidMappingB) {
+        _transformers[0] = ITransformer(address(0));
+        _transformers[1] = ITransformer(address(0));
+      } else if (_avoidMappingA) {
+        _transformers[0] = ITransformer(address(0));
+        address[] memory _tokens = new address[](1);
+        _tokens[0] = _tokenB;
+        ITransformer[] memory _returnedTransformers = REGISTRY.transformers(_tokens);
+        _transformers[1] = _returnedTransformers[0];
+      } else {
+        address[] memory _tokens = new address[](1);
+        _tokens[0] = _tokenA;
+        ITransformer[] memory _returnedTransformers = REGISTRY.transformers(_tokens);
+        _transformers[0] = _returnedTransformers[0];
+        _transformers[1] = ITransformer(address(0));
+      }
+    }
   }
 
   function _toUnderlyingAmount(address _underlying, uint256 _amount)
