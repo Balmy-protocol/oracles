@@ -24,6 +24,8 @@ contract UniswapV3Adapter is AccessControl, SimpleOracle, IUniswapV3Adapter {
   uint16 public period;
   /// @inheritdoc IUniswapV3Adapter
   uint8 public cardinalityPerMinute;
+  /// @inheritdoc IUniswapV3Adapter
+  uint32 public gasPerCardinality = 22_250;
 
   mapping(bytes32 => bool) internal _isPairDenylisted; // key(tokenA, tokenB) => is denylisted
   mapping(bytes32 => address[]) internal _poolsForPair; // key(tokenA, tokenB) => pools
@@ -102,6 +104,13 @@ contract UniswapV3Adapter is AccessControl, SimpleOracle, IUniswapV3Adapter {
     if (_cardinalityPerMinute == 0) revert InvalidCardinalityPerMinute();
     cardinalityPerMinute = _cardinalityPerMinute;
     emit CardinalityPerMinuteChanged(_cardinalityPerMinute);
+  }
+
+  /// @inheritdoc IUniswapV3Adapter
+  function setGasPerCardinality(uint32 _gasPerCardinality) external onlyRole(ADMIN_ROLE) {
+    if (_gasPerCardinality == 0) revert InvalidGasPerCardinality();
+    gasPerCardinality = _gasPerCardinality;
+    emit GasPerCardinalityChanged(_gasPerCardinality);
   }
 
   /// @inheritdoc IUniswapV3Adapter
