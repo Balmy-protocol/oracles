@@ -40,7 +40,7 @@ describe('Uniswap v3 Add Support - Gas Test', () => {
     when('adding support for a pair with many uninitialized pools fails', async () => {
       let tx: Promise<TransactionResponse>;
       given(() => {
-        tx = oracle.addSupportForPairIfNeeded(DAI, RAI, BYTES, { gasLimit: 15_000_000 }); // Optimism currently has a 15 m gas limit
+        tx = oracle.addSupportForPairIfNeeded(DAI, RAI, BYTES);
       });
       then('tx is reverted', async () => {
         await expect(tx).to.have.reverted;
