@@ -36,7 +36,7 @@ describe('Uniswap v3 Add Support - Gas Test', () => {
     await snapshot.revert(snapshotId);
   });
 
-  describe.only('add support for uninitialized pools', () => {
+  describe('add support for uninitialized pools', () => {
     when('adding support for a pair with many uninitialized pools fails', async () => {
       given(async () => {
         expect(await oracle.getPoolsPreparedForPair(DAI, RAI)).to.have.lengthOf(0);
