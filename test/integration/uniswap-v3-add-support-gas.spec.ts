@@ -8,7 +8,6 @@ import { DeterministicFactory, DeterministicFactory__factory } from '@mean-finan
 import { setTestChainId } from 'utils/deploy';
 import { expect } from 'chai';
 import { given, then, when } from '@utils/bdd';
-import { TransactionResponse } from '@ethersproject/providers';
 import { snapshot } from '@utils/evm';
 
 const CHAIN = { chain: 'optimism', chainId: 10 };
