@@ -142,35 +142,46 @@ contract UniswapV3Adapter is AccessControl, SimpleOracle, IUniswapV3Adapter {
     bytes32 _pairKey = _keyForPair(_tokenA, _tokenB);
     if (_isPairDenylisted[_pairKey]) revert PairCannotBeSupported(_tokenA, _tokenB);
 
-    uint16 _cardinality = uint16((uint32(period) * cardinalityPerMinute) / 60) + 1;
-    address[] memory _pools = UNISWAP_V3_ORACLE.prepareAllAvailablePoolsWithCardinality(_tokenA, _tokenB, _cardinality);
+    address[] memory _pools = _getAllPoolsSortedByLiquidity(_tokenA, _tokenB);
     if (_pools.length == 0) revert PairCannotBeSupported(_tokenA, _tokenB);
 
+    // Load to mem to avoid multiple storage reads
     address[] storage _storagePools = _poolsForPair[_pairKey];
-    uint256 _currentPools = _storagePools.length;
-    uint256 _min = _currentPools < _pools.length ? _currentPools : _pools.length;
+    uint256 _poolsPreviouslyInStorage = _storagePools.length;
+    uint32 _gasCostPerCardinality = gasPerCardinality;
 
-    uint256 i;
-    for (; i < _min; i++) {
-      // Rewrite storage
-      _storagePools[i] = _pools[i];
-    }
-    if (_currentPools < _pools.length) {
-      // If have more pools than before, then push
-      for (; i < _pools.length; i++) {
-        _storagePools.push(_pools[i]);
+    uint16 _targetCardinality = uint16((uint32(period) * cardinalityPerMinute) / 60) + 1;
+    uint256 _preparedPools;
+    for (uint256 i; i < _pools.length; i++) {
+      address _pool = _pools[i];
+      (, , , , uint16 _currentCardinality, , ) = IUniswapV3Pool(_pool).slot0();
+      if (_currentCardinality < _targetCardinality) {
+        if (uint32(_targetCardinality - _currentCardinality) * _gasCostPerCardinality > gasleft()) {
+          continue;
+        }
+        IUniswapV3Pool(_pool).increaseObservationCardinalityNext(_targetCardinality);
       }
-    } else if (_currentPools > _pools.length) {
-      // If have less pools than before, then remove extra pools
-      for (; i < _currentPools; i++) {
-        _storagePools.pop();
+      if (_preparedPools < _poolsPreviouslyInStorage) {
+        // Rewrite storage
+        _storagePools[_preparedPools++] = _pool;
+      } else {
+        // If I have more pools than before, then push
+        _storagePools.push(_pool);
+        _preparedPools++;
       }
     }
 
-    emit UpdatedSupport(_tokenA, _tokenB, _pools);
+    // TODO: prevent when someone sets gas limit too low and we can't prepare any pools at all
+
+    // If I have less pools than before, then remove the extra pools
+    for (uint256 i = _preparedPools; i < _poolsPreviouslyInStorage; i++) {
+      _storagePools.pop();
+    }
+
+    emit UpdatedSupport(_tokenA, _tokenB, _preparedPools);
   }
 
-  function _getAllPoolsSortedByLiquidity(address _tokenA, address _tokenB) internal view returns (address[] memory _pools) {
+  function _getAllPoolsSortedByLiquidity(address _tokenA, address _tokenB) internal view virtual returns (address[] memory _pools) {
     _pools = UNISWAP_V3_ORACLE.getAllPoolsForPair(_tokenA, _tokenB);
     if (_pools.length > 1) {
       // Store liquidity by pool

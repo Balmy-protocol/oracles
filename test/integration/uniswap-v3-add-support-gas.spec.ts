@@ -36,14 +36,14 @@ describe('Uniswap v3 Add Support - Gas Test', () => {
     await snapshot.revert(snapshotId);
   });
 
-  describe('add support for uninitialized pools', () => {
+  describe.only('add support for uninitialized pools', () => {
     when('adding support for a pair with many uninitialized pools fails', async () => {
-      let tx: Promise<TransactionResponse>;
-      given(() => {
-        tx = oracle.addSupportForPairIfNeeded(DAI, RAI, BYTES);
+      given(async () => {
+        expect(await oracle.getPoolsPreparedForPair(DAI, RAI)).to.have.lengthOf(0);
+        await oracle.addSupportForPairIfNeeded(DAI, RAI, BYTES);
       });
-      then('tx is reverted', async () => {
-        await expect(tx).to.have.reverted;
+      then('pools were added correctly', async () => {
+        expect(await oracle.getPoolsPreparedForPair(DAI, RAI)).to.have.lengthOf(2);
       });
     });
   });
