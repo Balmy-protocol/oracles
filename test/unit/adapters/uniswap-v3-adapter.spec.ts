@@ -361,7 +361,7 @@ describe('UniswapV3Adapter', () => {
         thenPoolIsNotIncreased(() => pool2);
         thenPoolsAreStoredAndEventIsEmitted(() => ({ tx, pools: [pool2] }));
       });
-      describe('and none of them is initialized', () => {
+      describe('all of them need to be initialized', () => {
         let tx: Promise<TransactionResponse>;
         given(async () => {
           setCurrentCardinality(pool1, 0);
