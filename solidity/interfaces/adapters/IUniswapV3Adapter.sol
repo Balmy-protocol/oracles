@@ -50,9 +50,9 @@ interface IUniswapV3Adapter is ITokenPriceOracle {
    * @notice Emitted when support is updated (added or modified) for a new pair
    * @param tokenA One of the pair's tokens
    * @param tokenB The other of the pair's tokens
-   * @param pools The pools assigned to the pair
+   * @param preparedPools The amount of pools that were prepared to support the pair
    */
-  event UpdatedSupport(address tokenA, address tokenB, address[] pools);
+  event UpdatedSupport(address tokenA, address tokenB, uint256 preparedPools);
 
   /// @notice Thrown when one of the parameters is the zero address
   error ZeroAddress();

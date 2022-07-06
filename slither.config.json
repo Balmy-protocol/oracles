@@ -1,5 +1,5 @@
 {
   "exclude_low": true,
   "detectors_to_exclude": "conformance-to-solidity-naming-conventions,incorrect-versions-of-solidity,similar-names,solc-version",
-  "filter_paths": "node_modules|openzeppelin|interfaces"
+  "filter_paths": "node_modules|openzeppelin|interfaces|UniswapV3Pool.sol"
 }

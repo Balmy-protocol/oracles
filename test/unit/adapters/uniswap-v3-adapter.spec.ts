@@ -15,9 +15,11 @@ import {
   IAccessControl__factory,
   IERC20__factory,
   Multicall__factory,
+  UniswapV3PoolMock,
+  UniswapV3PoolMock__factory,
 } from '@typechained';
 import { snapshot } from '@utils/evm';
-import { smock, FakeContract } from '@defi-wonderland/smock';
+import { smock, FakeContract, MockContract } from '@defi-wonderland/smock';
 import moment from 'moment';
 import { IUniswapV3Adapter } from 'typechained/solidity/contracts/adapters/UniswapV3Adapter';
 import { shouldBeExecutableOnlyByRole } from '@utils/behaviours';
@@ -67,7 +69,6 @@ describe('UniswapV3Adapter', () => {
   beforeEach(async () => {
     await snapshot.revert(snapshotId);
     oracle.quoteSpecificPoolsWithTimePeriod.reset();
-    oracle.prepareAllAvailablePoolsWithCardinality.reset();
     oracle.getAllPoolsForPair.reset();
     pool1.liquidity.reset();
     pool2.liquidity.reset();
@@ -229,9 +230,20 @@ describe('UniswapV3Adapter', () => {
   });
 
   describe('_addOrModifySupportForPair', () => {
+    const TARGET_CARDINALITY = BigNumber.from(INITIAL_PERIOD).mul(INITIAL_CARDINALITY).div(60).add(1).toNumber();
+    let gasForOnePool: BigNumber;
+    let pool1: MockContract<UniswapV3PoolMock>, pool2: MockContract<UniswapV3PoolMock>;
+    given(async () => {
+      const gasPerCardinality = await adapter.gasPerCardinality();
+      const factory = await smock.mock<UniswapV3PoolMock__factory>('UniswapV3PoolMock');
+      pool1 = await factory.deploy(gasPerCardinality);
+      pool2 = await factory.deploy(gasPerCardinality);
+      gasForOnePool = BigNumber.from(gasPerCardinality).mul(TARGET_CARDINALITY).add(2_000_000);
+      await adapter.setAvailablePools(TOKEN_A, TOKEN_B, [pool1.address, pool2.address]);
+    });
     when('pairs has no pools', () => {
-      given(() => {
-        oracle.getAllPoolsForPair.returns([]);
+      given(async () => {
+        await adapter.setAvailablePools(TOKEN_A, TOKEN_B, []);
       });
       then('tx is reverted with reason error', async () => {
         await behaviours.txShouldRevertWithMessage({
@@ -244,7 +256,7 @@ describe('UniswapV3Adapter', () => {
     });
     when('pair is denylisted', () => {
       given(async () => {
-        oracle.getAllPoolsForPair.returns([pool1.address]);
+        await adapter.setAvailablePools(TOKEN_A, TOKEN_B, [pool1.address]);
         await adapter.connect(admin).setDenylisted([{ tokenA: TOKEN_A, tokenB: TOKEN_B }], [true]);
       });
       then('tx is reverted with reason error', async () => {
@@ -256,43 +268,125 @@ describe('UniswapV3Adapter', () => {
         });
       });
     });
-    when('there are no pools stored before hand', () => {
-      let tx: TransactionResponse;
-      given(async () => {
-        oracle.prepareAllAvailablePoolsWithCardinality.returns([pool1.address, pool2.address]);
-        tx = await adapter.internalAddOrModifySupportForPair(TOKEN_A, TOKEN_B, []);
+
+    when('there is enough gas left for all pools', () => {
+      describe('and all pools need increase', () => {
+        let tx: TransactionResponse;
+        given(async () => {
+          tx = await adapter.internalAddOrModifySupportForPair(TOKEN_A, TOKEN_B, []);
+        });
+        thenPoolIsIncreased(() => pool1);
+        thenPoolIsIncreased(() => pool2);
+        thenPoolsAreStoredAndEventIsEmitted(() => ({ tx, pools: [pool1, pool2] }));
       });
-      then('oracle is called correctly', () => {
-        const cardinality = BigNumber.from(INITIAL_PERIOD).mul(INITIAL_CARDINALITY).div(60).add(1);
-        expect(oracle.prepareAllAvailablePoolsWithCardinality).to.have.been.calledOnceWith(TOKEN_A, TOKEN_B, cardinality);
+      describe('and only one pool needs increase', () => {
+        let tx: TransactionResponse;
+        given(async () => {
+          setCurrentCardinality(pool1, TARGET_CARDINALITY);
+          tx = await adapter.internalAddOrModifySupportForPair(TOKEN_A, TOKEN_B, []);
+        });
+        thenPoolIsNotIncreased(() => pool1);
+        thenPoolIsIncreased(() => pool2);
+        thenPoolsAreStoredAndEventIsEmitted(() => ({ tx, pools: [pool1, pool2] }));
       });
-      then('all returned pools are stored', async () => {
-        const pools = await adapter.getPoolsPreparedForPair(TOKEN_A, TOKEN_B);
-        expect(pools).to.eql([pool1.address, pool2.address]);
-      });
-      then('event is emitted', async () => {
-        await expect(tx).to.emit(adapter, 'UpdatedSupport').withArgs(TOKEN_A, TOKEN_B, [pool1.address, pool2.address]);
+      describe('and no pools need increase', () => {
+        let tx: TransactionResponse;
+        given(async () => {
+          setCurrentCardinality(pool1, TARGET_CARDINALITY);
+          setCurrentCardinality(pool2, TARGET_CARDINALITY);
+          tx = await adapter.internalAddOrModifySupportForPair(TOKEN_A, TOKEN_B, []);
+        });
+        thenPoolIsNotIncreased(() => pool1);
+        thenPoolIsNotIncreased(() => pool2);
+        thenPoolsAreStoredAndEventIsEmitted(() => ({ tx, pools: [pool1, pool2] }));
       });
     });
+
+    when('there is enough gas to initialize one pool', () => {
+      describe('and the first one needs initializing', () => {
+        let tx: TransactionResponse;
+        given(async () => {
+          setCurrentCardinality(pool1, 0);
+          setCurrentCardinality(pool2, 0);
+          tx = await adapter.internalAddOrModifySupportForPair(TOKEN_A, TOKEN_B, [], { gasLimit: gasForOnePool });
+        });
+        thenPoolIsIncreased(() => pool1);
+        thenPoolIsNotIncreased(() => pool2);
+        thenPoolsAreStoredAndEventIsEmitted(() => ({ tx, pools: [pool1] }));
+      });
+      describe('and the first is already initialized', () => {
+        let tx: TransactionResponse;
+        given(async () => {
+          setCurrentCardinality(pool1, TARGET_CARDINALITY);
+          setCurrentCardinality(pool2, 0);
+          tx = await adapter.internalAddOrModifySupportForPair(TOKEN_A, TOKEN_B, [], { gasLimit: gasForOnePool });
+        });
+        thenPoolIsNotIncreased(() => pool1);
+        thenPoolIsIncreased(() => pool2);
+        thenPoolsAreStoredAndEventIsEmitted(() => ({ tx, pools: [pool1, pool2] }));
+      });
+      describe('and they are all initialized', () => {
+        let tx: TransactionResponse;
+        given(async () => {
+          setCurrentCardinality(pool1, TARGET_CARDINALITY);
+          setCurrentCardinality(pool2, TARGET_CARDINALITY);
+          tx = await adapter.internalAddOrModifySupportForPair(TOKEN_A, TOKEN_B, [], { gasLimit: gasForOnePool });
+        });
+        thenPoolIsNotIncreased(() => pool1);
+        thenPoolIsNotIncreased(() => pool2);
+        thenPoolsAreStoredAndEventIsEmitted(() => ({ tx, pools: [pool1, pool2] }));
+      });
+    });
+
+    when('there is not enough gas for pool initialization', () => {
+      describe('and they are all initialized', () => {
+        let tx: TransactionResponse;
+        given(async () => {
+          setCurrentCardinality(pool1, TARGET_CARDINALITY);
+          setCurrentCardinality(pool2, TARGET_CARDINALITY);
+          tx = await adapter.internalAddOrModifySupportForPair(TOKEN_A, TOKEN_B, [], { gasLimit: 1_000_000 });
+        });
+        thenPoolIsNotIncreased(() => pool1);
+        thenPoolIsNotIncreased(() => pool2);
+        thenPoolsAreStoredAndEventIsEmitted(() => ({ tx, pools: [pool1, pool2] }));
+      });
+    });
+
     when('there are some pools stored before hand', () => {
       let tx: TransactionResponse;
       given(async () => {
+        setCurrentCardinality(pool1, 0);
+        setCurrentCardinality(pool2, 0);
         await adapter.setPools(TOKEN_A, TOKEN_B, [pool1.address, pool2.address]);
-        oracle.prepareAllAvailablePoolsWithCardinality.returns([pool2.address]);
-        tx = await adapter.internalAddOrModifySupportForPair(TOKEN_A, TOKEN_B, []);
+        tx = await adapter.internalAddOrModifySupportForPair(TOKEN_A, TOKEN_B, [], { gasLimit: gasForOnePool });
       });
-      then('oracle is called correctly', () => {
-        const cardinality = BigNumber.from(INITIAL_PERIOD).mul(INITIAL_CARDINALITY).div(60).add(1);
-        expect(oracle.prepareAllAvailablePoolsWithCardinality).to.have.been.calledOnceWith(TOKEN_A, TOKEN_B, cardinality);
+      thenPoolIsIncreased(() => pool1);
+      thenPoolIsNotIncreased(() => pool2);
+      thenPoolsAreStoredAndEventIsEmitted(() => ({ tx, pools: [pool1] }));
+    });
+
+    function thenPoolIsIncreased(pool: () => MockContract<UniswapV3PoolMock>) {
+      then('pool is increased correctly', () => {
+        expect(pool().increaseObservationCardinalityNext).to.have.been.calledOnceWith(TARGET_CARDINALITY);
       });
-      then('all returned pools are stored', async () => {
-        const pools = await adapter.getPoolsPreparedForPair(TOKEN_A, TOKEN_B);
-        expect(pools).to.eql([pool2.address]);
+    }
+    function thenPoolIsNotIncreased(pool: () => MockContract<UniswapV3PoolMock>) {
+      then('pool is not increased', () => {
+        expect(pool().increaseObservationCardinalityNext).to.not.have.been.called;
+      });
+    }
+    function thenPoolsAreStoredAndEventIsEmitted(args: () => { tx: TransactionResponse; pools: MockContract<UniswapV3PoolMock>[] }) {
+      then('correct pools stored', async () => {
+        const preparedPools = await adapter.getPoolsPreparedForPair(TOKEN_A, TOKEN_B);
+        expect(preparedPools).to.eql(args().pools.map(({ address }) => address));
       });
       then('event is emitted', async () => {
-        await expect(tx).to.emit(adapter, 'UpdatedSupport').withArgs(TOKEN_A, TOKEN_B, [pool2.address]);
+        await expect(args().tx).to.emit(adapter, 'UpdatedSupport').withArgs(TOKEN_A, TOKEN_B, args().pools.length);
       });
-    });
+    }
+    function setCurrentCardinality(pool: MockContract<UniswapV3PoolMock>, cardinality: number) {
+      pool.slot0.returns([constants.Zero, 0, 0, 0, cardinality, 0, true]);
+    }
   });
   describe('setPeriod', () => {
     when('period is lower than min period', () => {

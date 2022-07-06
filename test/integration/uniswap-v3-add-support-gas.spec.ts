@@ -8,7 +8,6 @@ import { DeterministicFactory, DeterministicFactory__factory } from '@mean-finan
 import { setTestChainId } from 'utils/deploy';
 import { expect } from 'chai';
 import { given, then, when } from '@utils/bdd';
-import { TransactionResponse } from '@ethersproject/providers';
 import { snapshot } from '@utils/evm';
 
 const CHAIN = { chain: 'optimism', chainId: 10 };
@@ -38,12 +37,12 @@ describe('Uniswap v3 Add Support - Gas Test', () => {
 
   describe('add support for uninitialized pools', () => {
     when('adding support for a pair with many uninitialized pools fails', async () => {
-      let tx: Promise<TransactionResponse>;
-      given(() => {
-        tx = oracle.addSupportForPairIfNeeded(DAI, RAI, BYTES);
+      given(async () => {
+        expect(await oracle.getPoolsPreparedForPair(DAI, RAI)).to.have.lengthOf(0);
+        await oracle.addSupportForPairIfNeeded(DAI, RAI, BYTES);
       });
-      then('tx is reverted', async () => {
-        await expect(tx).to.have.reverted;
+      then('pools were added correctly', async () => {
+        expect(await oracle.getPoolsPreparedForPair(DAI, RAI)).to.have.lengthOf(2);
       });
     });
   });
