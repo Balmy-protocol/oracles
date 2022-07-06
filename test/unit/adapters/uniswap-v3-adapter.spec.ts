@@ -68,6 +68,9 @@ describe('UniswapV3Adapter', () => {
     await snapshot.revert(snapshotId);
     oracle.quoteSpecificPoolsWithTimePeriod.reset();
     oracle.prepareAllAvailablePoolsWithCardinality.reset();
+    oracle.getAllPoolsForPair.reset();
+    pool1.liquidity.reset();
+    pool2.liquidity.reset();
   });
 
   describe('constructor', () => {
@@ -425,6 +428,96 @@ describe('UniswapV3Adapter', () => {
       addressWithRole: () => admin,
       role: () => adminRole,
     });
+  });
+
+  describe('_getAllPoolsSortedByLiquidity', () => {
+    let pool3: FakeContract<IUniswapV3Pool>;
+    given(async () => {
+      pool3 = await smock.fake('IUniswapV3Pool');
+    });
+    when('there are no pools', () => {
+      let result: string[];
+      given(async () => {
+        oracle.getAllPoolsForPair.returns([]);
+        result = await adapter.internalGetAllPoolsSortedByLiquidity(TOKEN_A, TOKEN_B);
+      });
+      then('result is as expected', () => {
+        expect(result).to.have.lengthOf(0);
+      });
+      then('oracle was called correctly', () => {
+        expect(oracle.getAllPoolsForPair).to.have.been.calledOnceWith(TOKEN_A, TOKEN_B);
+      });
+    });
+    when('there is only one pool', () => {
+      let result: string[];
+      given(async () => {
+        oracle.getAllPoolsForPair.returns([pool1.address]);
+        result = await adapter.internalGetAllPoolsSortedByLiquidity(TOKEN_A, TOKEN_B);
+      });
+      then('pool is not called', () => {
+        expect(pool1.liquidity).to.not.have.been.called;
+      });
+      then('result is as expected', () => {
+        expect(result).to.eql([pool1.address]);
+      });
+      then('oracle was called correctly', () => {
+        expect(oracle.getAllPoolsForPair).to.have.been.calledOnceWith(TOKEN_A, TOKEN_B);
+      });
+    });
+    sortedTest({
+      pools: () => [
+        { pool: pool1, liquidity: 10 },
+        { pool: pool2, liquidity: 20 },
+        { pool: pool3, liquidity: 30 },
+      ],
+      expected: () => [pool3, pool2, pool1],
+    });
+    sortedTest({
+      pools: () => [
+        { pool: pool1, liquidity: 30 },
+        { pool: pool2, liquidity: 20 },
+        { pool: pool3, liquidity: 10 },
+      ],
+      expected: () => [pool1, pool2, pool3],
+    });
+    sortedTest({
+      pools: () => [
+        { pool: pool1, liquidity: 0 },
+        { pool: pool2, liquidity: 100 },
+        { pool: pool3, liquidity: 50 },
+      ],
+      expected: () => [pool2, pool3, pool1],
+    });
+
+    function sortedTest({
+      pools,
+      expected,
+    }: {
+      pools: () => { pool: FakeContract<IUniswapV3Pool>; liquidity: number }[];
+      expected: () => FakeContract<IUniswapV3Pool>[];
+    }) {
+      when('getting pools by liquidity', () => {
+        let result: string[];
+        given(async () => {
+          oracle.getAllPoolsForPair.returns([pool1.address, pool2.address, pool3.address]);
+          for (const { pool, liquidity } of pools()) {
+            pool.liquidity.returns(liquidity);
+          }
+          result = await adapter.internalGetAllPoolsSortedByLiquidity(TOKEN_A, TOKEN_B);
+        });
+        then('they are sorted correctly', () => {
+          expect(result).to.eql(expected().map(({ address }) => address));
+        });
+        then('oracle was called correctly', () => {
+          expect(oracle.getAllPoolsForPair).to.have.been.calledOnceWith(TOKEN_A, TOKEN_B);
+        });
+        then('pools were called correctly', () => {
+          for (const { pool } of pools()) {
+            expect(pool.liquidity).to.have.been.calledOnce;
+          }
+        });
+      });
+    }
   });
 
   describe('supportsInterface', () => {
