@@ -34,6 +34,12 @@ interface IUniswapV3Adapter is ITokenPriceOracle {
   event CardinalityPerMinuteChanged(uint8 cardinalityPerMinute);
 
   /**
+   * @notice Emitted when a new gas cost per cardinality is set
+   * @param gasPerCardinality The new gas per cardinality
+   */
+  event GasPerCardinalityChanged(uint32 gasPerCardinality);
+
+  /**
    * @notice Emitted when the denylist status is updated for some pairs
    * @param pairs The pairs that were updated
    * @param denylisted Whether they will be denylisted or not
@@ -56,6 +62,9 @@ interface IUniswapV3Adapter is ITokenPriceOracle {
 
   /// @notice Thrown when trying to set an invalid cardinality
   error InvalidCardinalityPerMinute();
+
+  /// @notice Thrown when trying to set an invalid gas cost per cardinality
+  error InvalidGasPerCardinality();
 
   /// @notice Thrown when trying to set a denylist but the given parameters are invalid
   error InvalidDenylistParams();
@@ -94,6 +103,12 @@ interface IUniswapV3Adapter is ITokenPriceOracle {
   function cardinalityPerMinute() external view returns (uint8);
 
   /**
+   * @notice Returns the approximate gas cost per each increased cardinality
+   * @return The gas cost per cardinality increase
+   */
+  function gasPerCardinality() external view returns (uint32);
+
+  /**
    * @notice Returns whether the given pair is denylisted or not
    * @param tokenA One of the pair's tokens
    * @param tokenB The other of the pair's tokens
@@ -129,6 +144,14 @@ interface IUniswapV3Adapter is ITokenPriceOracle {
    * @param cardinalityPerMinute The new cardinality per minute
    */
   function setCardinalityPerMinute(uint8 cardinalityPerMinute) external;
+
+  /**
+   * @notice Sets the gas cost per cardinality
+   * @dev Will revert if the given gas cost is zero
+   *      Can only be called by users with the admin role
+   * @param gasPerCardinality The gas cost to set
+   */
+  function setGasPerCardinality(uint32 gasPerCardinality) external;
 
   /**
    * @notice Sets the denylist status for a set of pairs

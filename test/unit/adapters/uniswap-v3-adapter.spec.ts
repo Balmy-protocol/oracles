@@ -129,6 +129,9 @@ describe('UniswapV3Adapter', () => {
       then('initial cardinality is set correctly', async () => {
         expect(await adapter.cardinalityPerMinute()).to.equal(INITIAL_CARDINALITY);
       });
+      then('initial gas per cardinality is set correctly', async () => {
+        expect(await adapter.gasPerCardinality()).to.equal(22_250);
+      });
     });
   });
 
@@ -363,6 +366,38 @@ describe('UniswapV3Adapter', () => {
     shouldBeExecutableOnlyByRole({
       contract: () => adapter,
       funcAndSignature: 'setCardinalityPerMinute',
+      params: [10],
+      addressWithRole: () => admin,
+      role: () => adminRole,
+    });
+  });
+
+  describe('setGasPerCardinality', () => {
+    when('gas cost  is zero', () => {
+      then('tx is reverted with reason error', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: adapter.connect(admin),
+          func: 'setGasPerCardinality',
+          args: [0],
+          message: 'InvalidGasPerCardinality',
+        });
+      });
+    });
+    when('a valid gas cost is provided', () => {
+      let tx: TransactionResponse;
+      given(async () => {
+        tx = await adapter.connect(admin).setGasPerCardinality(5000);
+      });
+      then('gas cost is updated', async () => {
+        expect(await adapter.gasPerCardinality()).to.equal(5000);
+      });
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(adapter, 'GasPerCardinalityChanged').withArgs(5000);
+      });
+    });
+    shouldBeExecutableOnlyByRole({
+      contract: () => adapter,
+      funcAndSignature: 'setGasPerCardinality',
       params: [10],
       addressWithRole: () => admin,
       role: () => adminRole,
