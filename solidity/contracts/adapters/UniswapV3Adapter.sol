@@ -175,7 +175,7 @@ contract UniswapV3Adapter is AccessControl, SimpleOracle, IUniswapV3Adapter {
       }
     }
 
-    // TODO: prevent when someone sets gas limit too low and we can't prepare any pools at all
+    if (_preparedPools == 0) revert GasTooLow();
 
     // If I have less pools than before, then remove the extra pools
     for (uint256 i = _preparedPools; i < _poolsPreviouslyInStorage; i++) {
