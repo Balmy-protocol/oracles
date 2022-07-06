@@ -13,6 +13,7 @@ contract UniswapV3Adapter is AccessControl, SimpleOracle, IUniswapV3Adapter {
 
   bytes32 public constant SUPER_ADMIN_ROLE = keccak256('SUPER_ADMIN_ROLE');
   bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
+  uint16 private constant _FIXED_GAS_COST_TO_SUPPORT_POOL = 30_000;
 
   /// @inheritdoc IUniswapV3Adapter
   IStaticOracle public immutable UNISWAP_V3_ORACLE;
@@ -156,7 +157,10 @@ contract UniswapV3Adapter is AccessControl, SimpleOracle, IUniswapV3Adapter {
       address _pool = _pools[i];
       (, , , , uint16 _currentCardinality, , ) = IUniswapV3Pool(_pool).slot0();
       if (_currentCardinality < _targetCardinality) {
-        if (uint32(_targetCardinality - _currentCardinality) * _gasCostPerCardinality > gasleft()) {
+        uint32 _gasCostToIncreaseAndAddSupport = uint32(_targetCardinality - _currentCardinality) *
+          _gasCostPerCardinality +
+          _FIXED_GAS_COST_TO_SUPPORT_POOL;
+        if (_gasCostToIncreaseAndAddSupport > gasleft()) {
           continue;
         }
         IUniswapV3Pool(_pool).increaseObservationCardinalityNext(_targetCardinality);
