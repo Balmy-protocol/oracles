@@ -69,6 +69,9 @@ interface IUniswapV3Adapter is ITokenPriceOracle {
   /// @notice Thrown when trying to set a denylist but the given parameters are invalid
   error InvalidDenylistParams();
 
+  /// @notice Thrown when the gas limit is so low that no pools can be initialized
+  error GasTooLow();
+
   /**
    * @notice Returns the address of the Uniswap oracle
    * @dev Cannot be modified

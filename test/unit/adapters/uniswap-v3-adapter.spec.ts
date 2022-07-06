@@ -350,6 +350,28 @@ describe('UniswapV3Adapter', () => {
         thenPoolIsNotIncreased(() => pool2);
         thenPoolsAreStoredAndEventIsEmitted(() => ({ tx, pools: [pool1, pool2] }));
       });
+      describe('and one of them needs to be initialized', () => {
+        let tx: TransactionResponse;
+        given(async () => {
+          setCurrentCardinality(pool1, 0);
+          setCurrentCardinality(pool2, TARGET_CARDINALITY);
+          tx = await adapter.internalAddOrModifySupportForPair(TOKEN_A, TOKEN_B, [], { gasLimit: 1_000_000 });
+        });
+        thenPoolIsNotIncreased(() => pool1);
+        thenPoolIsNotIncreased(() => pool2);
+        thenPoolsAreStoredAndEventIsEmitted(() => ({ tx, pools: [pool2] }));
+      });
+      describe('and none of them is initialized', () => {
+        let tx: Promise<TransactionResponse>;
+        given(async () => {
+          setCurrentCardinality(pool1, 0);
+          setCurrentCardinality(pool2, 0);
+          tx = adapter.internalAddOrModifySupportForPair(TOKEN_A, TOKEN_B, [], { gasLimit: 1_000_000 });
+        });
+        then('tx is reverted with reason error', async () => {
+          expect(tx).to.have.revertedWith('GasTooLow');
+        });
+      });
     });
 
     when('there are some pools stored before hand', () => {
