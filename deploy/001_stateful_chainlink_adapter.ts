@@ -11,7 +11,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   await deployThroughDeterministicFactory({
     deployer,
     name: 'StatefulChainlinkOracleAdapter',
-    salt: 'MF-StatefulChainlink-Adapter-V1',
+    salt: 'MF-StatefulChainlink-Adapter-V2',
     contract: 'solidity/contracts/adapters/StatefulChainlinkOracleAdapter.sol:StatefulChainlinkOracleAdapter',
     bytecode: StatefulChainlinkOracleAdapter__factory.bytecode,
     constructorArgs: {
