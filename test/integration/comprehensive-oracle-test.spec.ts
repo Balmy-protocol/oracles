@@ -49,6 +49,13 @@ describe('Comprehensive Oracle Test', () => {
   });
 
   oracleComprehensiveTest({
+    oracle: 'IdentityOracle',
+    tokenIn: USDC,
+    tokenOut: USDC,
+    canOracleWorkWithoutAddingExplicitSupport: true,
+  });
+
+  oracleComprehensiveTest({
     title: 'OracleAggregator (Chainlink Stateful)',
     oracle: 'OracleAggregator',
     tokenIn: UNI,
@@ -127,12 +134,12 @@ describe('Comprehensive Oracle Test', () => {
         });
         when('asked if a made up pair can be supported', () => {
           then('the oracle returns false', async () => {
-            expect(await oracle.canSupportPair(constants.AddressZero, constants.AddressZero)).to.be.false;
+            expect(await oracle.canSupportPair(constants.AddressZero, '0x0000000000000000000000000000000000000001')).to.be.false;
           });
         });
       });
       describe('isPairAlreadySupported', () => {
-        when('asked if a valid is already supported', () => {
+        when('asked if a valid pair is already supported', () => {
           then('the oracle returns ' + canOracleWorkWithoutAddingExplicitSupport, async () => {
             expect(await oracle.isPairAlreadySupported(tokenIn, tokenOut)).to.equal(canOracleWorkWithoutAddingExplicitSupport);
           });
@@ -172,7 +179,7 @@ describe('Comprehensive Oracle Test', () => {
         for (const func of ADD_SUPPORT) {
           when('support is added through ' + func + ' for an invalid pair', () => {
             then('tx reverts', async () => {
-              const tx = oracle[func](constants.AddressZero, constants.AddressZero, BYTES);
+              const tx = oracle[func](constants.AddressZero, '0x0000000000000000000000000000000000000001', BYTES);
               await expect(tx).to.have.reverted;
             });
           });
