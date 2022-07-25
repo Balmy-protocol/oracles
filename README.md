@@ -1,6 +1,6 @@
-[![Lint](https://github.com/Mean-Finance/mean-oracles/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/Mean-Finance/mean-oracles/actions/workflows/lint.yml)
-[![Tests](https://github.com/Mean-Finance/mean-oracles/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Mean-Finance/mean-oracles/actions/workflows/tests.yml)
-[![Slither Analysis](https://github.com/Mean-Finance/mean-oracles/actions/workflows/slither.yml/badge.svg?branch=main)](https://github.com/Mean-Finance/mean-oracles/actions/workflows/slither.yml)
+[![Lint](https://github.com/Mean-Finance/oracles/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/Mean-Finance/oracles/actions/workflows/lint.yml)
+[![Tests](https://github.com/Mean-Finance/oracles/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Mean-Finance/oracles/actions/workflows/tests.yml)
+[![Slither Analysis](https://github.com/Mean-Finance/oracles/actions/workflows/slither.yml/badge.svg?branch=main)](https://github.com/Mean-Finance/oracles/actions/workflows/slither.yml)
 
 # Mean Finance Oracles
 
@@ -12,9 +12,9 @@ Some of this is achieved by leveraging already existing oracles like [Uniswap V3
 
 The package will contain:
 
-- Artifacts can be found under `@mean-finance/mean-oracles/artifacts`
-- Compatible deployments for [hardhat-deploy](https://github.com/wighawag/hardhat-deploy) plugin under the `@mean-finance/mean-oracles/deployments` folder.
-- Typescript smart contract typings under `@mean-finance/mean-oracles/typechained`
+- Artifacts can be found under `@mean-finance/oracles/artifacts`
+- Compatible deployments for [hardhat-deploy](https://github.com/wighawag/hardhat-deploy) plugin under the `@mean-finance/oracles/deployments` folder.
+- Typescript smart contract typings under `@mean-finance/oracles/typechained`
 
 ## Documentation
 
@@ -27,13 +27,13 @@ To install with [**Hardhat**](https://github.com/nomiclabs/hardhat) or [**Truffl
 #### YARN
 
 ```sh
-yarn install @mean-finance/mean-oracles
+yarn install @mean-finance/oracles
 ```
 
 ### NPM
 
 ```sh
-npm install @mean-finance/mean-oracles
+npm install @mean-finance/oracles
 ```
 
 ### Deployment Registry

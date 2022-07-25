@@ -1,5 +1,5 @@
 {
-  "name": "@mean-finance/mean-oracles",
+  "name": "@mean-finance/oracles",
   "version": "2.0.0-rc1",
   "description": "Mean Oracles",
   "keywords": [
@@ -13,7 +13,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mean-finance/mean-oracles.git"
+    "url": "git+https://github.com/mean-finance/oracles.git"
   },
   "license": "AGPL-3.0-only",
   "contributors": [
