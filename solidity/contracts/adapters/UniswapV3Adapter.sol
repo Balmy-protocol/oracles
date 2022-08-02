@@ -36,8 +36,10 @@ contract UniswapV3Adapter is AccessControl, SimpleOracle, IUniswapV3Adapter {
     UNISWAP_V3_ORACLE = _initialConfig.uniswapV3Oracle;
     MAX_PERIOD = _initialConfig.maxPeriod;
     MIN_PERIOD = _initialConfig.minPeriod;
-    _setupRole(SUPER_ADMIN_ROLE, _initialConfig.superAdmin);
+    // We are setting the super admin role as its own admin so we can transfer it
+    _setRoleAdmin(SUPER_ADMIN_ROLE, SUPER_ADMIN_ROLE);
     _setRoleAdmin(ADMIN_ROLE, SUPER_ADMIN_ROLE);
+    _setupRole(SUPER_ADMIN_ROLE, _superAdmin);
     for (uint256 i; i < _initialConfig.initialAdmins.length; i++) {
       _setupRole(ADMIN_ROLE, _initialConfig.initialAdmins[i]);
     }
