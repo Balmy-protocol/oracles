@@ -21,8 +21,10 @@ contract OracleAggregator is AccessControl, SimpleOracle, IOracleAggregator {
     address[] memory _initialAdmins
   ) {
     if (_superAdmin == address(0)) revert ZeroAddress();
-    _setupRole(SUPER_ADMIN_ROLE, _superAdmin);
+    // We are setting the super admin role as its own admin so we can transfer it
+    _setRoleAdmin(SUPER_ADMIN_ROLE, SUPER_ADMIN_ROLE);
     _setRoleAdmin(ADMIN_ROLE, SUPER_ADMIN_ROLE);
+    _setupRole(SUPER_ADMIN_ROLE, _superAdmin);
     for (uint256 i; i < _initialAdmins.length; i++) {
       _setupRole(ADMIN_ROLE, _initialAdmins[i]);
     }

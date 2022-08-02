@@ -81,6 +81,10 @@ describe('OracleAggregator', () => {
         const hasRole = await oracleAggregator.hasRole(adminRole, admin.address);
         expect(hasRole).to.be.true;
       });
+      then('super admin role is set as super admin role', async () => {
+        const admin = await oracleAggregator.getRoleAdmin(superAdminRole);
+        expect(admin).to.equal(superAdminRole);
+      });
       then('super admin role is set as admin role', async () => {
         const admin = await oracleAggregator.getRoleAdmin(adminRole);
         expect(admin).to.equal(superAdminRole);
