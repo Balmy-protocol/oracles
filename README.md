@@ -27,7 +27,7 @@ To install with [**Hardhat**](https://github.com/nomiclabs/hardhat) or [**Truffl
 #### YARN
 
 ```sh
-yarn install @mean-finance/oracles
+yarn add @mean-finance/oracles
 ```
 
 ### NPM

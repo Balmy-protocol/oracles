@@ -126,7 +126,7 @@ const config: HardhatUserConfig = {
   typechain: {
     outDir: 'typechained',
     target: 'ethers-v5',
-    externalArtifacts: [],
+    externalArtifacts: ['node_modules/@openzeppelin/contracts/build/contracts/IERC20.json'],
   },
   paths: {
     sources: './solidity',
