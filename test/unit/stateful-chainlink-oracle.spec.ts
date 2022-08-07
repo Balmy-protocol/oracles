@@ -19,17 +19,20 @@ describe('StatefulChainlinkOracle', () => {
   const NO_PLAN = 0;
   const A_PLAN = 1;
 
-  let governor: SignerWithAddress;
+  let superAdmin: SignerWithAddress, admin: SignerWithAddress;
   let feedRegistry: FakeContract<FeedRegistryInterface>;
   let chainlinkOracleFactory: StatefulChainlinkOracleMock__factory;
   let chainlinkOracle: StatefulChainlinkOracleMock;
+  let superAdminRole: string, adminRole: string;
   let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
-    [, governor] = await ethers.getSigners();
+    [, superAdmin, admin] = await ethers.getSigners();
     chainlinkOracleFactory = await ethers.getContractFactory('StatefulChainlinkOracleMock');
     feedRegistry = await smock.fake('FeedRegistryInterface');
-    chainlinkOracle = await chainlinkOracleFactory.deploy(WETH, feedRegistry.address, ONE_DAY, governor.address);
+    chainlinkOracle = await chainlinkOracleFactory.deploy(WETH, feedRegistry.address, ONE_DAY, superAdmin.address, [admin.address]);
+    superAdminRole = await chainlinkOracle.SUPER_ADMIN_ROLE();
+    adminRole = await chainlinkOracle.ADMIN_ROLE();
     snapshotId = await snapshot.take();
   });
 
@@ -43,7 +46,7 @@ describe('StatefulChainlinkOracle', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: chainlinkOracleFactory,
-          args: [constants.AddressZero, feedRegistry.address, ONE_DAY, governor.address],
+          args: [constants.AddressZero, feedRegistry.address, ONE_DAY, superAdmin.address, [admin.address]],
           message: 'ZeroAddress',
         });
       });
@@ -52,7 +55,7 @@ describe('StatefulChainlinkOracle', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: chainlinkOracleFactory,
-          args: [WETH, constants.AddressZero, ONE_DAY, governor.address],
+          args: [WETH, constants.AddressZero, ONE_DAY, superAdmin.address, [admin.address]],
           message: 'ZeroAddress',
         });
       });
@@ -61,8 +64,17 @@ describe('StatefulChainlinkOracle', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: chainlinkOracleFactory,
-          args: [WETH, feedRegistry.address, 0, governor.address],
+          args: [WETH, feedRegistry.address, 0, superAdmin.address, [admin.address]],
           message: 'ZeroMaxDelay',
+        });
+      });
+    });
+    when('super admin is zero address', () => {
+      then('tx is reverted with reason error', async () => {
+        await behaviours.deployShouldRevertWithMessage({
+          contract: chainlinkOracleFactory,
+          args: [constants.AddressZero, feedRegistry.address, ONE_DAY, constants.AddressZero, [admin.address]],
+          message: 'ZeroAddress',
         });
       });
     });
@@ -78,6 +90,22 @@ describe('StatefulChainlinkOracle', () => {
       then('max delay is set correctly', async () => {
         const maxDelay = await chainlinkOracle.maxDelay();
         expect(maxDelay).to.eql(ONE_DAY);
+      });
+      then('super admin is set correctly', async () => {
+        const hasRole = await chainlinkOracle.hasRole(superAdminRole, superAdmin.address);
+        expect(hasRole).to.be.true;
+      });
+      then('initial admins are set correctly', async () => {
+        const hasRole = await chainlinkOracle.hasRole(adminRole, admin.address);
+        expect(hasRole).to.be.true;
+      });
+      then('super admin role is set as super admin role', async () => {
+        const admin = await chainlinkOracle.getRoleAdmin(superAdminRole);
+        expect(admin).to.equal(superAdminRole);
+      });
+      then('super admin role is set as admin role', async () => {
+        const admin = await chainlinkOracle.getRoleAdmin(adminRole);
+        expect(admin).to.equal(superAdminRole);
       });
       then('hardcoded stablecoins are considered USD', async () => {
         const stablecoins = [
@@ -190,11 +218,11 @@ describe('StatefulChainlinkOracle', () => {
   });
 
   describe('addUSDStablecoins', () => {
-    when('function is called by governor', () => {
+    when('function is called by admin', () => {
       const TOKEN_ADDRESS = wallet.generateRandomAddress();
       let tx: TransactionResponse;
       given(async () => {
-        tx = await chainlinkOracle.connect(governor).addUSDStablecoins([TOKEN_ADDRESS]);
+        tx = await chainlinkOracle.connect(admin).addUSDStablecoins([TOKEN_ADDRESS]);
       });
       then('address is considered USD', async () => {
         expect(await chainlinkOracle.isUSD(TOKEN_ADDRESS)).to.be.true;
@@ -204,11 +232,12 @@ describe('StatefulChainlinkOracle', () => {
       });
     });
 
-    behaviours.shouldBeExecutableOnlyByGovernor({
+    behaviours.shouldBeExecutableOnlyByRole({
       contract: () => chainlinkOracle,
       funcAndSignature: 'addUSDStablecoins(address[])',
       params: [[wallet.generateRandomAddress()]],
-      governor: () => governor,
+      role: () => adminRole,
+      addressWithRole: () => admin,
     });
   });
 
@@ -216,18 +245,18 @@ describe('StatefulChainlinkOracle', () => {
     when('input sizes do not match', () => {
       then('tx is reverted with reason', async () => {
         await behaviours.txShouldRevertWithMessage({
-          contract: chainlinkOracle.connect(governor),
+          contract: chainlinkOracle.connect(admin),
           func: 'addMappings',
           args: [[TOKEN_A], [TOKEN_A, TOKEN_B]],
           message: 'InvalidMappingsInput',
         });
       });
     });
-    when('function is called by governor', () => {
+    when('function is called by admin', () => {
       const TOKEN_ADDRESS = wallet.generateRandomAddress();
       let tx: TransactionResponse;
       given(async () => {
-        tx = await chainlinkOracle.connect(governor).addMappings([TOKEN_A], [TOKEN_ADDRESS]);
+        tx = await chainlinkOracle.connect(admin).addMappings([TOKEN_A], [TOKEN_ADDRESS]);
       });
       then('mapping is registered', async () => {
         expect(await chainlinkOracle.mappedToken(TOKEN_A)).to.equal(TOKEN_ADDRESS);
@@ -236,19 +265,20 @@ describe('StatefulChainlinkOracle', () => {
         await expect(tx).to.emit(chainlinkOracle, 'MappingsAdded').withArgs([TOKEN_A], [TOKEN_ADDRESS]);
       });
     });
-    behaviours.shouldBeExecutableOnlyByGovernor({
+    behaviours.shouldBeExecutableOnlyByRole({
       contract: () => chainlinkOracle,
       funcAndSignature: 'addMappings(address[],address[])',
       params: [[TOKEN_A], [wallet.generateRandomAddress()]],
-      governor: () => governor,
+      role: () => adminRole,
+      addressWithRole: () => admin,
     });
   });
   describe('setMaxDelay', () => {
-    when('function is called by governor', () => {
+    when('function is called by admin', () => {
       const MAX_DELAY = 300000;
       let tx: TransactionResponse;
       given(async () => {
-        tx = await chainlinkOracle.connect(governor).setMaxDelay(MAX_DELAY);
+        tx = await chainlinkOracle.connect(admin).setMaxDelay(MAX_DELAY);
       });
       then('new max delay registered', async () => {
         expect(await chainlinkOracle.maxDelay()).to.equal(MAX_DELAY);
@@ -257,11 +287,12 @@ describe('StatefulChainlinkOracle', () => {
         await expect(tx).to.emit(chainlinkOracle, 'MaxDelaySet').withArgs(MAX_DELAY);
       });
     });
-    behaviours.shouldBeExecutableOnlyByGovernor({
+    behaviours.shouldBeExecutableOnlyByRole({
       contract: () => chainlinkOracle,
       funcAndSignature: 'setMaxDelay(uint32)',
       params: [20],
-      governor: () => governor,
+      role: () => adminRole,
+      addressWithRole: () => admin,
     });
   });
   describe('intercalCallRegistry', () => {
@@ -288,7 +319,9 @@ describe('StatefulChainlinkOracle', () => {
       let chainlinkOracle: StatefulChainlinkOracleMock;
       given(async () => {
         makeRegistryReturn({ price: PRICE });
-        chainlinkOracle = await chainlinkOracleFactory.deploy(WETH, feedRegistry.address, BigNumber.from(2).pow(32).sub(1), governor.address);
+        chainlinkOracle = await chainlinkOracleFactory.deploy(WETH, feedRegistry.address, BigNumber.from(2).pow(32).sub(1), superAdmin.address, [
+          admin.address,
+        ]);
       });
       then('price is returned correctly', async () => {
         expect(await chainlinkOracle.intercalCallRegistry(TOKEN_A, TOKEN_A)).to.equal(PRICE);

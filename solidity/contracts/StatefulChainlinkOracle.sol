@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity >=0.8.7 <0.9.0;
 
+import '@openzeppelin/contracts/access/AccessControl.sol';
 import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 import '@chainlink/contracts/src/v0.8/Denominations.sol';
 import '../interfaces/IStatefulChainlinkOracle.sol';
-import './utils/Governable.sol';
 
-contract StatefulChainlinkOracle is Governable, IStatefulChainlinkOracle {
+contract StatefulChainlinkOracle is AccessControl, IStatefulChainlinkOracle {
+  bytes32 public constant SUPER_ADMIN_ROLE = keccak256('SUPER_ADMIN_ROLE');
+  bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
+
   /// @inheritdoc IStatefulChainlinkOracle
   mapping(address => mapping(address => PricingPlan)) public planForPair;
   /// @inheritdoc IStatefulChainlinkOracle
@@ -36,13 +39,21 @@ contract StatefulChainlinkOracle is Governable, IStatefulChainlinkOracle {
     address _WETH,
     FeedRegistryInterface _registry,
     uint32 _maxDelay,
-    address _governor
-  ) Governable(_governor) {
+    address _superAdmin,
+    address[] memory _initialAdmins
+  ) {
     if (_WETH == address(0) || address(_registry) == address(0)) revert ZeroAddress();
     if (_maxDelay == 0) revert ZeroMaxDelay();
     registry = _registry;
     maxDelay = _maxDelay;
     WETH = _WETH;
+    // We are setting the super admin role as its own admin so we can transfer it
+    _setRoleAdmin(SUPER_ADMIN_ROLE, SUPER_ADMIN_ROLE);
+    _setRoleAdmin(ADMIN_ROLE, SUPER_ADMIN_ROLE);
+    _setupRole(SUPER_ADMIN_ROLE, _superAdmin);
+    for (uint256 i; i < _initialAdmins.length; i++) {
+      _setupRole(ADMIN_ROLE, _initialAdmins[i]);
+    }
   }
 
   /// @inheritdoc IPriceOracle
@@ -96,7 +107,7 @@ contract StatefulChainlinkOracle is Governable, IStatefulChainlinkOracle {
   }
 
   /// @inheritdoc IStatefulChainlinkOracle
-  function addUSDStablecoins(address[] calldata _addresses) external onlyGovernor {
+  function addUSDStablecoins(address[] calldata _addresses) external onlyRole(ADMIN_ROLE) {
     for (uint256 i = 0; i < _addresses.length; i++) {
       _shouldBeConsideredUSD[_addresses[i]] = true;
     }
@@ -104,7 +115,7 @@ contract StatefulChainlinkOracle is Governable, IStatefulChainlinkOracle {
   }
 
   /// @inheritdoc IStatefulChainlinkOracle
-  function addMappings(address[] calldata _addresses, address[] calldata _mappings) external onlyGovernor {
+  function addMappings(address[] calldata _addresses, address[] calldata _mappings) external onlyRole(ADMIN_ROLE) {
     if (_addresses.length != _mappings.length) revert InvalidMappingsInput();
     for (uint256 i = 0; i < _addresses.length; i++) {
       _tokenMappings[_addresses[i]] = _mappings[i];
@@ -113,7 +124,7 @@ contract StatefulChainlinkOracle is Governable, IStatefulChainlinkOracle {
   }
 
   /// @inheritdoc IStatefulChainlinkOracle
-  function setMaxDelay(uint32 _maxDelay) external onlyGovernor {
+  function setMaxDelay(uint32 _maxDelay) external onlyRole(ADMIN_ROLE) {
     maxDelay = _maxDelay;
     emit MaxDelaySet(_maxDelay);
   }
