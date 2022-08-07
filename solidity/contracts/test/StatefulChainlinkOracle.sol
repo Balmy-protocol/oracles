@@ -47,6 +47,14 @@ contract StatefulChainlinkOracleMock is StatefulChainlinkOracle {
     return _callRegistry(_quote, _base);
   }
 
+  function setPlanForPair(
+    address _tokenA,
+    address _tokenB,
+    PricingPlan _plan
+  ) external {
+    planForPair[_tokenA][_tokenB] = _plan;
+  }
+
   function _determinePricingPlan(address _tokenA, address _tokenB) internal view override returns (PricingPlan) {
     (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
     MockedPricingPlan memory _plan = _pricingPlan[__tokenA][__tokenB];

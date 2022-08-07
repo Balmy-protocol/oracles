@@ -133,7 +133,7 @@ describe('StatefulChainlinkOracle', () => {
     when('there is a pricing plan', () => {
       let isAlreadySupported: boolean;
       given(async () => {
-        await chainlinkOracle.setPricingPlan(TOKEN_A, TOKEN_B, A_PLAN);
+        await chainlinkOracle.setPlanForPair(TOKEN_A, TOKEN_B, A_PLAN);
         isAlreadySupported = await chainlinkOracle.isPairAlreadySupported(TOKEN_A, TOKEN_B);
       });
       then('pair is already supported', async () => {
@@ -143,7 +143,7 @@ describe('StatefulChainlinkOracle', () => {
     when('sending the tokens in inverse order', () => {
       let isAlreadySupported: boolean;
       given(async () => {
-        await chainlinkOracle.setPricingPlan(TOKEN_A, TOKEN_B, A_PLAN);
+        await chainlinkOracle.setPlanForPair(TOKEN_A, TOKEN_B, A_PLAN);
         isAlreadySupported = await chainlinkOracle.isPairAlreadySupported(TOKEN_B, TOKEN_A);
       });
       then('pair is already supported', async () => {
