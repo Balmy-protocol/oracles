@@ -274,6 +274,31 @@ describe('StatefulChainlinkOracle', () => {
     });
   });
 
+  describe('removeUSDStablecoins', () => {
+    when('function is called by admin', () => {
+      const TOKEN_ADDRESS = wallet.generateRandomAddress();
+      let tx: TransactionResponse;
+      given(async () => {
+        await chainlinkOracle.connect(admin).addUSDStablecoins([TOKEN_ADDRESS]);
+        tx = await chainlinkOracle.connect(admin).removeUSDStablecoins([TOKEN_ADDRESS]);
+      });
+      then('address is no longer considered USD', async () => {
+        expect(await chainlinkOracle.isUSD(TOKEN_ADDRESS)).to.be.false;
+      });
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(chainlinkOracle, 'TokensNoLongerConsideredUSD').withArgs([TOKEN_ADDRESS]);
+      });
+    });
+
+    behaviours.shouldBeExecutableOnlyByRole({
+      contract: () => chainlinkOracle,
+      funcAndSignature: 'removeUSDStablecoins(address[])',
+      params: [[wallet.generateRandomAddress()]],
+      role: () => adminRole,
+      addressWithRole: () => admin,
+    });
+  });
+
   describe('addMappings', () => {
     when('input sizes do not match', () => {
       then('tx is reverted with reason', async () => {

@@ -51,7 +51,7 @@ contract StatefulChainlinkOracle is AccessControl, IStatefulChainlinkOracle {
     _setRoleAdmin(SUPER_ADMIN_ROLE, SUPER_ADMIN_ROLE);
     _setRoleAdmin(ADMIN_ROLE, SUPER_ADMIN_ROLE);
     _setupRole(SUPER_ADMIN_ROLE, _superAdmin);
-    for (uint256 i; i < _initialAdmins.length; i++) {
+    for (uint256 i = 0; i < _initialAdmins.length; i++) {
       _setupRole(ADMIN_ROLE, _initialAdmins[i]);
     }
   }
@@ -128,6 +128,14 @@ contract StatefulChainlinkOracle is AccessControl, IStatefulChainlinkOracle {
       _shouldBeConsideredUSD[_addresses[i]] = true;
     }
     emit TokensConsideredUSD(_addresses);
+  }
+
+  /// @inheritdoc IStatefulChainlinkOracle
+  function removeUSDStablecoins(address[] calldata _addresses) external onlyRole(ADMIN_ROLE) {
+    for (uint256 i = 0; i < _addresses.length; i++) {
+      _shouldBeConsideredUSD[_addresses[i]] = false;
+    }
+    emit TokensNoLongerConsideredUSD(_addresses);
   }
 
   /// @inheritdoc IStatefulChainlinkOracle
