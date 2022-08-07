@@ -10,7 +10,6 @@ contract StatefulChainlinkOracleMock is StatefulChainlinkOracle {
     bool isSet;
   }
 
-  mapping(address => mapping(address => bool)) public addSupportForPairCalled;
   mapping(address => mapping(address => MockedPricingPlan)) private _pricingPlan;
 
   constructor(
@@ -22,17 +21,12 @@ contract StatefulChainlinkOracleMock is StatefulChainlinkOracle {
     address[] memory _initialAdmins
   ) StatefulChainlinkOracle(_WETH, _registry, _maxDelay, _superAdmin, _initialAdmins) {}
 
-  function internalAddSupportForPair(address _tokenA, address _tokenB) external {
-    _addSupportForPair(_tokenA, _tokenB);
-  }
-
-  function _addSupportForPair(address _tokenA, address _tokenB) internal override {
-    addSupportForPairCalled[_tokenA][_tokenB] = true;
-    super._addSupportForPair(_tokenA, _tokenB);
-  }
-
-  function reset(address _tokenA, address _tokenB) external {
-    delete addSupportForPairCalled[_tokenA][_tokenB];
+  function internalAddOrModifySupportForPair(
+    address _tokenA,
+    address _tokenB,
+    bytes calldata _data
+  ) external {
+    _addOrModifySupportForPair(_tokenA, _tokenB, _data);
   }
 
   function setPricingPlan(

@@ -4,9 +4,10 @@ pragma solidity >=0.8.7 <0.9.0;
 import '@openzeppelin/contracts/access/AccessControl.sol';
 import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 import '@chainlink/contracts/src/v0.8/Denominations.sol';
+import './base/SimpleOracle.sol';
 import '../interfaces/IStatefulChainlinkOracle.sol';
 
-contract StatefulChainlinkOracle is AccessControl, IStatefulChainlinkOracle {
+contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainlinkOracle {
   bytes32 public constant SUPER_ADMIN_ROLE = keccak256('SUPER_ADMIN_ROLE');
   bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
 
@@ -64,10 +65,9 @@ contract StatefulChainlinkOracle is AccessControl, IStatefulChainlinkOracle {
   }
 
   /// @inheritdoc ITokenPriceOracle
-  function isPairAlreadySupported(address _tokenA, address _tokenB) external view returns (bool) {
+  function isPairAlreadySupported(address _tokenA, address _tokenB) public view override(ITokenPriceOracle, SimpleOracle) returns (bool) {
     (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
-    PricingPlan _plan = planForPair[__tokenA][__tokenB];
-    return _plan != PricingPlan.NONE;
+    return planForPair[__tokenA][__tokenB] != PricingPlan.NONE;
   }
 
   /// @inheritdoc ITokenPriceOracle
@@ -93,28 +93,11 @@ contract StatefulChainlinkOracle is AccessControl, IStatefulChainlinkOracle {
     }
   }
 
-  /// @inheritdoc ITokenPriceOracle
-  function addOrModifySupportForPair(
+  function _addOrModifySupportForPair(
     address _tokenA,
     address _tokenB,
     bytes calldata
-  ) external {
-    _addSupportForPair(_tokenA, _tokenB);
-  }
-
-  /// @inheritdoc ITokenPriceOracle
-  function addSupportForPairIfNeeded(
-    address _tokenA,
-    address _tokenB,
-    bytes calldata
-  ) external {
-    (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
-    if (planForPair[__tokenA][__tokenB] == PricingPlan.NONE) {
-      _addSupportForPair(_tokenA, _tokenB);
-    }
-  }
-
-  function _addSupportForPair(address _tokenA, address _tokenB) internal virtual {
+  ) internal virtual override {
     (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
     PricingPlan _plan = _determinePricingPlan(__tokenA, __tokenB);
     if (_plan == PricingPlan.NONE) revert PairNotSupported();
@@ -161,6 +144,14 @@ contract StatefulChainlinkOracle is AccessControl, IStatefulChainlinkOracle {
       address _mapping = _tokenMappings[_token];
       return _mapping != address(0) ? _mapping : _token;
     }
+  }
+
+  /// @inheritdoc IERC165
+  function supportsInterface(bytes4 _interfaceId) public view override(AccessControl, BaseOracle) returns (bool) {
+    return
+      _interfaceId == type(IStatefulChainlinkOracle).interfaceId ||
+      AccessControl.supportsInterface(_interfaceId) ||
+      BaseOracle.supportsInterface(_interfaceId);
   }
 
   /** Handles prices when the pair is either ETH/USD, token/ETH or token/USD */
