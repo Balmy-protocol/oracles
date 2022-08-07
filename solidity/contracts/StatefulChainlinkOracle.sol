@@ -97,7 +97,7 @@ contract StatefulChainlinkOracle is Governable, IStatefulChainlinkOracle {
 
   /// @inheritdoc IStatefulChainlinkOracle
   function addUSDStablecoins(address[] calldata _addresses) external onlyGovernor {
-    for (uint256 i; i < _addresses.length; i++) {
+    for (uint256 i = 0; i < _addresses.length; i++) {
       _shouldBeConsideredUSD[_addresses[i]] = true;
     }
     emit TokensConsideredUSD(_addresses);
@@ -106,7 +106,7 @@ contract StatefulChainlinkOracle is Governable, IStatefulChainlinkOracle {
   /// @inheritdoc IStatefulChainlinkOracle
   function addMappings(address[] calldata _addresses, address[] calldata _mappings) external onlyGovernor {
     if (_addresses.length != _mappings.length) revert InvalidMappingsInput();
-    for (uint256 i; i < _addresses.length; i++) {
+    for (uint256 i = 0; i < _addresses.length; i++) {
       _tokenMappings[_addresses[i]] = _mappings[i];
     }
     emit MappingsAdded(_addresses, _mappings);
