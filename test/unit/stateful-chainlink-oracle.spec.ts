@@ -117,24 +117,6 @@ describe('StatefulChainlinkOracle', () => {
         const admin = await chainlinkOracle.getRoleAdmin(adminRole);
         expect(admin).to.equal(superAdminRole);
       });
-      then('hardcoded stablecoins are considered USD', async () => {
-        const stablecoins = [
-          '0x6B175474E89094C44Da98b954EedeAC495271d0F',
-          '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-          '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-        ];
-        for (const token of stablecoins) {
-          expect(await chainlinkOracle.isUSD(token)).to.be.true;
-        }
-      });
-      then('WBTC maps to BTC', async () => {
-        const mapping = await chainlinkOracle.mappedToken('0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599');
-        expect(mapping).to.equal('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB');
-      });
-      then('RENBTC maps to BTC', async () => {
-        const mapping = await chainlinkOracle.mappedToken('0xEB4C2781e4ebA804CE9a9803C67d0893436bB27D');
-        expect(mapping).to.equal('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB');
-      });
     });
   });
 
