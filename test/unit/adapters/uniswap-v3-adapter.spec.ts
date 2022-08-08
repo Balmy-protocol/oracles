@@ -21,7 +21,7 @@ import {
 import { snapshot } from '@utils/evm';
 import { smock, FakeContract, MockContract } from '@defi-wonderland/smock';
 import moment from 'moment';
-import { IUniswapV3Adapter } from 'typechained/artifacts/solidity/contracts/adapters/UniswapV3Adapter';
+import { IUniswapV3Adapter } from 'typechained/solidity/contracts/adapters/UniswapV3Adapter';
 import { shouldBeExecutableOnlyByRole } from '@utils/behaviours';
 import { TransactionResponse } from 'ethers/node_modules/@ethersproject/providers';
 import { readArgFromEventOrFail } from '@utils/event-utils';

@@ -8,10 +8,10 @@ import { removeConsoleLog } from 'hardhat-preprocessor';
 import 'hardhat-gas-reporter';
 import '@0xged/hardhat-deploy';
 import 'solidity-coverage';
-import './tasks/npm-publish-clean-typechain';
 import { HardhatUserConfig, MultiSolcUserConfig, NetworksUserConfig } from 'hardhat/types';
 import * as env from './utils/env';
 import 'tsconfig-paths/register';
+import './tasks/npm-publish-clean-typechain';
 
 const networks: NetworksUserConfig =
   env.isHardhatCompile() || env.isHardhatClean() || env.isTesting()
@@ -126,7 +126,7 @@ const config: HardhatUserConfig = {
   typechain: {
     outDir: 'typechained',
     target: 'ethers-v5',
-    externalArtifacts: ['node_modules/@openzeppelin/contracts/build/contracts/IERC20.json'],
+    externalArtifacts: [],
   },
   paths: {
     sources: './solidity',
