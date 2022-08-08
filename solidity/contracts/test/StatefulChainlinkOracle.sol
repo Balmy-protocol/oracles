@@ -18,8 +18,9 @@ contract StatefulChainlinkOracleMock is StatefulChainlinkOracle {
     address _WETH,
     FeedRegistryInterface _registry,
     uint32 _maxDelay,
-    address _governor
-  ) StatefulChainlinkOracle(_WETH, _registry, _maxDelay, _governor) {}
+    address _superAdmin,
+    address[] memory _initialAdmins
+  ) StatefulChainlinkOracle(_WETH, _registry, _maxDelay, _superAdmin, _initialAdmins) {}
 
   function internalAddSupportForPair(address _tokenA, address _tokenB) external {
     _addSupportForPair(_tokenA, _tokenB);
