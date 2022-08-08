@@ -198,9 +198,9 @@ describe('StatefulChainlinkOracle', () => {
       then('tx is reverted with reason', async () => {
         await behaviours.txShouldRevertWithMessage({
           contract: chainlinkOracle,
-          func: 'internalAddSupportForPair',
-          args: [TOKEN_A, TOKEN_B],
-          message: 'PairNotSupported',
+          func: 'internalAddOrModifySupportForPair',
+          args: [TOKEN_A, TOKEN_B, []],
+          message: 'PairCannotBeSupported',
         });
       });
     });

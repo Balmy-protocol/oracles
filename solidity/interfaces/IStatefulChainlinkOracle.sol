@@ -63,9 +63,6 @@ interface IStatefulChainlinkOracle is ITokenPriceOracle {
   /// @notice Thrown when the given max delay is zero
   error ZeroMaxDelay();
 
-  /// @notice Thrown when trying to configure a pair that is not supported
-  error PairNotSupported();
-
   /// @notice Thrown when the input for adding mappings in invalid
   error InvalidMappingsInput();
 

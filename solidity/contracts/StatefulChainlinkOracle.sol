@@ -79,7 +79,7 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
   ) external view returns (uint256 _amountOut) {
     (address _tokenA, address _tokenB) = _sortTokens(_tokenIn, _tokenOut);
     PricingPlan _plan = planForPair[_tokenA][_tokenB];
-    if (_plan == PricingPlan.NONE) revert PairNotSupported();
+    if (_plan == PricingPlan.NONE) revert PairNotSupportedYet(_tokenA, _tokenB);
 
     int8 _inDecimals = _getDecimals(_tokenIn);
     int8 _outDecimals = _getDecimals(_tokenOut);
@@ -100,7 +100,7 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
   ) internal virtual override {
     (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
     PricingPlan _plan = _determinePricingPlan(__tokenA, __tokenB);
-    if (_plan == PricingPlan.NONE) revert PairNotSupported();
+    if (_plan == PricingPlan.NONE) revert PairCannotBeSupported(_tokenA, _tokenB);
     planForPair[__tokenA][__tokenB] = _plan;
     emit AddedSupportForPairInChainlinkOracle(__tokenA, __tokenB);
   }
