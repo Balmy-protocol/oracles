@@ -6,7 +6,7 @@ import { DeployFunction } from '@0xged/hardhat-deploy/dist/types';
 import moment from 'moment';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployer, admin: superAdmin } = await hre.getNamedAccounts();
+  const { deployer, governor: superAdmin } = await hre.getNamedAccounts();
   const chainId = await getChainId(hre);
 
   const minimumPeriod = moment.duration('5', 'minutes').as('seconds');

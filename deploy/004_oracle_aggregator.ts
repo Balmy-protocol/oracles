@@ -1,11 +1,10 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
-import { getChainId } from '../utils/deploy';
 import { OracleAggregator__factory } from '@typechained';
 import { deployThroughDeterministicFactory } from '@mean-finance/deterministic-factory/utils/deployment';
 import { DeployFunction } from '@0xged/hardhat-deploy/dist/types';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployer, admin: superAdmin } = await hre.getNamedAccounts();
+  const { deployer, governor: superAdmin } = await hre.getNamedAccounts();
 
   const identityOracle = await hre.deployments.get('IdentityOracle');
   const chainlinkAdapter = await hre.deployments.get('StatefulChainlinkOracleAdapter');
