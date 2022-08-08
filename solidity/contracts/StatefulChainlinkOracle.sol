@@ -45,18 +45,26 @@ contract StatefulChainlinkOracle is Governable, IStatefulChainlinkOracle {
     WETH = _WETH;
   }
 
-  /// @inheritdoc IPriceOracle
+  /// @inheritdoc ITokenPriceOracle
   function canSupportPair(address _tokenA, address _tokenB) external view returns (bool) {
     (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
     PricingPlan _plan = _determinePricingPlan(__tokenA, __tokenB);
     return _plan != PricingPlan.NONE;
   }
 
-  /// @inheritdoc IPriceOracle
+  /// @inheritdoc ITokenPriceOracle
+  function isPairAlreadySupported(address _tokenA, address _tokenB) external view returns (bool) {
+    (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
+    PricingPlan _plan = planForPair[__tokenA][__tokenB];
+    return _plan != PricingPlan.NONE;
+  }
+
+  /// @inheritdoc ITokenPriceOracle
   function quote(
     address _tokenIn,
-    uint128 _amountIn,
-    address _tokenOut
+    uint256 _amountIn,
+    address _tokenOut,
+    bytes calldata
   ) external view returns (uint256 _amountOut) {
     (address _tokenA, address _tokenB) = _sortTokens(_tokenIn, _tokenOut);
     PricingPlan _plan = planForPair[_tokenA][_tokenB];
@@ -74,13 +82,21 @@ contract StatefulChainlinkOracle is Governable, IStatefulChainlinkOracle {
     }
   }
 
-  /// @inheritdoc IPriceOracle
-  function reconfigureSupportForPair(address _tokenA, address _tokenB) external {
+  /// @inheritdoc ITokenPriceOracle
+  function addOrModifySupportForPair(
+    address _tokenA,
+    address _tokenB,
+    bytes calldata
+  ) external {
     _addSupportForPair(_tokenA, _tokenB);
   }
 
-  /// @inheritdoc IPriceOracle
-  function addSupportForPairIfNeeded(address _tokenA, address _tokenB) external {
+  /// @inheritdoc ITokenPriceOracle
+  function addSupportForPairIfNeeded(
+    address _tokenA,
+    address _tokenB,
+    bytes calldata
+  ) external {
     (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
     if (planForPair[__tokenA][__tokenB] == PricingPlan.NONE) {
       _addSupportForPair(_tokenA, _tokenB);

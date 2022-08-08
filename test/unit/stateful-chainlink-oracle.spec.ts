@@ -119,11 +119,44 @@ describe('StatefulChainlinkOracle', () => {
     });
   });
 
-  describe('reconfigureSupportForPair', () => {
+  describe('isPairAlreadySupported', () => {
+    when('there is no pricing plan', () => {
+      let isAlreadySupported: boolean;
+      given(async () => {
+        await chainlinkOracle.setPricingPlan(TOKEN_A, TOKEN_B, NO_PLAN);
+        isAlreadySupported = await chainlinkOracle.isPairAlreadySupported(TOKEN_A, TOKEN_B);
+      });
+      then('pair is not already supported', async () => {
+        expect(isAlreadySupported).to.be.false;
+      });
+    });
+    when('there is a pricing plan', () => {
+      let isAlreadySupported: boolean;
+      given(async () => {
+        await chainlinkOracle.setPlanForPair(TOKEN_A, TOKEN_B, A_PLAN);
+        isAlreadySupported = await chainlinkOracle.isPairAlreadySupported(TOKEN_A, TOKEN_B);
+      });
+      then('pair is already supported', async () => {
+        expect(isAlreadySupported).to.be.true;
+      });
+    });
+    when('sending the tokens in inverse order', () => {
+      let isAlreadySupported: boolean;
+      given(async () => {
+        await chainlinkOracle.setPlanForPair(TOKEN_A, TOKEN_B, A_PLAN);
+        isAlreadySupported = await chainlinkOracle.isPairAlreadySupported(TOKEN_B, TOKEN_A);
+      });
+      then('pair is already supported', async () => {
+        expect(isAlreadySupported).to.be.true;
+      });
+    });
+  });
+
+  describe('addOrModifySupportForPair', () => {
     when(`the function is called`, () => {
       given(async () => {
         await chainlinkOracle.setPricingPlan(TOKEN_A, TOKEN_B, A_PLAN);
-        await chainlinkOracle.reconfigureSupportForPair(TOKEN_A, TOKEN_B);
+        await chainlinkOracle.addOrModifySupportForPair(TOKEN_A, TOKEN_B, []);
       });
       then(`then the internal add support is called directly`, async () => {
         expect(await chainlinkOracle.addSupportForPairCalled(TOKEN_A, TOKEN_B)).to.be.true;
@@ -139,18 +172,18 @@ describe('StatefulChainlinkOracle', () => {
         await chainlinkOracle.reset(TOKEN_A, TOKEN_B);
       });
       then('internal add support is not called', async () => {
-        await chainlinkOracle.addSupportForPairIfNeeded(TOKEN_A, TOKEN_B);
+        await chainlinkOracle.addSupportForPairIfNeeded(TOKEN_A, TOKEN_B, []);
         expect(await chainlinkOracle.addSupportForPairCalled(TOKEN_A, TOKEN_B)).to.be.false;
       });
       then('internal add support is not called even if tokens are inverted', async () => {
-        await chainlinkOracle.addSupportForPairIfNeeded(TOKEN_B, TOKEN_A);
+        await chainlinkOracle.addSupportForPairIfNeeded(TOKEN_B, TOKEN_A, []);
         expect(await chainlinkOracle.addSupportForPairCalled(TOKEN_A, TOKEN_B)).to.be.false;
       });
     });
     when('pair is not defined yet', () => {
       given(async () => {
         await chainlinkOracle.setPricingPlan(TOKEN_A, TOKEN_B, A_PLAN);
-        await chainlinkOracle.addSupportForPairIfNeeded(TOKEN_A, TOKEN_B);
+        await chainlinkOracle.addSupportForPairIfNeeded(TOKEN_A, TOKEN_B, []);
       });
       then('internal add support is called', async () => {
         expect(await chainlinkOracle.addSupportForPairCalled(TOKEN_A, TOKEN_B)).to.be.true;
