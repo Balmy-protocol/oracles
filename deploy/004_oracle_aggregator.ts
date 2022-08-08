@@ -7,9 +7,9 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   const { deployer, governor: superAdmin } = await hre.getNamedAccounts();
 
   const identityOracle = await hre.deployments.get('IdentityOracle');
-  const chainlinkAdapter = await hre.deployments.get('StatefulChainlinkOracleAdapter');
+  const chainlinOracle = await hre.deployments.get('StatefulChainlinkOracle');
   const uniswapAdapter = await hre.deployments.get('UniswapV3Adapter');
-  const oracles = [identityOracle.address, chainlinkAdapter.address, uniswapAdapter.address];
+  const oracles = [identityOracle.address, chainlinOracle.address, uniswapAdapter.address];
 
   await deployThroughDeterministicFactory({
     deployer,
@@ -28,6 +28,6 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   });
 };
 
-deployFunction.dependencies = ['StatefulChainlinkOracleAdapter', 'UniswapV3Adapter', 'IdentityOracle'];
+deployFunction.dependencies = ['StatefulChainlinkOracle', 'UniswapV3Adapter', 'IdentityOracle'];
 deployFunction.tags = ['OracleAggregator'];
 export default deployFunction;

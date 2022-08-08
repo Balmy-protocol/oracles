@@ -43,5 +43,4 @@ Contracts are deployed at the same address on all available networks via the [de
 > Available networks: Optimism, Optimism Kovan, Arbitrum Rinkeby, Polygon, Mumbai (Polygon testnet).
 
 - OracleAggregator: `0xFD8aD08F7e35FA949c6dEB9B58623345Faa5D3EF`
-- StatefulChainlinkOracleAdapter: `0x4708433c4EF50544e7a37e2903c434F293A21aaC`
 - UniswapV3Adapter: `0xdd18E04096c5E974B23d6205e2138EDA139848D3`
