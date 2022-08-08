@@ -3,7 +3,17 @@ import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { ethers } from 'hardhat';
 import { behaviours, wallet } from '@utils';
 import { given, then, when } from '@utils/bdd';
-import { FeedRegistryInterface, StatefulChainlinkOracleMock, StatefulChainlinkOracleMock__factory } from '@typechained';
+import {
+  FeedRegistryInterface,
+  IAccessControl__factory,
+  IERC165__factory,
+  IERC20__factory,
+  IStatefulChainlinkOracle__factory,
+  ITokenPriceOracle__factory,
+  Multicall__factory,
+  StatefulChainlinkOracleMock,
+  StatefulChainlinkOracleMock__factory,
+} from '@typechained';
 import { snapshot } from '@utils/evm';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { FakeContract, smock } from '@defi-wonderland/smock';
@@ -180,45 +190,6 @@ describe('StatefulChainlinkOracle', () => {
     });
   });
 
-  describe('addOrModifySupportForPair', () => {
-    when(`the function is called`, () => {
-      given(async () => {
-        await chainlinkOracle.setPricingPlan(TOKEN_A, TOKEN_B, A_PLAN);
-        await chainlinkOracle.addOrModifySupportForPair(TOKEN_A, TOKEN_B, []);
-      });
-      then(`then the internal add support is called directly`, async () => {
-        expect(await chainlinkOracle.addSupportForPairCalled(TOKEN_A, TOKEN_B)).to.be.true;
-      });
-    });
-  });
-
-  describe('addSupportForPairIfNeeded', () => {
-    when('a plan is already defined', () => {
-      given(async () => {
-        await chainlinkOracle.setPricingPlan(TOKEN_A, TOKEN_B, A_PLAN);
-        await chainlinkOracle.internalAddSupportForPair(TOKEN_A, TOKEN_B);
-        await chainlinkOracle.reset(TOKEN_A, TOKEN_B);
-      });
-      then('internal add support is not called', async () => {
-        await chainlinkOracle.addSupportForPairIfNeeded(TOKEN_A, TOKEN_B, []);
-        expect(await chainlinkOracle.addSupportForPairCalled(TOKEN_A, TOKEN_B)).to.be.false;
-      });
-      then('internal add support is not called even if tokens are inverted', async () => {
-        await chainlinkOracle.addSupportForPairIfNeeded(TOKEN_B, TOKEN_A, []);
-        expect(await chainlinkOracle.addSupportForPairCalled(TOKEN_A, TOKEN_B)).to.be.false;
-      });
-    });
-    when('pair is not defined yet', () => {
-      given(async () => {
-        await chainlinkOracle.setPricingPlan(TOKEN_A, TOKEN_B, A_PLAN);
-        await chainlinkOracle.addSupportForPairIfNeeded(TOKEN_A, TOKEN_B, []);
-      });
-      then('internal add support is called', async () => {
-        expect(await chainlinkOracle.addSupportForPairCalled(TOKEN_A, TOKEN_B)).to.be.true;
-      });
-    });
-  });
-
   describe('internalAddSupportForPair', () => {
     when('no plan can be found for pair', () => {
       given(async () => {
@@ -227,9 +198,9 @@ describe('StatefulChainlinkOracle', () => {
       then('tx is reverted with reason', async () => {
         await behaviours.txShouldRevertWithMessage({
           contract: chainlinkOracle,
-          func: 'internalAddSupportForPair',
-          args: [TOKEN_A, TOKEN_B],
-          message: 'PairNotSupported',
+          func: 'internalAddOrModifySupportForPair',
+          args: [TOKEN_A, TOKEN_B, []],
+          message: 'PairCannotBeSupported',
         });
       });
     });
@@ -238,7 +209,7 @@ describe('StatefulChainlinkOracle', () => {
       let tx: TransactionResponse;
       given(async () => {
         await chainlinkOracle.setPricingPlan(TOKEN_A, TOKEN_B, SOME_OTHER_PLAN);
-        tx = await chainlinkOracle.internalAddSupportForPair(TOKEN_A, TOKEN_B);
+        tx = await chainlinkOracle.internalAddOrModifySupportForPair(TOKEN_A, TOKEN_B, []);
       });
       then(`it is marked as the new plan`, async () => {
         expect(await chainlinkOracle.planForPair(TOKEN_A, TOKEN_B)).to.eql(SOME_OTHER_PLAN);
@@ -353,6 +324,43 @@ describe('StatefulChainlinkOracle', () => {
       addressWithRole: () => admin,
     });
   });
+
+  describe('supportsInterface', () => {
+    behaviours.shouldSupportInterface({
+      contract: () => chainlinkOracle,
+      interfaceName: 'IERC165',
+      interface: IERC165__factory.createInterface(),
+    });
+    behaviours.shouldSupportInterface({
+      contract: () => chainlinkOracle,
+      interfaceName: 'Multicall',
+      interface: Multicall__factory.createInterface(),
+    });
+    behaviours.shouldSupportInterface({
+      contract: () => chainlinkOracle,
+      interfaceName: 'ITokenPriceOracle',
+      interface: ITokenPriceOracle__factory.createInterface(),
+    });
+    behaviours.shouldSupportInterface({
+      contract: () => chainlinkOracle,
+      interfaceName: 'ITransformerOracle',
+      interface: {
+        actual: IStatefulChainlinkOracle__factory.createInterface(),
+        inheritedFrom: [ITokenPriceOracle__factory.createInterface()],
+      },
+    });
+    behaviours.shouldSupportInterface({
+      contract: () => chainlinkOracle,
+      interfaceName: 'IAccessControl',
+      interface: IAccessControl__factory.createInterface(),
+    });
+    behaviours.shouldNotSupportInterface({
+      contract: () => chainlinkOracle,
+      interfaceName: 'IERC20',
+      interface: IERC20__factory.createInterface(),
+    });
+  });
+
   describe('intercalCallRegistry', () => {
     when('price is negative', () => {
       given(() => makeRegistryReturn({ price: -1 }));
