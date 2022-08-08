@@ -128,7 +128,7 @@ describe('StatefulChainlinkOracle', () => {
     });
     when('a plan can be found for a pair', () => {
       given(async () => {
-        await chainlinkOracle.setPricingPlan(TOKEN_A, TOKEN_B, A_PLAN);
+        await chainlinkOracle.determinePricingPlan(TOKEN_A, TOKEN_B, A_PLAN);
       });
       then('pair is supported', async () => {
         expect(await chainlinkOracle.canSupportPair(TOKEN_A, TOKEN_B)).to.be.true;
@@ -143,7 +143,7 @@ describe('StatefulChainlinkOracle', () => {
     when('there is no pricing plan', () => {
       let isAlreadySupported: boolean;
       given(async () => {
-        await chainlinkOracle.setPricingPlan(TOKEN_A, TOKEN_B, NO_PLAN);
+        await chainlinkOracle.determinePricingPlan(TOKEN_A, TOKEN_B, NO_PLAN);
         isAlreadySupported = await chainlinkOracle.isPairAlreadySupported(TOKEN_A, TOKEN_B);
       });
       then('pair is not already supported', async () => {
@@ -175,7 +175,7 @@ describe('StatefulChainlinkOracle', () => {
   describe('internalAddSupportForPair', () => {
     when('no plan can be found for pair', () => {
       given(async () => {
-        await chainlinkOracle.setPricingPlan(TOKEN_A, TOKEN_B, NO_PLAN);
+        await chainlinkOracle.determinePricingPlan(TOKEN_A, TOKEN_B, NO_PLAN);
       });
       then('tx is reverted with reason', async () => {
         await behaviours.txShouldRevertWithMessage({
@@ -190,7 +190,7 @@ describe('StatefulChainlinkOracle', () => {
       const SOME_OTHER_PLAN = 2;
       let tx: TransactionResponse;
       given(async () => {
-        await chainlinkOracle.setPricingPlan(TOKEN_A, TOKEN_B, SOME_OTHER_PLAN);
+        await chainlinkOracle.determinePricingPlan(TOKEN_A, TOKEN_B, SOME_OTHER_PLAN);
         tx = await chainlinkOracle.internalAddOrModifySupportForPair(TOKEN_A, TOKEN_B, []);
       });
       then(`it is marked as the new plan`, async () => {
@@ -198,7 +198,22 @@ describe('StatefulChainlinkOracle', () => {
       });
 
       then('event is emitted', async () => {
-        await expect(tx).to.emit(chainlinkOracle, 'AddedSupportForPairInChainlinkOracle').withArgs(TOKEN_A, TOKEN_B);
+        await expect(tx).to.emit(chainlinkOracle, 'UpdatedPlanForPair').withArgs(TOKEN_A, TOKEN_B, SOME_OTHER_PLAN);
+      });
+      when('a pair loses support', () => {
+        let tx: TransactionResponse;
+        given(async () => {
+          await chainlinkOracle.setPlanForPair(TOKEN_A, TOKEN_B, A_PLAN);
+          await chainlinkOracle.determinePricingPlan(TOKEN_A, TOKEN_B, NO_PLAN);
+          tx = await chainlinkOracle.internalAddOrModifySupportForPair(TOKEN_A, TOKEN_B, []);
+        });
+        then('pair is left with no plan', async () => {
+          expect(await chainlinkOracle.planForPair(TOKEN_A, TOKEN_B)).to.eql(NO_PLAN);
+        });
+
+        then('event is emitted', async () => {
+          await expect(tx).to.emit(chainlinkOracle, 'UpdatedPlanForPair').withArgs(TOKEN_A, TOKEN_B, NO_PLAN);
+        });
       });
     });
   });

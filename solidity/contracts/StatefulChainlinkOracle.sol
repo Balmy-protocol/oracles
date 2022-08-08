@@ -16,7 +16,6 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
   /// @inheritdoc IStatefulChainlinkOracle
   FeedRegistryInterface public immutable registry;
   /// @inheritdoc IStatefulChainlinkOracle
-  // solhint-disable-next-line var-name-mixedcase
   address public immutable WETH;
   /// @inheritdoc IStatefulChainlinkOracle
   uint32 public maxDelay;
@@ -94,9 +93,17 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
   ) internal virtual override {
     (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
     PricingPlan _plan = _determinePricingPlan(__tokenA, __tokenB);
-    if (_plan == PricingPlan.NONE) revert PairCannotBeSupported(_tokenA, _tokenB);
+    if (_plan == PricingPlan.NONE) {
+      // Check if there is a current plan. If there is, it means that the pair was supported and it
+      // lost support. In that case, we will remove the current plan and continue working as expected.
+      // If there was no supported plan, and there still isn't, then we will fail
+      PricingPlan _currentPlan = planForPair[__tokenA][__tokenB];
+      if (_currentPlan == PricingPlan.NONE) {
+        revert PairCannotBeSupported(_tokenA, _tokenB);
+      }
+    }
     planForPair[__tokenA][__tokenB] = _plan;
-    emit AddedSupportForPairInChainlinkOracle(__tokenA, __tokenB);
+    emit UpdatedPlanForPair(__tokenA, __tokenB, _plan);
   }
 
   /// @inheritdoc IStatefulChainlinkOracle

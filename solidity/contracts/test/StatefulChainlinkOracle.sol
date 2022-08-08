@@ -29,7 +29,7 @@ contract StatefulChainlinkOracleMock is StatefulChainlinkOracle {
     _addOrModifySupportForPair(_tokenA, _tokenB, _data);
   }
 
-  function setPricingPlan(
+  function determinePricingPlan(
     address _tokenA,
     address _tokenB,
     PricingPlan _plan
