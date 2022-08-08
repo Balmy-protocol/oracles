@@ -36,6 +36,12 @@ interface IStatefulChainlinkOracle is ITokenPriceOracle {
   /// @param tokens The new tokens
   event TokensConsideredUSD(address[] tokens);
 
+  /**
+   * @notice Emitted when tokens should no longer be considered USD
+   * @param tokens The tokens to no longer consider USD
+   */
+  event TokensNoLongerConsideredUSD(address[] tokens);
+
   /// @notice Emitted when new mappings are added
   /// @param tokens The tokens
   /// @param mappings Their new mappings
@@ -88,6 +94,13 @@ interface IStatefulChainlinkOracle is ITokenPriceOracle {
   /// @notice Adds new tokens that should be considered USD stablecoins
   /// @param _addresses The addresses of the tokens
   function addUSDStablecoins(address[] calldata _addresses) external;
+
+  /**
+   * @notice Defines that the given tokens should not be considered USD stablecoins anymore
+   * @dev Can only be called by an admin
+   * @param addresses The tokens that should no longer be considered USD stablecoins
+   */
+  function removeUSDStablecoins(address[] calldata addresses) external;
 
   /// @notice Adds new token mappings
   /// @param _addresses The addresses of the tokens
