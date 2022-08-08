@@ -22,12 +22,6 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
   uint32 public maxDelay;
 
   // solhint-disable private-vars-leading-underscore
-  // Addresses in Ethereum Mainnet
-  address private constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
-  address private constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-  address private constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
-  address private constant RENBTC = 0xEB4C2781e4ebA804CE9a9803C67d0893436bB27D;
-  address private constant WBTC = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
   int8 private constant USD_DECIMALS = 8;
   int8 private constant ETH_DECIMALS = 18;
   // solhint-enable private-vars-leading-underscore
@@ -138,12 +132,8 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
 
   /// @inheritdoc IStatefulChainlinkOracle
   function mappedToken(address _token) public view returns (address) {
-    if (block.chainid == 1 && (_token == RENBTC || _token == WBTC)) {
-      return Denominations.BTC;
-    } else {
-      address _mapping = _tokenMappings[_token];
-      return _mapping != address(0) ? _mapping : _token;
-    }
+    address _mapping = _tokenMappings[_token];
+    return _mapping != address(0) ? _mapping : _token;
   }
 
   /// @inheritdoc IERC165
@@ -303,9 +293,7 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
   }
 
   function _isUSD(address _token) internal view returns (bool) {
-    // We are doing this, to avoid expensive storage read
-    bool _isHardcodedUSDInMainnet = block.chainid == 1 && (_token == DAI || _token == USDC || _token == USDT);
-    return _isHardcodedUSDInMainnet || _shouldBeConsideredUSD[_token];
+    return _shouldBeConsideredUSD[_token];
   }
 
   function _sortTokens(address _tokenA, address _tokenB) internal pure returns (address __tokenA, address __tokenB) {

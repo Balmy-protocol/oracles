@@ -15,11 +15,7 @@ import 'tsconfig-paths/register';
 
 const networks: NetworksUserConfig =
   env.isHardhatCompile() || env.isHardhatClean() || env.isTesting()
-    ? {
-        hardhat: {
-          chainId: 1, // We are trying to mock mainnet
-        },
-      }
+    ? {}
     : {
         hardhat: {
           forking: {
