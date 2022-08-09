@@ -27,10 +27,11 @@ interface IStatefulChainlinkOracle is ITokenPriceOracle {
     TOKEN_A_TO_ETH_TO_USD_TO_TOKEN_B
   }
 
-  /// @notice Emitted when the oracle add supports for a new pair
+  /// @notice Emitted when the oracle updated the pricing plan for a pair
   /// @param tokenA One of the pair's tokens
   /// @param tokenB The other of the pair's tokens
-  event AddedSupportForPairInChainlinkOracle(address tokenA, address tokenB);
+  /// @param plan The new plan
+  event UpdatedPlanForPair(address tokenA, address tokenB, PricingPlan plan);
 
   /// @notice Emitted when new tokens are considered USD
   /// @param tokens The new tokens
