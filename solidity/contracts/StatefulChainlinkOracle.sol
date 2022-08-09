@@ -5,6 +5,7 @@ import '@openzeppelin/contracts/access/AccessControl.sol';
 import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 import '@chainlink/contracts/src/v0.8/Denominations.sol';
 import './base/SimpleOracle.sol';
+import './libraries/TokenSorting.sol';
 import '../interfaces/IStatefulChainlinkOracle.sol';
 
 contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainlinkOracle {
@@ -52,14 +53,14 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
 
   /// @inheritdoc ITokenPriceOracle
   function canSupportPair(address _tokenA, address _tokenB) external view returns (bool) {
-    (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
+    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     PricingPlan _plan = _determinePricingPlan(__tokenA, __tokenB);
     return _plan != PricingPlan.NONE;
   }
 
   /// @inheritdoc ITokenPriceOracle
   function isPairAlreadySupported(address _tokenA, address _tokenB) public view override(ITokenPriceOracle, SimpleOracle) returns (bool) {
-    (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
+    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     return planForPair[__tokenA][__tokenB] != PricingPlan.NONE;
   }
 
@@ -70,7 +71,7 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
     address _tokenOut,
     bytes calldata
   ) external view returns (uint256 _amountOut) {
-    (address _tokenA, address _tokenB) = _sortTokens(_tokenIn, _tokenOut);
+    (address _tokenA, address _tokenB) = TokenSorting.sortTokens(_tokenIn, _tokenOut);
     PricingPlan _plan = planForPair[_tokenA][_tokenB];
     if (_plan == PricingPlan.NONE) revert PairNotSupportedYet(_tokenA, _tokenB);
 
@@ -91,7 +92,7 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
     address _tokenB,
     bytes calldata
   ) internal virtual override {
-    (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
+    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     PricingPlan _plan = _determinePricingPlan(__tokenA, __tokenB);
     if (_plan == PricingPlan.NONE) {
       // Check if there is a current plan. If there is, it means that the pair was supported and it
@@ -301,9 +302,5 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
 
   function _isUSD(address _token) internal view returns (bool) {
     return _shouldBeConsideredUSD[_token];
-  }
-
-  function _sortTokens(address _tokenA, address _tokenB) internal pure returns (address __tokenA, address __tokenB) {
-    (__tokenA, __tokenB) = _tokenA < _tokenB ? (_tokenA, _tokenB) : (_tokenB, _tokenA);
   }
 }

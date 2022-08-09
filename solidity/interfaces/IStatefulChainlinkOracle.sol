@@ -4,8 +4,10 @@ pragma solidity >=0.5.0;
 import '@chainlink/contracts/src/v0.8/interfaces/FeedRegistryInterface.sol';
 import './ITokenPriceOracle.sol';
 
-/// @title An implementation of IPriceOracle that uses Chainlink feeds
-/// @notice This oracle will attempt to use all available feeds to determine prices between pairs
+/**
+ * @title An implementation of IPriceOracle that uses Chainlink feeds
+ * @notice This oracle will attempt to use all available feeds to determine prices between pairs
+ */
 interface IStatefulChainlinkOracle is ITokenPriceOracle {
   /// @notice The plan that will be used to calculate quotes for a given pair
   enum PricingPlan {
@@ -27,14 +29,18 @@ interface IStatefulChainlinkOracle is ITokenPriceOracle {
     TOKEN_A_TO_ETH_TO_USD_TO_TOKEN_B
   }
 
-  /// @notice Emitted when the oracle updated the pricing plan for a pair
-  /// @param tokenA One of the pair's tokens
-  /// @param tokenB The other of the pair's tokens
-  /// @param plan The new plan
+  /**
+   * @notice Emitted when the oracle updated the pricing plan for a pair
+   * @param tokenA One of the pair's tokens
+   * @param tokenB The other of the pair's tokens
+   * @param plan The new plan
+   */
   event UpdatedPlanForPair(address tokenA, address tokenB, PricingPlan plan);
 
-  /// @notice Emitted when new tokens are considered USD
-  /// @param tokens The new tokens
+  /**
+   * @notice Emitted when new tokens are considered USD
+   * @param tokens The new tokens
+   */
   event TokensConsideredUSD(address[] tokens);
 
   /**
@@ -43,13 +49,17 @@ interface IStatefulChainlinkOracle is ITokenPriceOracle {
    */
   event TokensNoLongerConsideredUSD(address[] tokens);
 
-  /// @notice Emitted when new mappings are added
-  /// @param tokens The tokens
-  /// @param mappings Their new mappings
+  /**
+   * @notice Emitted when new mappings are added
+   * @param tokens The tokens
+   * @param mappings Their new mappings
+   */
   event MappingsAdded(address[] tokens, address[] mappings);
 
-  /// @notice Emitted when a new max delay is set
-  /// @param newMaxDelay The new max delay
+  /**
+   * @notice Emitted when a new max delay is set
+   * @param newMaxDelay The new max delay
+   */
   event MaxDelaySet(uint32 newMaxDelay);
 
   /// @notice Thrown when the price is non-positive
@@ -67,31 +77,43 @@ interface IStatefulChainlinkOracle is ITokenPriceOracle {
   /// @notice Thrown when the input for adding mappings in invalid
   error InvalidMappingsInput();
 
-  /// @notice Returns the Chainlink feed registry
-  /// @return The Chainlink registry
+  /**
+   * @notice Returns the Chainlink feed registry
+   * @return The Chainlink registry
+   */
   function registry() external view returns (FeedRegistryInterface);
 
-  /// @notice Returns how old the last price update can be before the oracle reverts by considering it too old
-  /// @return How old the last price update can be in seconds
+  /**
+   * @notice Returns how old the last price update can be before the oracle reverts by considering it too old
+   * @return How old the last price update can be in seconds
+   */
   function maxDelay() external view returns (uint32);
 
-  /// @notice Returns the address of the WETH ERC-20 token
-  /// @return The address of the token
+  /**
+   * @notice Returns the address of the WETH ERC-20 token
+   * @return The address of the token
+   */
   // solhint-disable-next-line func-name-mixedcase
   function WETH() external view returns (address);
 
-  /// @notice Returns the pricing plan that will be used when quoting the given pair
-  /// @dev It is expected that _tokenA < _tokenB
-  /// @return The pricing plan that will be used
-  function planForPair(address _tokenA, address _tokenB) external view returns (PricingPlan);
+  /**
+   * @notice Returns the pricing plan that will be used when quoting the given pair
+   * @dev It is expected that tokenA < tokenB
+   * @return The pricing plan that will be used
+   */
+  function planForPair(address tokenA, address tokenB) external view returns (PricingPlan);
 
-  /// @notice Returns the mapping of the given token, if it exists. If it doesn't, then the original token is returned
-  /// @return If it exists, the mapping is returned. Otherwise, the original token is returned
-  function mappedToken(address _token) external view returns (address);
+  /**
+   * @notice Returns the mapping of the given token, if it exists. If it doesn't, then the original token is returned
+   * @return If it exists, the mapping is returned. Otherwise, the original token is returned
+   */
+  function mappedToken(address token) external view returns (address);
 
-  /// @notice Adds new tokens that should be considered USD stablecoins
-  /// @param _addresses The addresses of the tokens
-  function addUSDStablecoins(address[] calldata _addresses) external;
+  /**
+   * @notice Adds new tokens that should be considered USD stablecoins
+   * @param addresses The addresses of the tokens
+   */
+  function addUSDStablecoins(address[] calldata addresses) external;
 
   /**
    * @notice Defines that the given tokens should not be considered USD stablecoins anymore
@@ -100,12 +122,16 @@ interface IStatefulChainlinkOracle is ITokenPriceOracle {
    */
   function removeUSDStablecoins(address[] calldata addresses) external;
 
-  /// @notice Adds new token mappings
-  /// @param _addresses The addresses of the tokens
-  /// @param _mappings The addresses of their mappings
-  function addMappings(address[] calldata _addresses, address[] calldata _mappings) external;
+  /**
+   * @notice Adds new token mappings
+   * @param addresses The addresses of the tokens
+   * @param mappings The addresses of their mappings
+   */
+  function addMappings(address[] calldata addresses, address[] calldata mappings) external;
 
-  /// @notice Sets a new max delay
-  /// @param _maxDelay The new max delay
-  function setMaxDelay(uint32 _maxDelay) external;
+  /**
+   * @notice Sets a new max delay
+   * @param maxDelay The new max delay
+   */
+  function setMaxDelay(uint32 maxDelay) external;
 }

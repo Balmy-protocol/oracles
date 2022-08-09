@@ -3,9 +3,9 @@ pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/access/AccessControl.sol';
 import '@openzeppelin/contracts/utils/math/SafeCast.sol';
-import '@mean-finance/dca-v2-core/contracts/libraries/TokenSorting.sol';
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
 import '../../interfaces//adapters/IUniswapV3Adapter.sol';
+import '../libraries/TokenSorting.sol';
 import '../base/SimpleOracle.sol';
 
 contract UniswapV3Adapter is AccessControl, SimpleOracle, IUniswapV3Adapter {

@@ -3,8 +3,8 @@ pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/utils/introspection/ERC165Checker.sol';
 import '@openzeppelin/contracts/access/AccessControl.sol';
-import '@mean-finance/dca-v2-core/contracts/libraries/TokenSorting.sol';
 import './base/SimpleOracle.sol';
+import './libraries/TokenSorting.sol';
 import '../interfaces/IOracleAggregator.sol';
 
 contract OracleAggregator is AccessControl, SimpleOracle, IOracleAggregator {
