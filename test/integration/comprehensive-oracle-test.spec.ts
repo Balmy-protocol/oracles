@@ -73,6 +73,7 @@ describe('Comprehensive Oracle Test', () => {
   oracleComprehensiveTest({
     title: 'OracleAggregator (Uniswap v3)',
     oracle: 'OracleAggregator',
+    extraFixtures: ['ChainlinkFeedRegistry'],
     tokenIn: STG,
     tokenOut: USDC,
     canOracleWorkWithoutAddingExplicitSupport: false,
