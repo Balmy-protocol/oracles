@@ -35,7 +35,7 @@ describe('Comprehensive Oracle Test', () => {
   });
 
   oracleComprehensiveTest({
-    oracle: 'StatefulChainlinkOracleAdapter',
+    oracle: 'StatefulChainlinkOracle',
     tokenIn: UNI,
     tokenOut: DAI,
     canOracleWorkWithoutAddingExplicitSupport: false,
@@ -63,7 +63,7 @@ describe('Comprehensive Oracle Test', () => {
     canOracleWorkWithoutAddingExplicitSupport: false,
     extraCheck: async (oracle: OracleAggregator) => {
       // Make sure that this pair is using the Chainlink adapter
-      const chainlinkAdapter = await ethers.getContract('StatefulChainlinkOracleAdapter');
+      const chainlinkAdapter = await ethers.getContract('StatefulChainlinkOracle');
       await oracle.addSupportForPairIfNeeded(UNI, DAI, BYTES);
       const [assigned] = await oracle.assignedOracle(UNI, DAI);
       expect(assigned).to.equal(chainlinkAdapter.address);
