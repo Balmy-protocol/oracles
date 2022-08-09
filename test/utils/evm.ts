@@ -1,5 +1,6 @@
 import { BigNumber, BigNumberish } from 'ethers';
-import { network } from 'hardhat';
+import hre, { network } from 'hardhat';
+import { getNodeUrl } from 'utils/env';
 
 export const advanceTimeAndBlock = async (time: number): Promise<void> => {
   await advanceTime(time);
@@ -33,8 +34,19 @@ export const advanceBlocks = async (blocks: BigNumberish) => {
   });
 };
 
-export const reset = async (forking?: { [key: string]: any }) => {
-  const params = forking ? [{ forking }] : [];
+type ForkConfig = { network: string; skipHardhatDeployFork?: boolean } & Record<string, any>;
+export const reset = async ({ network: networkName, ...forkingConfig }: ForkConfig) => {
+  if (!forkingConfig.skipHardhatDeployFork) {
+    process.env.HARDHAT_DEPLOY_FORK = networkName;
+  }
+  const params = [
+    {
+      forking: {
+        ...forkingConfig,
+        jsonRpcUrl: getNodeUrl(networkName),
+      },
+    },
+  ];
   await network.provider.request({
     method: 'hardhat_reset',
     params,

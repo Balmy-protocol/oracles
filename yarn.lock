@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@0xged/hardhat-deploy@0.11.4":
-  version "0.11.4"
-  resolved "https://registry.yarnpkg.com/@0xged/hardhat-deploy/-/hardhat-deploy-0.11.4.tgz#cfcf42461089fe9a703245916dd006686ae680c8"
-  integrity sha512-n1fqwWclX72Zmo7Rj9BVCc4uq9OHW/fwKTYYd28xObX5o4bSa9ELy0eLqQOGD52LNd7AcWnvGzDnbnnVg3JYGQ==
+"@0xged/hardhat-deploy@0.11.5":
+  version "0.11.5"
+  resolved "https://registry.yarnpkg.com/@0xged/hardhat-deploy/-/hardhat-deploy-0.11.5.tgz#cd919b1dc259a9a14369afcdcceff2e3dde2b346"
+  integrity sha512-WtNKjZ+s+/nwEtveLQxzuUMJLR+23M++74dxzybEJrNtmnW19PkeP16D9mhlFbuTmRAADTVeWvku16PBHWsQXQ==
   dependencies:
     "@ethersproject/abi" "^5.4.0"
     "@ethersproject/abstract-signer" "^5.4.1"
@@ -1207,10 +1207,27 @@
     "@jridgewell/resolve-uri" "^3.0.3"
     "@jridgewell/sourcemap-codec" "^1.4.10"
 
+"@mean-finance/chainlink-registry@2.0.0-rc4":
+  version "2.0.0-rc4"
+  resolved "https://registry.yarnpkg.com/@mean-finance/chainlink-registry/-/chainlink-registry-2.0.0-rc4.tgz#5339f3e8620c28e1b976fd54558161c0e332ca64"
+  integrity sha512-WeU+0V+vlRm6YsG1GwDdz7eNHVZNaqjU4bkEUDGQfv2/l7aGt/lpXJG4AzOr4mOVtv8bltBDI5Fz4+eZugxRPQ==
+  dependencies:
+    "@0xged/hardhat-deploy" "0.11.5"
+    "@chainlink/contracts" "0.4.2"
+    "@mean-finance/deterministic-factory" "1.3.2"
+
 "@mean-finance/deterministic-factory@1.3.1":
   version "1.3.1"
   resolved "https://registry.yarnpkg.com/@mean-finance/deterministic-factory/-/deterministic-factory-1.3.1.tgz#c80cfadc7b2a66ecd957297d74d1649ca8235d29"
   integrity sha512-hMuQsJq8UbQwec3guLqGDWU8lN5/w7mX/AMdsfDnCpcYDT0B6kClNiDGZwv8cJZnG+i+9TDh0i7oJdZmn0qdPg==
+  dependencies:
+    "@openzeppelin/contracts" "4.6.0"
+    "@rari-capital/solmate" "6.2.0"
+
+"@mean-finance/deterministic-factory@1.3.2":
+  version "1.3.2"
+  resolved "https://registry.yarnpkg.com/@mean-finance/deterministic-factory/-/deterministic-factory-1.3.2.tgz#d4a7beb6cf853d98c113673fcd85db875169ab48"
+  integrity sha512-ffjshsydfKX2ywacAXEdIR40FHLH4on8wVYO8QpAQTRvwdtI12mSYqjKTitj7xfx6+huE3REnITLUIriQOIyAg==
   dependencies:
     "@openzeppelin/contracts" "4.6.0"
     "@rari-capital/solmate" "6.2.0"
