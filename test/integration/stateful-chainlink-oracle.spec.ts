@@ -109,7 +109,6 @@ contract('StatefulChainlinkOracle', () => {
       writeDeploymentsToFiles: false,
     });
     oracle = await ethers.getContract('StatefulChainlinkOracle');
-    console.log('registry', await oracle.registry());
     // Add stablecoins and WBTC => BTC mapping
     await oracle.connect(admin).addUSDStablecoins([USDC.address, USDT.address, DAI.address]);
     await oracle.connect(admin).addMappings([WBTC.address], ['0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB']);
@@ -140,8 +139,8 @@ contract('StatefulChainlinkOracle', () => {
         then(`pricing plan is the correct one`, async () => {
           const plan1 = await oracle.planForPair(tokenIn.address, tokenOut.address);
           const plan2 = await oracle.planForPair(tokenOut.address, tokenIn.address);
-          expect(plan1 + plan2).to.equal(i + 1);
-          expect(plan1 == 0 || plan2 == 0).to.be.true;
+          expect(plan1).to.equal(i + 1);
+          expect(plan2).to.equal(i + 1);
         });
       });
     }
