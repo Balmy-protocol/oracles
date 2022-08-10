@@ -31,7 +31,7 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
     address _superAdmin,
     address[] memory _initialAdmins
   ) {
-    if (address(_registry) == address(0) || address(_superAdmin) == address(0)) revert ZeroAddress();
+    if (address(_registry) == address(0) || _superAdmin == address(0)) revert ZeroAddress();
     if (_maxDelay == 0) revert ZeroMaxDelay();
     registry = _registry;
     maxDelay = _maxDelay;
