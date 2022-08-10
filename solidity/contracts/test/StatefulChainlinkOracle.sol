@@ -47,7 +47,8 @@ contract StatefulChainlinkOracleMock is StatefulChainlinkOracle {
     address _tokenB,
     PricingPlan _plan
   ) external {
-    planForPair[_tokenA][_tokenB] = _plan;
+    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
+    _planForPair[_keyForSortedPair(__tokenA, __tokenB)] = _plan;
   }
 
   function _determinePricingPlan(address _tokenA, address _tokenB) internal view override returns (PricingPlan) {
