@@ -15,8 +15,6 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
   /// @inheritdoc IStatefulChainlinkOracle
   FeedRegistryInterface public immutable registry;
   /// @inheritdoc IStatefulChainlinkOracle
-  address public immutable WETH;
-  /// @inheritdoc IStatefulChainlinkOracle
   uint32 public maxDelay;
 
   // solhint-disable private-vars-leading-underscore
@@ -24,23 +22,19 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
   int8 private constant ETH_DECIMALS = 18;
   // solhint-enable private-vars-leading-underscore
 
-  mapping(address => bool) internal _shouldBeConsideredUSD;
   mapping(address => address) internal _tokenMappings;
   mapping(bytes32 => PricingPlan) internal _planForPair;
 
   constructor(
-    // solhint-disable-next-line var-name-mixedcase
-    address _WETH,
     FeedRegistryInterface _registry,
     uint32 _maxDelay,
     address _superAdmin,
     address[] memory _initialAdmins
   ) {
-    if (_WETH == address(0) || address(_registry) == address(0)) revert ZeroAddress();
+    if (address(_registry) == address(0)) revert ZeroAddress();
     if (_maxDelay == 0) revert ZeroMaxDelay();
     registry = _registry;
     maxDelay = _maxDelay;
-    WETH = _WETH;
     // We are setting the super admin role as its own admin so we can transfer it
     _setRoleAdmin(SUPER_ADMIN_ROLE, SUPER_ADMIN_ROLE);
     _setRoleAdmin(ADMIN_ROLE, SUPER_ADMIN_ROLE);
@@ -110,22 +104,6 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
   function planForPair(address _tokenA, address _tokenB) public view returns (PricingPlan) {
     (address __tokenA, address __tokenB) = _mapAndSort(_tokenA, _tokenB);
     return _planForPair[_keyForSortedPair(__tokenA, __tokenB)];
-  }
-
-  /// @inheritdoc IStatefulChainlinkOracle
-  function addUSDStablecoins(address[] calldata _addresses) external onlyRole(ADMIN_ROLE) {
-    for (uint256 i = 0; i < _addresses.length; i++) {
-      _shouldBeConsideredUSD[_addresses[i]] = true;
-    }
-    emit TokensConsideredUSD(_addresses);
-  }
-
-  /// @inheritdoc IStatefulChainlinkOracle
-  function removeUSDStablecoins(address[] calldata _addresses) external onlyRole(ADMIN_ROLE) {
-    for (uint256 i = 0; i < _addresses.length; i++) {
-      _shouldBeConsideredUSD[_addresses[i]] = false;
-    }
-    emit TokensNoLongerConsideredUSD(_addresses);
   }
 
   /// @inheritdoc IStatefulChainlinkOracle
