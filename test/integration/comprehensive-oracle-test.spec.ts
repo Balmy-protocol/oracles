@@ -274,7 +274,7 @@ describe('Comprehensive Oracle Test', () => {
     const admin = await wallet.impersonate(msig);
     await wallet.setBalance({ account: admin._address, balance: constants.MaxUint256 });
     const oracle = await ethers.getContract<StatefulChainlinkOracle>('StatefulChainlinkOracle');
-    await oracle.connect(admin).addUSDStablecoins([address]);
+    await oracle.connect(admin).addMappings([address], ['0x0000000000000000000000000000000000000348']);
   }
 
   async function fork({ chain, blockNumber }: { chain: string; blockNumber?: number }): Promise<void> {
