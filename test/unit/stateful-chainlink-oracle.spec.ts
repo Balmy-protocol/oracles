@@ -55,7 +55,7 @@ describe('StatefulChainlinkOracle', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: chainlinkOracleFactory,
-          args: [ONE_DAY, superAdmin.address, [admin.address]],
+          args: [constants.AddressZero, ONE_DAY, superAdmin.address, [admin.address]],
           message: 'ZeroAddress',
         });
       });
