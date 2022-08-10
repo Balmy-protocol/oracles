@@ -52,7 +52,7 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
 
   /// @inheritdoc ITokenPriceOracle
   function canSupportPair(address _tokenA, address _tokenB) external view returns (bool) {
-    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
+    (address __tokenA, address __tokenB) = _mapAndSort(_tokenA, _tokenB);
     PricingPlan _plan = _determinePricingPlan(__tokenA, __tokenB);
     return _plan != PricingPlan.NONE;
   }
@@ -69,18 +69,19 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
     address _tokenOut,
     bytes calldata
   ) external view returns (uint256 _amountOut) {
-    PricingPlan _plan = planForPair(_tokenIn, _tokenOut);
+    (address _mappedTokenIn, address _mappedTokenOut) = _mapPair(_tokenIn, _tokenOut);
+    PricingPlan _plan = _planForPair[_keyForUnsortedPair(_mappedTokenIn, _mappedTokenOut)];
     if (_plan == PricingPlan.NONE) revert PairNotSupportedYet(_tokenIn, _tokenOut);
 
     int8 _inDecimals = _getDecimals(_tokenIn);
     int8 _outDecimals = _getDecimals(_tokenOut);
 
     if (_plan <= PricingPlan.TOKEN_ETH_PAIR) {
-      return _getDirectPrice(_tokenIn, _tokenOut, _inDecimals, _outDecimals, _amountIn, _plan);
+      return _getDirectPrice(_mappedTokenIn, _mappedTokenOut, _inDecimals, _outDecimals, _amountIn, _plan);
     } else if (_plan <= PricingPlan.TOKEN_TO_ETH_TO_TOKEN_PAIR) {
-      return _getPriceSameBase(_tokenIn, _tokenOut, _inDecimals, _outDecimals, _amountIn, _plan);
+      return _getPriceSameBase(_mappedTokenIn, _mappedTokenOut, _inDecimals, _outDecimals, _amountIn, _plan);
     } else {
-      return _getPriceDifferentBases(_tokenIn, _tokenOut, _inDecimals, _outDecimals, _amountIn, _plan);
+      return _getPriceDifferentBases(_mappedTokenIn, _mappedTokenOut, _inDecimals, _outDecimals, _amountIn, _plan);
     }
   }
 
@@ -89,7 +90,7 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
     address _tokenB,
     bytes calldata
   ) internal virtual override {
-    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
+    (address __tokenA, address __tokenB) = _mapAndSort(_tokenA, _tokenB);
     PricingPlan _plan = _determinePricingPlan(__tokenA, __tokenB);
     bytes32 _keyForPair = _keyForSortedPair(__tokenA, __tokenB);
     if (_plan == PricingPlan.NONE) {
@@ -107,7 +108,7 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
 
   /// @inheritdoc IStatefulChainlinkOracle
   function planForPair(address _tokenA, address _tokenB) public view returns (PricingPlan) {
-    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
+    (address __tokenA, address __tokenB) = _mapAndSort(_tokenA, _tokenB);
     return _planForPair[_keyForSortedPair(__tokenA, __tokenB)];
   }
 
@@ -167,14 +168,14 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
   ) internal view returns (uint256) {
     uint256 _price;
     int8 _resultDecimals = _plan == PricingPlan.TOKEN_ETH_PAIR ? ETH_DECIMALS : USD_DECIMALS;
-    bool _needsInverting = _isUSD(_tokenIn) || (_plan == PricingPlan.TOKEN_ETH_PAIR && _tokenIn == WETH);
+    bool _needsInverting = _isUSD(_tokenIn) || (_plan == PricingPlan.TOKEN_ETH_PAIR && _isETH(_tokenIn));
 
     if (_plan == PricingPlan.ETH_USD_PAIR) {
       _price = _getETHUSD();
     } else if (_plan == PricingPlan.TOKEN_USD_PAIR) {
       _price = _getPriceAgainstUSD(_isUSD(_tokenOut) ? _tokenIn : _tokenOut);
     } else if (_plan == PricingPlan.TOKEN_ETH_PAIR) {
-      _price = _getPriceAgainstETH(_tokenOut == WETH ? _tokenIn : _tokenOut);
+      _price = _getPriceAgainstETH(_isETH(_tokenOut) ? _tokenIn : _tokenOut);
     }
     if (!_needsInverting) {
       return _adjustDecimals(_price * _amountIn, _outDecimals - _resultDecimals - _inDecimals);
@@ -193,8 +194,8 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
     PricingPlan _plan
   ) internal view returns (uint256) {
     address _base = _plan == PricingPlan.TOKEN_TO_USD_TO_TOKEN_PAIR ? Denominations.USD : Denominations.ETH;
-    uint256 _tokenInToBase = _callRegistry(mappedToken(_tokenIn), _base);
-    uint256 _tokenOutToBase = _callRegistry(mappedToken(_tokenOut), _base);
+    uint256 _tokenInToBase = _callRegistry(_tokenIn, _base);
+    uint256 _tokenOutToBase = _callRegistry(_tokenOut, _base);
     return _adjustDecimals((_amountIn * _tokenInToBase) / _tokenOutToBase, _outDecimals - _inDecimals);
   }
 
@@ -223,19 +224,19 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
   }
 
   function _getPriceAgainstUSD(address _token) internal view returns (uint256) {
-    return _isUSD(_token) ? 1e8 : _callRegistry(mappedToken(_token), Denominations.USD);
+    return _isUSD(_token) ? 1e8 : _callRegistry(_token, Denominations.USD);
   }
 
   function _getPriceAgainstETH(address _token) internal view returns (uint256) {
-    return _token == WETH ? 1e18 : _callRegistry(mappedToken(_token), Denominations.ETH);
+    return _isETH(_token) ? 1e18 : _callRegistry(_token, Denominations.ETH);
   }
 
   /// @dev Expects `_tokenA` and `_tokenB` to be sorted
   function _determinePricingPlan(address _tokenA, address _tokenB) internal view virtual returns (PricingPlan) {
     bool _isTokenAUSD = _isUSD(_tokenA);
     bool _isTokenBUSD = _isUSD(_tokenB);
-    bool _isTokenAETH = _tokenA == WETH;
-    bool _isTokenBETH = _tokenB == WETH;
+    bool _isTokenAETH = _isETH(_tokenA);
+    bool _isTokenBETH = _isETH(_tokenB);
     if ((_isTokenAETH && _isTokenBUSD) || (_isTokenAUSD && _isTokenBETH)) {
       // Note: there are stablecoins/ETH pairs on Chainlink, but they are updated less often than the USD/ETH pair.
       // That's why we prefer to use the USD/ETH pair instead
@@ -275,7 +276,7 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
   }
 
   function _exists(address _base, address _quote) internal view returns (bool) {
-    try registry.latestRoundData(mappedToken(_base), _quote) returns (uint80, int256 _price, uint256, uint256, uint80) {
+    try registry.latestRoundData(_base, _quote) returns (uint80, int256 _price, uint256, uint256, uint80) {
       return _price > 0;
     } catch {
       return false;
@@ -301,6 +302,26 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
     return uint256(_price);
   }
 
+  function _mapAndSort(address _tokenA, address _tokenB) internal view returns (address, address) {
+    (address _mappedTokenA, address _mappedTokenB) = _mapPair(_tokenA, _tokenB);
+    return TokenSorting.sortTokens(_mappedTokenA, _mappedTokenB);
+  }
+
+  function _mapPair(address _tokenA, address _tokenB) internal view returns (address _mappedTokenA, address _mappedTokenB) {
+    _mappedTokenA = mappedToken(_tokenA);
+    _mappedTokenB = mappedToken(_tokenB);
+    if (_mappedTokenA == _mappedTokenB) {
+      // If they map to the same address, then cancel mapping
+      return (_tokenA, _tokenB);
+    }
+  }
+
+  function _keyForUnsortedPair(address _tokenA, address _tokenB) internal pure returns (bytes32) {
+    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
+    return _keyForSortedPair(__tokenA, __tokenB);
+  }
+
+  /// @dev Expects `_tokenA` and `_tokenB` to be sorted
   function _keyForSortedPair(address _tokenA, address _tokenB) internal pure returns (bytes32) {
     return keccak256(abi.encodePacked(_tokenA, _tokenB));
   }
@@ -309,7 +330,11 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
     return _callRegistry(Denominations.ETH, Denominations.USD);
   }
 
-  function _isUSD(address _token) internal view returns (bool) {
-    return _shouldBeConsideredUSD[_token];
+  function _isUSD(address _token) internal pure returns (bool) {
+    return _token == Denominations.USD;
+  }
+
+  function _isETH(address _token) internal pure returns (bool) {
+    return _token == Denominations.ETH;
   }
 }
