@@ -270,7 +270,13 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
   }
 
   function _getDecimals(address _token) internal view returns (int8) {
-    return int8(IERC20Metadata(_token).decimals());
+    if (_isETH(_token)) {
+      return ETH_DECIMALS;
+    } else if (_isUSD(_token)) {
+      return USD_DECIMALS;
+    } else {
+      return int8(IERC20Metadata(_token).decimals());
+    }
   }
 
   function _callRegistry(address _base, address _quote) internal view returns (uint256) {

@@ -44,4 +44,5 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 };
 
 deployFunction.tags = ['StatefulChainlinkOracle'];
+deployFunction.dependencies = ['ChainlinkFeedRegistry'];
 export default deployFunction;
