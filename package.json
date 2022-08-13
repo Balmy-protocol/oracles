@@ -1,6 +1,6 @@
 {
   "name": "@mean-finance/oracles",
-  "version": "2.0.0-rc2",
+  "version": "2.0.0-rc3",
   "description": "Mean Oracles",
   "keywords": [
     "ethereum",
@@ -133,9 +133,6 @@
     "tsconfig-paths": "4.0.0",
     "typechain": "8.0.0",
     "typescript": "4.6.4"
-  },
-  "engines": {
-    "node": "^16.0.0"
   },
   "publishConfig": {
     "access": "public"
