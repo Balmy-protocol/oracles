@@ -1,8 +1,8 @@
-import { utils } from 'ethers';
+import { BigNumber, utils } from 'ethers';
 import { deployments, ethers, getNamedAccounts } from 'hardhat';
 import { StatefulChainlinkOracle } from '@typechained';
 import { evm, wallet } from '@utils';
-import { contract, given, then } from '@utils/bdd';
+import { contract, given, then, when } from '@utils/bdd';
 import { expect } from 'chai';
 import { convertPriceToBigNumberWithDecimals, getPrice } from '@utils/defillama';
 import { DeterministicFactory, DeterministicFactory__factory } from '@mean-finance/deterministic-factory/typechained';
@@ -139,16 +139,7 @@ contract('StatefulChainlinkOracle', () => {
 
           const coingeckoPrice = await getPriceBetweenTokens(tokenIn, tokenOut);
           const expected = convertPriceToBigNumberWithDecimals(coingeckoPrice, tokenOut.decimals);
-          const threshold = expected.mul(TRESHOLD_PERCENTAGE * 10).div(100 * 10);
-          const [upperThreshold, lowerThreshold] = [expected.add(threshold), expected.sub(threshold)];
-          const diff = quote.sub(expected);
-          const sign = diff.isNegative() ? '-' : '+';
-          const diffPercentage = diff.abs().mul(10000).div(expected).toNumber() / 100;
-
-          expect(
-            quote.lte(upperThreshold) && quote.gte(lowerThreshold),
-            `Expected ${quote.toString()} to be within [${lowerThreshold.toString()},${upperThreshold.toString()}]. Diff was ${sign}${diffPercentage}%`
-          ).to.be.true;
+          validateQuote(quote, expected);
         });
         then(`pricing plan is the correct one`, async () => {
           const plan1 = await oracle.planForPair(tokenIn.address, tokenOut.address);
@@ -158,6 +149,37 @@ contract('StatefulChainlinkOracle', () => {
         });
       });
     }
+  }
+  when('quoting between forex addresses', () => {
+    const GBP = '0x000000000000000000000000000000000000033A';
+    const EUR = '0x00000000000000000000000000000000000003D2';
+    given(async () => {
+      await oracle.addSupportForPairIfNeeded(GBP, EUR, []);
+    });
+    then(`returns correct quote`, async () => {
+      const quote = await oracle.quote(GBP, utils.parseUnits('1', 8), EUR, []);
+      const expected = utils.parseUnits('1.18', 8); // Checked manually
+      validateQuote(quote, expected);
+    });
+    then(`pricing plan is the correct one`, async () => {
+      const plan1 = await oracle.planForPair(GBP, EUR);
+      const plan2 = await oracle.planForPair(EUR, GBP);
+      expect(plan1).to.equal(4); // 4 is GBP => USD => EUR
+      expect(plan2).to.equal(4);
+    });
+  });
+
+  function validateQuote(quote: BigNumber, expected: BigNumber) {
+    const threshold = expected.mul(TRESHOLD_PERCENTAGE * 10).div(100 * 10);
+    const [upperThreshold, lowerThreshold] = [expected.add(threshold), expected.sub(threshold)];
+    const diff = quote.sub(expected);
+    const sign = diff.isNegative() ? '-' : '+';
+    const diffPercentage = diff.abs().mul(10000).div(expected).toNumber() / 100;
+
+    expect(
+      quote.lte(upperThreshold) && quote.gte(lowerThreshold),
+      `Expected ${quote.toString()} to be within [${lowerThreshold.toString()},${upperThreshold.toString()}]. Diff was ${sign}${diffPercentage}%`
+    ).to.be.true;
   }
 });
 

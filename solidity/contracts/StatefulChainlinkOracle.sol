@@ -3,6 +3,7 @@ pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/access/AccessControl.sol';
 import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
+import '@openzeppelin/contracts/utils/Address.sol';
 import '@chainlink/contracts/src/v0.8/Denominations.sol';
 import './base/SimpleOracle.sol';
 import './libraries/TokenSorting.sol';
@@ -18,7 +19,7 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
   uint32 public maxDelay;
 
   // solhint-disable private-vars-leading-underscore
-  int8 private constant USD_DECIMALS = 8;
+  int8 private constant FOREX_DECIMALS = 8;
   int8 private constant ETH_DECIMALS = 18;
   // solhint-enable private-vars-leading-underscore
 
@@ -146,7 +147,7 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
     PricingPlan _plan
   ) internal view returns (uint256) {
     uint256 _price;
-    int8 _resultDecimals = _plan == PricingPlan.TOKEN_ETH_PAIR ? ETH_DECIMALS : USD_DECIMALS;
+    int8 _resultDecimals = _plan == PricingPlan.TOKEN_ETH_PAIR ? ETH_DECIMALS : FOREX_DECIMALS;
     bool _needsInverting = _isUSD(_tokenIn) || (_plan == PricingPlan.TOKEN_ETH_PAIR && _isETH(_tokenIn));
 
     if (_plan == PricingPlan.ETH_USD_PAIR) {
@@ -276,8 +277,8 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
   function _getDecimals(address _token) internal view returns (int8) {
     if (_isETH(_token)) {
       return ETH_DECIMALS;
-    } else if (_isUSD(_token)) {
-      return USD_DECIMALS;
+    } else if (!Address.isContract(_token)) {
+      return FOREX_DECIMALS;
     } else {
       return int8(IERC20Metadata(_token).decimals());
     }
