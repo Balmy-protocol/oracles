@@ -123,6 +123,11 @@ describe('StatefulChainlinkOracle', () => {
         expect(await chainlinkOracle.canSupportPair(TOKEN_B, TOKEN_A)).to.be.true;
       });
     });
+    when('tokens are the same', () => {
+      then('pair is supported', async () => {
+        expect(await chainlinkOracle.canSupportPair(TOKEN_A, TOKEN_A)).to.be.true;
+      });
+    });
   });
 
   describe('isPairAlreadySupported', () => {

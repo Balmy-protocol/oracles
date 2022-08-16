@@ -66,6 +66,7 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
     (address _mappedTokenIn, address _mappedTokenOut) = _mapPair(_tokenIn, _tokenOut);
     PricingPlan _plan = _planForPair[_keyForUnsortedPair(_mappedTokenIn, _mappedTokenOut)];
     if (_plan == PricingPlan.NONE) revert PairNotSupportedYet(_tokenIn, _tokenOut);
+    if (_plan == PricingPlan.SAME_TOKENS) return _amountIn;
 
     int8 _inDecimals = _getDecimals(_tokenIn);
     int8 _outDecimals = _getDecimals(_tokenOut);
@@ -211,6 +212,9 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
 
   /// @dev Expects `_tokenA` and `_tokenB` to be sorted
   function _determinePricingPlan(address _tokenA, address _tokenB) internal view virtual returns (PricingPlan) {
+    if (_tokenA == _tokenB) {
+      return PricingPlan.SAME_TOKENS;
+    }
     bool _isTokenAUSD = _isUSD(_tokenA);
     bool _isTokenBUSD = _isUSD(_tokenB);
     bool _isTokenAETH = _isETH(_tokenA);
@@ -294,10 +298,6 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
   function _mapPair(address _tokenA, address _tokenB) internal view returns (address _mappedTokenA, address _mappedTokenB) {
     _mappedTokenA = mappedToken(_tokenA);
     _mappedTokenB = mappedToken(_tokenB);
-    if (_mappedTokenA == _mappedTokenB) {
-      // If they map to the same address, then cancel mapping
-      return (_tokenA, _tokenB);
-    }
   }
 
   function _keyForUnsortedPair(address _tokenA, address _tokenB) internal pure returns (bytes32) {

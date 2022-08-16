@@ -26,7 +26,9 @@ interface IStatefulChainlinkOracle is ITokenPriceOracle {
     // Will use tokenA/USD, tokenB/ETH and ETH/USD feeds
     TOKEN_A_TO_USD_TO_ETH_TO_TOKEN_B,
     // Will use tokenA/ETH, tokenB/USD and ETH/USD feeds
-    TOKEN_A_TO_ETH_TO_USD_TO_TOKEN_B
+    TOKEN_A_TO_ETH_TO_USD_TO_TOKEN_B,
+    // Used then tokenA is the same as tokenB
+    SAME_TOKENS
   }
 
   /**
