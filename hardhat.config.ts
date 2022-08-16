@@ -140,6 +140,10 @@ if (process.env.TEST) {
       artifacts: 'node_modules/@mean-finance/chainlink-registry/artifacts',
       deploy: 'node_modules/@mean-finance/chainlink-registry/deploy',
     },
+    {
+      artifacts: 'node_modules/@mean-finance/transformers/artifacts',
+      deploy: 'node_modules/@mean-finance/transformers/deploy',
+    },
   ];
   (config.solidity as MultiSolcUserConfig).compilers = (config.solidity as MultiSolcUserConfig).compilers.map((compiler) => {
     return {

@@ -1232,13 +1232,14 @@
     "@openzeppelin/contracts" "4.6.0"
     "@rari-capital/solmate" "6.2.0"
 
-"@mean-finance/transformers@^1.0.0-rc1":
-  version "1.0.0-rc1"
-  resolved "https://registry.yarnpkg.com/@mean-finance/transformers/-/transformers-1.0.0-rc1.tgz#423d010c0dc803f4607181916526f4a5e01bba29"
-  integrity sha512-4kxuN+CgstKO0yaPvEL8MtTFdIRWowwi3SDWu3/gSeZRkwZOHUyrkNGqT/mXA1cJpKRZhcDDholu7hf2Jd/EzA==
+"@mean-finance/transformers@1.0.0-rc4":
+  version "1.0.0-rc4"
+  resolved "https://registry.yarnpkg.com/@mean-finance/transformers/-/transformers-1.0.0-rc4.tgz#90d7a9d343544eff581b48d735eab6625a1a151c"
+  integrity sha512-6S/gseqQZ7He1VW6sodNaNjciz1QR8p+lhB5qE6mQM6U4GGeGlSKGhQbahqIvY54vuwoC+EgGul+uTthDe4dsw==
   dependencies:
+    "@0xged/hardhat-deploy" "0.11.5"
     "@mean-finance/deterministic-factory" "1.3.1"
-    "@openzeppelin/contracts" "^4.7.0-rc.0"
+    "@openzeppelin/contracts" "4.7.1"
 
 "@mean-finance/uniswap-v3-oracle@1.0.0":
   version "1.0.0"
@@ -1463,11 +1464,6 @@
   version "4.7.1"
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.7.1.tgz#33d0a857b76b18d313e6bb6ed28cdaf367e90cfe"
   integrity sha512-UXmAjKARsXORHlHZu5GCD7ZbRKm6nU8UHnbuT/QJJa2JEOEcbvV/X8w/sUk62Sl9VZuuljM1akrZLyAtzUgsxw==
-
-"@openzeppelin/contracts@^4.7.0-rc.0":
-  version "4.7.0"
-  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.7.0.tgz#3092d70ea60e3d1835466266b1d68ad47035a2d5"
-  integrity sha512-52Qb+A1DdOss8QvJrijYYPSf32GUg2pGaG/yCxtaA3cu4jduouTdg4XZSMLW9op54m1jH7J8hoajhHKOPsoJFw==
 
 "@openzeppelin/test-helpers@^0.5.15":
   version "0.5.15"
