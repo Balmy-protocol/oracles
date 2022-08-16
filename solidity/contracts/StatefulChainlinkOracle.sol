@@ -13,8 +13,6 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
   bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
 
   /// @inheritdoc IStatefulChainlinkOracle
-  mapping(address => mapping(address => PricingPlan)) public planForPair;
-  /// @inheritdoc IStatefulChainlinkOracle
   FeedRegistryInterface public immutable registry;
   /// @inheritdoc IStatefulChainlinkOracle
   address public immutable WETH;
@@ -28,6 +26,7 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
 
   mapping(address => bool) internal _shouldBeConsideredUSD;
   mapping(address => address) internal _tokenMappings;
+  mapping(bytes32 => PricingPlan) internal _planForPair;
 
   constructor(
     // solhint-disable-next-line var-name-mixedcase
@@ -60,8 +59,7 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
 
   /// @inheritdoc ITokenPriceOracle
   function isPairAlreadySupported(address _tokenA, address _tokenB) public view override(ITokenPriceOracle, SimpleOracle) returns (bool) {
-    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
-    return planForPair[__tokenA][__tokenB] != PricingPlan.NONE;
+    return planForPair(_tokenA, _tokenB) != PricingPlan.NONE;
   }
 
   /// @inheritdoc ITokenPriceOracle
@@ -71,9 +69,8 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
     address _tokenOut,
     bytes calldata
   ) external view returns (uint256 _amountOut) {
-    (address _tokenA, address _tokenB) = TokenSorting.sortTokens(_tokenIn, _tokenOut);
-    PricingPlan _plan = planForPair[_tokenA][_tokenB];
-    if (_plan == PricingPlan.NONE) revert PairNotSupportedYet(_tokenA, _tokenB);
+    PricingPlan _plan = planForPair(_tokenIn, _tokenOut);
+    if (_plan == PricingPlan.NONE) revert PairNotSupportedYet(_tokenIn, _tokenOut);
 
     int8 _inDecimals = _getDecimals(_tokenIn);
     int8 _outDecimals = _getDecimals(_tokenOut);
@@ -94,17 +91,24 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
   ) internal virtual override {
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     PricingPlan _plan = _determinePricingPlan(__tokenA, __tokenB);
+    bytes32 _keyForPair = _keyForSortedPair(__tokenA, __tokenB);
     if (_plan == PricingPlan.NONE) {
       // Check if there is a current plan. If there is, it means that the pair was supported and it
       // lost support. In that case, we will remove the current plan and continue working as expected.
       // If there was no supported plan, and there still isn't, then we will fail
-      PricingPlan _currentPlan = planForPair[__tokenA][__tokenB];
+      PricingPlan _currentPlan = _planForPair[_keyForPair];
       if (_currentPlan == PricingPlan.NONE) {
         revert PairCannotBeSupported(_tokenA, _tokenB);
       }
     }
-    planForPair[__tokenA][__tokenB] = _plan;
+    _planForPair[_keyForPair] = _plan;
     emit UpdatedPlanForPair(__tokenA, __tokenB, _plan);
+  }
+
+  /// @inheritdoc IStatefulChainlinkOracle
+  function planForPair(address _tokenA, address _tokenB) public view returns (PricingPlan) {
+    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
+    return _planForPair[_keyForSortedPair(__tokenA, __tokenB)];
   }
 
   /// @inheritdoc IStatefulChainlinkOracle
@@ -226,6 +230,7 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
     return _token == WETH ? 1e18 : _callRegistry(mappedToken(_token), Denominations.ETH);
   }
 
+  /// @dev Expects `_tokenA` and `_tokenB` to be sorted
   function _determinePricingPlan(address _tokenA, address _tokenB) internal view virtual returns (PricingPlan) {
     bool _isTokenAUSD = _isUSD(_tokenA);
     bool _isTokenBUSD = _isUSD(_tokenB);
@@ -294,6 +299,10 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
     if (_price <= 0) revert InvalidPrice();
     if (maxDelay < block.timestamp && _updatedAt < block.timestamp - maxDelay) revert LastUpdateIsTooOld();
     return uint256(_price);
+  }
+
+  function _keyForSortedPair(address _tokenA, address _tokenB) internal pure returns (bytes32) {
+    return keccak256(abi.encodePacked(_tokenA, _tokenB));
   }
 
   function _getETHUSD() internal view returns (uint256) {

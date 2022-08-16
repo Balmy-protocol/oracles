@@ -98,7 +98,7 @@ interface IStatefulChainlinkOracle is ITokenPriceOracle {
 
   /**
    * @notice Returns the pricing plan that will be used when quoting the given pair
-   * @dev It is expected that tokenA < tokenB
+   * @dev tokenA and tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order
    * @return The pricing plan that will be used
    */
   function planForPair(address tokenA, address tokenB) external view returns (PricingPlan);
