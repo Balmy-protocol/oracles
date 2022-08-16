@@ -90,13 +90,6 @@ interface IStatefulChainlinkOracle is ITokenPriceOracle {
   function maxDelay() external view returns (uint32);
 
   /**
-   * @notice Returns the address of the WETH ERC-20 token
-   * @return The address of the token
-   */
-  // solhint-disable-next-line func-name-mixedcase
-  function WETH() external view returns (address);
-
-  /**
    * @notice Returns the pricing plan that will be used when quoting the given pair
    * @dev tokenA and tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order
    * @return The pricing plan that will be used
@@ -108,19 +101,6 @@ interface IStatefulChainlinkOracle is ITokenPriceOracle {
    * @return If it exists, the mapping is returned. Otherwise, the original token is returned
    */
   function mappedToken(address token) external view returns (address);
-
-  /**
-   * @notice Adds new tokens that should be considered USD stablecoins
-   * @param addresses The addresses of the tokens
-   */
-  function addUSDStablecoins(address[] calldata addresses) external;
-
-  /**
-   * @notice Defines that the given tokens should not be considered USD stablecoins anymore
-   * @dev Can only be called by an admin
-   * @param addresses The tokens that should no longer be considered USD stablecoins
-   */
-  function removeUSDStablecoins(address[] calldata addresses) external;
 
   /**
    * @notice Adds new token mappings

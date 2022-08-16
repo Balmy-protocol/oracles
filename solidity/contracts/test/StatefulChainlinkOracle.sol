@@ -13,13 +13,11 @@ contract StatefulChainlinkOracleMock is StatefulChainlinkOracle {
   mapping(address => mapping(address => MockedPricingPlan)) private _pricingPlan;
 
   constructor(
-    // solhint-disable-next-line var-name-mixedcase
-    address _WETH,
     FeedRegistryInterface _registry,
     uint32 _maxDelay,
     address _superAdmin,
     address[] memory _initialAdmins
-  ) StatefulChainlinkOracle(_WETH, _registry, _maxDelay, _superAdmin, _initialAdmins) {}
+  ) StatefulChainlinkOracle(_registry, _maxDelay, _superAdmin, _initialAdmins) {}
 
   function internalAddOrModifySupportForPair(
     address _tokenA,
@@ -59,9 +57,5 @@ contract StatefulChainlinkOracleMock is StatefulChainlinkOracle {
     } else {
       return super._determinePricingPlan(__tokenA, __tokenB);
     }
-  }
-
-  function isUSD(address _token) external pure returns (bool) {
-    return _isUSD(_token);
   }
 }

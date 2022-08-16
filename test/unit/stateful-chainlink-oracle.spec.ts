@@ -25,7 +25,6 @@ describe('StatefulChainlinkOracle', () => {
   const ONE_DAY = moment.duration('24', 'hours').asSeconds();
   const TOKEN_A = '0x0000000000000000000000000000000000000001';
   const TOKEN_B = '0x0000000000000000000000000000000000000002';
-  const WETH = '0x0000000000000000000000000000000000000003';
   const NO_PLAN = 0;
   const A_PLAN = 1;
 
@@ -40,7 +39,7 @@ describe('StatefulChainlinkOracle', () => {
     [, superAdmin, admin] = await ethers.getSigners();
     chainlinkOracleFactory = await ethers.getContractFactory('StatefulChainlinkOracleMock');
     feedRegistry = await smock.fake('FeedRegistryInterface');
-    chainlinkOracle = await chainlinkOracleFactory.deploy(WETH, feedRegistry.address, ONE_DAY, superAdmin.address, [admin.address]);
+    chainlinkOracle = await chainlinkOracleFactory.deploy(feedRegistry.address, ONE_DAY, superAdmin.address, [admin.address]);
     superAdminRole = await chainlinkOracle.SUPER_ADMIN_ROLE();
     adminRole = await chainlinkOracle.ADMIN_ROLE();
     snapshotId = await snapshot.take();
@@ -52,20 +51,11 @@ describe('StatefulChainlinkOracle', () => {
   });
 
   describe('constructor', () => {
-    when('weth is zero address', () => {
-      then('tx is reverted with reason error', async () => {
-        await behaviours.deployShouldRevertWithMessage({
-          contract: chainlinkOracleFactory,
-          args: [constants.AddressZero, feedRegistry.address, ONE_DAY, superAdmin.address, [admin.address]],
-          message: 'ZeroAddress',
-        });
-      });
-    });
     when('feed registry is zero address', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: chainlinkOracleFactory,
-          args: [WETH, constants.AddressZero, ONE_DAY, superAdmin.address, [admin.address]],
+          args: [constants.AddressZero, ONE_DAY, superAdmin.address, [admin.address]],
           message: 'ZeroAddress',
         });
       });
@@ -74,7 +64,7 @@ describe('StatefulChainlinkOracle', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: chainlinkOracleFactory,
-          args: [WETH, feedRegistry.address, 0, superAdmin.address, [admin.address]],
+          args: [feedRegistry.address, 0, superAdmin.address, [admin.address]],
           message: 'ZeroMaxDelay',
         });
       });
@@ -83,16 +73,12 @@ describe('StatefulChainlinkOracle', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: chainlinkOracleFactory,
-          args: [constants.AddressZero, feedRegistry.address, ONE_DAY, constants.AddressZero, [admin.address]],
+          args: [feedRegistry.address, ONE_DAY, constants.AddressZero, [admin.address]],
           message: 'ZeroAddress',
         });
       });
     });
     when('all arguments are valid', () => {
-      then('WETH is set correctly', async () => {
-        const weth = await chainlinkOracle.WETH();
-        expect(weth).to.equal(WETH);
-      });
       then('registry is set correctly', async () => {
         const registry = await chainlinkOracle.registry();
         expect(registry).to.eql(feedRegistry.address);
@@ -218,55 +204,6 @@ describe('StatefulChainlinkOracle', () => {
     });
   });
 
-  describe('addUSDStablecoins', () => {
-    when('function is called by admin', () => {
-      const TOKEN_ADDRESS = wallet.generateRandomAddress();
-      let tx: TransactionResponse;
-      given(async () => {
-        tx = await chainlinkOracle.connect(admin).addUSDStablecoins([TOKEN_ADDRESS]);
-      });
-      then('address is considered USD', async () => {
-        expect(await chainlinkOracle.isUSD(TOKEN_ADDRESS)).to.be.false;
-      });
-      then('event is emitted', async () => {
-        await expect(tx).to.emit(chainlinkOracle, 'TokensConsideredUSD').withArgs([TOKEN_ADDRESS]);
-      });
-    });
-
-    behaviours.shouldBeExecutableOnlyByRole({
-      contract: () => chainlinkOracle,
-      funcAndSignature: 'addUSDStablecoins(address[])',
-      params: [[wallet.generateRandomAddress()]],
-      role: () => adminRole,
-      addressWithRole: () => admin,
-    });
-  });
-
-  describe('removeUSDStablecoins', () => {
-    when('function is called by admin', () => {
-      const TOKEN_ADDRESS = wallet.generateRandomAddress();
-      let tx: TransactionResponse;
-      given(async () => {
-        await chainlinkOracle.connect(admin).addUSDStablecoins([TOKEN_ADDRESS]);
-        tx = await chainlinkOracle.connect(admin).removeUSDStablecoins([TOKEN_ADDRESS]);
-      });
-      then('address is no longer considered USD', async () => {
-        expect(await chainlinkOracle.isUSD(TOKEN_ADDRESS)).to.be.false;
-      });
-      then('event is emitted', async () => {
-        await expect(tx).to.emit(chainlinkOracle, 'TokensNoLongerConsideredUSD').withArgs([TOKEN_ADDRESS]);
-      });
-    });
-
-    behaviours.shouldBeExecutableOnlyByRole({
-      contract: () => chainlinkOracle,
-      funcAndSignature: 'removeUSDStablecoins(address[])',
-      params: [[wallet.generateRandomAddress()]],
-      role: () => adminRole,
-      addressWithRole: () => admin,
-    });
-  });
-
   describe('addMappings', () => {
     when('input sizes do not match', () => {
       then('tx is reverted with reason', async () => {
@@ -382,7 +319,7 @@ describe('StatefulChainlinkOracle', () => {
       let chainlinkOracle: StatefulChainlinkOracleMock;
       given(async () => {
         makeRegistryReturn({ price: PRICE });
-        chainlinkOracle = await chainlinkOracleFactory.deploy(WETH, feedRegistry.address, BigNumber.from(2).pow(32).sub(1), superAdmin.address, [
+        chainlinkOracle = await chainlinkOracleFactory.deploy(feedRegistry.address, BigNumber.from(2).pow(32).sub(1), superAdmin.address, [
           admin.address,
         ]);
       });
