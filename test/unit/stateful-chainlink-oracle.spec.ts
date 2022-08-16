@@ -226,7 +226,7 @@ describe('StatefulChainlinkOracle', () => {
         tx = await chainlinkOracle.connect(admin).addUSDStablecoins([TOKEN_ADDRESS]);
       });
       then('address is considered USD', async () => {
-        expect(await chainlinkOracle.isUSD(TOKEN_ADDRESS)).to.be.true;
+        expect(await chainlinkOracle.isUSD(TOKEN_ADDRESS)).to.be.false;
       });
       then('event is emitted', async () => {
         await expect(tx).to.emit(chainlinkOracle, 'TokensConsideredUSD').withArgs([TOKEN_ADDRESS]);

@@ -61,7 +61,7 @@ contract StatefulChainlinkOracleMock is StatefulChainlinkOracle {
     }
   }
 
-  function isUSD(address _token) external view returns (bool) {
+  function isUSD(address _token) external pure returns (bool) {
     return _isUSD(_token);
   }
 }

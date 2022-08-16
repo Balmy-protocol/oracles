@@ -6,8 +6,6 @@ import { contract, given, then } from '@utils/bdd';
 import { expect } from 'chai';
 import { convertPriceToBigNumberWithDecimals, getPrice } from '@utils/defillama';
 import { DeterministicFactory, DeterministicFactory__factory } from '@mean-finance/deterministic-factory/typechained';
-import { getNodeUrl } from 'utils/env';
-import { setTestChainId } from 'utils/deploy';
 
 let oracle: StatefulChainlinkOracle;
 
@@ -70,8 +68,10 @@ const PLANS: { tokenIn: Token; tokenOut: Token }[][] = [
   ],
   [
     // TOKEN_A_TO_ETH_TO_USD_TO_TOKEN_B
-    { tokenIn: BOND, tokenOut: USDC }, // IN (tokenA) => ETH, OUT (tokenB) is USD
-    { tokenIn: USDT, tokenOut: AXS }, // IN (tokenB) is USD, ETH => OUT (tokenA)
+    // We can't test the following two cases, because we would need a token that is
+    // supported by chainlink and lower than USD (address(840))
+    // - IN (tokenA) => ETH, OUT (tokenB) is USD
+    // - IN (tokenB) is USD, ETH => OUT (tokenA)
 
     { tokenIn: WETH, tokenOut: AMP }, // IN (tokenA) is ETH, USD => OUT (tokenB)
     { tokenIn: AMP, tokenOut: WETH }, // IN (tokenB) => USD, OUT is ETH (tokenA)
@@ -109,10 +109,18 @@ contract('StatefulChainlinkOracle', () => {
       writeDeploymentsToFiles: false,
     });
     oracle = await ethers.getContract('StatefulChainlinkOracle');
-    console.log('registry', await oracle.registry());
-    // Add stablecoins and WBTC => BTC mapping
-    await oracle.connect(admin).addUSDStablecoins([USDC.address, USDT.address, DAI.address]);
-    await oracle.connect(admin).addMappings([WBTC.address], ['0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB']);
+    await oracle
+      .connect(admin)
+      .addMappings(
+        [WBTC.address, WETH.address, USDC.address, USDT.address, DAI.address],
+        [
+          '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB',
+          '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+          '0x0000000000000000000000000000000000000348',
+          '0x0000000000000000000000000000000000000348',
+          '0x0000000000000000000000000000000000000348',
+        ]
+      );
   });
 
   for (let i = 0; i < PLANS.length; i++) {
