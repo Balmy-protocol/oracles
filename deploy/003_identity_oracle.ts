@@ -1,5 +1,5 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
-import { IdentityOracle__factory } from '@typechained';
+import { bytecode } from '../artifacts/solidity/contracts/IdentityOracle.sol/IdentityOracle.json';
 import { deployThroughDeterministicFactory } from '@mean-finance/deterministic-factory/utils/deployment';
 import { DeployFunction } from '@0xged/hardhat-deploy/dist/types';
 
@@ -11,7 +11,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     name: 'IdentityOracle',
     salt: 'MF-Identity-Oracle-V1',
     contract: 'solidity/contracts/IdentityOracle.sol:IdentityOracle',
-    bytecode: IdentityOracle__factory.bytecode,
+    bytecode,
     constructorArgs: {
       types: [],
       values: [],

@@ -1,10 +1,8 @@
-import hre, { deployments, ethers } from 'hardhat';
+import { deployments, ethers, getNamedAccounts } from 'hardhat';
 import { behaviours, evm, wallet } from '@utils';
 import { contract, given, then, when } from '@utils/bdd';
 import { expect } from 'chai';
-import { getNodeUrl } from 'utils/env';
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-import { BaseOracle, ITokenPriceOracle__factory, Multicall__factory, OracleAggregator } from '@typechained';
+import { BaseOracle, ITokenPriceOracle__factory, Multicall__factory, OracleAggregator, StatefulChainlinkOracle } from '@typechained';
 import { convertPriceToBigNumberWithDecimals, getTokenData } from '../utils/defillama';
 import { BigNumber, constants, utils } from 'ethers';
 import {
@@ -13,10 +11,10 @@ import {
   IERC165__factory,
   IERC20__factory,
 } from '@mean-finance/deterministic-factory/typechained';
+import { ChainlinkRegistry } from '@mean-finance/chainlink-registry/typechained';
 import { snapshot } from '@utils/evm';
-import { setTestChainId } from 'utils/deploy';
 
-const CHAIN = { chain: 'optimism', chainId: 10 };
+const CHAIN = 'optimism';
 const BLOCK_NUMBER = 12350000;
 const BYTES = '0xf2c047db4a7cf81f935c'; // Some random bytes
 
@@ -26,19 +24,16 @@ const STG = '0x296f55f8fb28e498b858d0bcda06d955b2cb3f97';
 const USDC = '0x7f5c764cbc14f9669b88837ca1490cca17c31607';
 
 describe('Comprehensive Oracle Test', () => {
-  let deployer: SignerWithAddress;
-
-  before(async () => {
-    const { deployer: deployerAddress } = await hre.getNamedAccounts();
-    deployer = await ethers.getSigner(deployerAddress);
-    await fork({ ...CHAIN, blockNumber: BLOCK_NUMBER });
-  });
-
   oracleComprehensiveTest({
     oracle: 'StatefulChainlinkOracle',
+    extraFixtures: ['ChainlinkFeedRegistry'],
     tokenIn: UNI,
     tokenOut: DAI,
     canOracleWorkWithoutAddingExplicitSupport: false,
+    doBefore: async () => {
+      await setFeed(UNI, 'usd', '0x11429eE838cC01071402f21C219870cbAc0a59A0');
+      await setStablecoin(DAI);
+    },
   });
 
   oracleComprehensiveTest({
@@ -58,9 +53,14 @@ describe('Comprehensive Oracle Test', () => {
   oracleComprehensiveTest({
     title: 'OracleAggregator (Chainlink Stateful)',
     oracle: 'OracleAggregator',
+    extraFixtures: ['ChainlinkFeedRegistry'],
     tokenIn: UNI,
     tokenOut: DAI,
     canOracleWorkWithoutAddingExplicitSupport: false,
+    doBefore: async () => {
+      await setFeed(UNI, 'usd', '0x11429eE838cC01071402f21C219870cbAc0a59A0');
+      await setStablecoin(DAI);
+    },
     extraCheck: async (oracle: OracleAggregator) => {
       // Make sure that this pair is using the Chainlink adapter
       const chainlinkAdapter = await ethers.getContract('StatefulChainlinkOracle');
@@ -73,6 +73,7 @@ describe('Comprehensive Oracle Test', () => {
   oracleComprehensiveTest({
     title: 'OracleAggregator (Uniswap v3)',
     oracle: 'OracleAggregator',
+    extraFixtures: ['ChainlinkFeedRegistry'],
     tokenIn: STG,
     tokenOut: USDC,
     canOracleWorkWithoutAddingExplicitSupport: false,
@@ -91,6 +92,8 @@ describe('Comprehensive Oracle Test', () => {
     tokenIn,
     tokenOut,
     canOracleWorkWithoutAddingExplicitSupport,
+    extraFixtures,
+    doBefore,
     extraCheck,
   }: {
     title?: string;
@@ -98,6 +101,8 @@ describe('Comprehensive Oracle Test', () => {
     tokenIn: string;
     tokenOut: string;
     canOracleWorkWithoutAddingExplicitSupport: boolean;
+    doBefore?: () => Promise<any>;
+    extraFixtures?: string[];
     extraCheck?: (oracle: any) => Promise<any>;
   }) {
     contract(title ?? oracleName, () => {
@@ -106,11 +111,18 @@ describe('Comprehensive Oracle Test', () => {
       let oracle: BaseOracle;
       let snapshotId: string;
       before(async () => {
-        await deployments.fixture([oracleName], { keepExistingDeployments: true });
+        await fork({ chain: CHAIN, blockNumber: BLOCK_NUMBER });
+        await deployments.run([...(extraFixtures ?? []), oracleName], {
+          resetMemory: true,
+          writeDeploymentsToFiles: false,
+          deletePreviousDeployments: false,
+        });
         oracle = await ethers.getContract<BaseOracle>(oracleName);
+        await doBefore?.();
+
         const { timestamp } = await ethers.provider.getBlock(BLOCK_NUMBER);
-        const tokenInData = await getTokenData(CHAIN.chain, tokenIn, timestamp);
-        const tokenOutData = await getTokenData(CHAIN.chain, tokenOut, timestamp);
+        const tokenInData = await getTokenData(CHAIN, tokenIn, timestamp);
+        const tokenOutData = await getTokenData(CHAIN, tokenOut, timestamp);
         amountIn = utils.parseUnits('1', tokenInData.decimals);
         expectedAmountOut = convertPriceToBigNumberWithDecimals(tokenInData.price / tokenOutData.price, tokenOutData.decimals);
         snapshotId = await snapshot.take();
@@ -249,22 +261,37 @@ describe('Comprehensive Oracle Test', () => {
     });
   }
 
-  const DETERMINISTIC_FACTORY_ADMIN = '0x1a00e1e311009e56e3b0b9ed6f86f5ce128a1c01';
-  const DEPLOYER_ROLE = utils.keccak256(utils.toUtf8Bytes('DEPLOYER_ROLE'));
-  async function fork({ chain, chainId, blockNumber }: { chain: string; chainId: number; blockNumber?: number }): Promise<void> {
+  async function setFeed(base: string, quote: 'usd', feed: string) {
+    const { msig } = await getNamedAccounts();
+    const admin = await wallet.impersonate(msig);
+    await wallet.setBalance({ account: admin._address, balance: constants.MaxUint256 });
+    const registry = await ethers.getContract<ChainlinkRegistry>('ChainlinkFeedRegistry');
+    await registry.connect(admin).assignFeeds([{ base, quote: '0x0000000000000000000000000000000000000348', feed }]);
+  }
+
+  async function setStablecoin(address: string) {
+    const { msig } = await getNamedAccounts();
+    const admin = await wallet.impersonate(msig);
+    await wallet.setBalance({ account: admin._address, balance: constants.MaxUint256 });
+    const oracle = await ethers.getContract<StatefulChainlinkOracle>('StatefulChainlinkOracle');
+    await oracle.connect(admin).addUSDStablecoins([address]);
+  }
+
+  async function fork({ chain, blockNumber }: { chain: string; blockNumber?: number }): Promise<void> {
     // Set fork of network
     await evm.reset({
-      jsonRpcUrl: getNodeUrl(chain),
+      network: chain,
       blockNumber,
     });
-    setTestChainId(chainId);
+
+    const { deployer, eoaAdmin } = await getNamedAccounts();
     // Give deployer role to our deployer address
-    const admin = await wallet.impersonate(DETERMINISTIC_FACTORY_ADMIN);
+    const admin = await wallet.impersonate(eoaAdmin);
     await wallet.setBalance({ account: admin._address, balance: constants.MaxUint256 });
     const deterministicFactory = await ethers.getContractAt<DeterministicFactory>(
       DeterministicFactory__factory.abi,
       '0xbb681d77506df5CA21D2214ab3923b4C056aa3e2'
     );
-    await deterministicFactory.connect(admin).grantRole(DEPLOYER_ROLE, deployer.address);
+    await deterministicFactory.connect(admin).grantRole(await deterministicFactory.DEPLOYER_ROLE(), deployer);
   }
 });

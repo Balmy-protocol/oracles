@@ -87,31 +87,32 @@ contract('StatefulChainlinkOracle', () => {
   before(async () => {
     // Set fork of network
     await evm.reset({
-      jsonRpcUrl: getNodeUrl('ethereum'),
+      network: 'ethereum',
       blockNumber: 14783400,
     });
-    setTestChainId(1);
 
-    const namedAccounts = await getNamedAccounts();
-    const governorAddress = namedAccounts.governor;
-    const governor = await wallet.impersonate(governorAddress);
-    await wallet.setBalance({ account: governorAddress, balance: utils.parseEther('10') });
+    const { eoaAdmin, msig, deployer } = await getNamedAccounts();
+    const deploymentAdmin = await wallet.impersonate(eoaAdmin);
+    const admin = await wallet.impersonate(msig);
+    await wallet.setBalance({ account: eoaAdmin, balance: utils.parseEther('10') });
+    await wallet.setBalance({ account: msig, balance: utils.parseEther('10') });
 
     const deterministicFactory = await ethers.getContractAt<DeterministicFactory>(
       DeterministicFactory__factory.abi,
       '0xbb681d77506df5CA21D2214ab3923b4C056aa3e2'
     );
 
-    await deterministicFactory.connect(governor).grantRole(await deterministicFactory.DEPLOYER_ROLE(), namedAccounts.deployer);
-    await deployments.run('StatefulChainlinkOracle', {
+    await deterministicFactory.connect(deploymentAdmin).grantRole(await deterministicFactory.DEPLOYER_ROLE(), deployer);
+    await deployments.run(['ChainlinkFeedRegistry', 'StatefulChainlinkOracle'], {
       resetMemory: true,
       deletePreviousDeployments: false,
       writeDeploymentsToFiles: false,
     });
     oracle = await ethers.getContract('StatefulChainlinkOracle');
+    console.log('registry', await oracle.registry());
     // Add stablecoins and WBTC => BTC mapping
-    await oracle.connect(governor).addUSDStablecoins([USDC.address, USDT.address, DAI.address]);
-    await oracle.connect(governor).addMappings([WBTC.address], ['0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB']);
+    await oracle.connect(admin).addUSDStablecoins([USDC.address, USDT.address, DAI.address]);
+    await oracle.connect(admin).addMappings([WBTC.address], ['0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB']);
   });
 
   for (let i = 0; i < PLANS.length; i++) {

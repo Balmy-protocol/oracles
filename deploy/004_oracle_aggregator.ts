@@ -1,10 +1,10 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
-import { OracleAggregator__factory } from '@typechained';
+import { bytecode } from '../artifacts/solidity/contracts/OracleAggregator.sol/OracleAggregator.json';
 import { deployThroughDeterministicFactory } from '@mean-finance/deterministic-factory/utils/deployment';
 import { DeployFunction } from '@0xged/hardhat-deploy/dist/types';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployer, governor: superAdmin } = await hre.getNamedAccounts();
+  const { deployer, msig } = await hre.getNamedAccounts();
 
   const identityOracle = await hre.deployments.get('IdentityOracle');
   const chainlinOracle = await hre.deployments.get('StatefulChainlinkOracle');
@@ -16,10 +16,10 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     name: 'OracleAggregator',
     salt: 'MF-Oracle-Aggregator-V2',
     contract: 'solidity/contracts/OracleAggregator.sol:OracleAggregator',
-    bytecode: OracleAggregator__factory.bytecode,
+    bytecode,
     constructorArgs: {
       types: ['address[]', 'address', 'address[]'],
-      values: [oracles, superAdmin, [superAdmin]],
+      values: [oracles, msig, [msig]],
     },
     log: !process.env.TEST,
     overrides: {
