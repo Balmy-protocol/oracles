@@ -1207,14 +1207,15 @@
     "@jridgewell/resolve-uri" "^3.0.3"
     "@jridgewell/sourcemap-codec" "^1.4.10"
 
-"@mean-finance/chainlink-registry@2.0.0-rc4":
-  version "2.0.0-rc4"
-  resolved "https://registry.yarnpkg.com/@mean-finance/chainlink-registry/-/chainlink-registry-2.0.0-rc4.tgz#5339f3e8620c28e1b976fd54558161c0e332ca64"
-  integrity sha512-WeU+0V+vlRm6YsG1GwDdz7eNHVZNaqjU4bkEUDGQfv2/l7aGt/lpXJG4AzOr4mOVtv8bltBDI5Fz4+eZugxRPQ==
+"@mean-finance/chainlink-registry@2.0.0-rc5":
+  version "2.0.0-rc5"
+  resolved "https://registry.yarnpkg.com/@mean-finance/chainlink-registry/-/chainlink-registry-2.0.0-rc5.tgz#42f4a448d328ed9c0533e0db19b6158a95f1db6f"
+  integrity sha512-FN+eeZ1Z5W7PWOKmtiyQadC176DY3FNVqsSQ9EF/GB2FZAGM845EqmrQcfDRGqreY2sJnPASjU/R1q/8nUyPdw==
   dependencies:
     "@0xged/hardhat-deploy" "0.11.5"
     "@chainlink/contracts" "0.4.2"
     "@mean-finance/deterministic-factory" "1.3.2"
+    "@openzeppelin/contracts" "4.7.3"
 
 "@mean-finance/deterministic-factory@1.3.1":
   version "1.3.1"
@@ -1232,14 +1233,14 @@
     "@openzeppelin/contracts" "4.6.0"
     "@rari-capital/solmate" "6.2.0"
 
-"@mean-finance/transformers@1.0.0-rc4":
-  version "1.0.0-rc4"
-  resolved "https://registry.yarnpkg.com/@mean-finance/transformers/-/transformers-1.0.0-rc4.tgz#90d7a9d343544eff581b48d735eab6625a1a151c"
-  integrity sha512-6S/gseqQZ7He1VW6sodNaNjciz1QR8p+lhB5qE6mQM6U4GGeGlSKGhQbahqIvY54vuwoC+EgGul+uTthDe4dsw==
+"@mean-finance/transformers@1.0.0-rc5":
+  version "1.0.0-rc5"
+  resolved "https://registry.yarnpkg.com/@mean-finance/transformers/-/transformers-1.0.0-rc5.tgz#dfc3064e8c7184a45a53fc2862b1d565a1d75231"
+  integrity sha512-gHV/cZg+D7k//nraOcPZHBkeZ5qku4FQ6QfKce31/ktaYdqnmLBD6/smGAL5QW3I5ZO4k1MNe/zbTUPRHFo+kA==
   dependencies:
     "@0xged/hardhat-deploy" "0.11.5"
     "@mean-finance/deterministic-factory" "1.3.1"
-    "@openzeppelin/contracts" "4.7.1"
+    "@openzeppelin/contracts" "4.7.3"
 
 "@mean-finance/uniswap-v3-oracle@1.0.0":
   version "1.0.0"
@@ -1460,10 +1461,10 @@
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.6.0.tgz#c91cf64bc27f573836dba4122758b4743418c1b3"
   integrity sha512-8vi4d50NNya/bQqCmaVzvHNmwHvS0OBKb7HNtuNwEE3scXWrP31fKQoGxNMT+KbzmrNZzatE3QK5p2gFONI/hg==
 
-"@openzeppelin/contracts@4.7.1":
-  version "4.7.1"
-  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.7.1.tgz#33d0a857b76b18d313e6bb6ed28cdaf367e90cfe"
-  integrity sha512-UXmAjKARsXORHlHZu5GCD7ZbRKm6nU8UHnbuT/QJJa2JEOEcbvV/X8w/sUk62Sl9VZuuljM1akrZLyAtzUgsxw==
+"@openzeppelin/contracts@4.7.3":
+  version "4.7.3"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.7.3.tgz#939534757a81f8d69cc854c7692805684ff3111e"
+  integrity sha512-dGRS0agJzu8ybo44pCIf3xBaPQN/65AIXNgK8+4gzKd5kbvlqyxryUYVLJv7fK98Seyd2hDZzVEHSWAh0Bt1Yw==
 
 "@openzeppelin/test-helpers@^0.5.15":
   version "0.5.15"
