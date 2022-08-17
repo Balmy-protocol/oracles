@@ -48,7 +48,7 @@ const PLANS: { tokenIn: Token; tokenOut: Token }[][] = [
   [
     // TOKEN_TO_USD_TO_TOKEN_PAIR
     { tokenIn: WBTC, tokenOut: COMP }, // IN (tokenA) => USD => OUT (tokenB)
-    { tokenIn: USDT, tokenOut: USDC }, // IN (tokenB) => USD => OUT (tokenA)
+    { tokenIn: CRV, tokenOut: AAVE }, // IN (tokenB) => USD => OUT (tokenA)
   ],
   [
     // TOKEN_TO_ETH_TO_TOKEN_PAIR
@@ -78,6 +78,11 @@ const PLANS: { tokenIn: Token; tokenOut: Token }[][] = [
 
     { tokenIn: AXS, tokenOut: AMP }, // IN (tokenA) => ETH, USD => OUT (tokenB)
     { tokenIn: FXS, tokenOut: BOND }, // IN (tokenB) => USD, ETH => OUT (tokenA)
+  ],
+  [
+    // SAME_TOKENS
+    { tokenIn: USDT, tokenOut: USDC }, // tokenA is USD, tokenB is USD
+    { tokenIn: ALPHA, tokenOut: ALPHA }, // tokenA == token B
   ],
 ];
 
