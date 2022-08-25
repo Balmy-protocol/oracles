@@ -48,7 +48,7 @@
   "scripts": {
     "compile": "hardhat compile",
     "compile:test": "cross-env TEST=true hardhat compile",
-    "coverage": "hardhat coverage",
+    "coverage": "TS_NODE_SKIP_IGNORE=true TEST=true COVERAGE=true npx hardhat coverage --solcoverjs ./solcover.js",
     "deploy": "npx hardhat deploy",
     "fork:node": "cross-env FORK=true hardhat node",
     "fork:script": "cross-env FORK=true hardhat run",
@@ -125,7 +125,7 @@
     "solc-0.8": "npm:solc@0.8.13",
     "solhint": "3.3.7",
     "solhint-plugin-prettier": "0.0.5",
-    "solidity-coverage": "0.7.21",
+    "solidity-coverage": "https://github.com/adjisb/solidity-coverage",
     "solidity-docgen": "0.5.16",
     "sort-package-json": "1.57.0",
     "standard-version": "9.3.2",
