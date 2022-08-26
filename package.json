@@ -1,6 +1,6 @@
 {
   "name": "@mean-finance/oracles",
-  "version": "2.0.0-rc5",
+  "version": "2.0.0-rc6",
   "description": "Mean Oracles",
   "keywords": [
     "ethereum",
@@ -80,8 +80,8 @@
     "@0xged/hardhat-deploy": "0.11.5",
     "@chainlink/contracts": "0.4.2",
     "@mean-finance/chainlink-registry": "2.0.0-rc5",
-    "@mean-finance/deterministic-factory": "1.3.1",
-    "@mean-finance/transformers": "1.0.0-rc6",
+    "@mean-finance/deterministic-factory": "1.3.2",
+    "@mean-finance/transformers": "1.0.0-rc7",
     "@mean-finance/uniswap-v3-oracle": "1.0.0",
     "@openzeppelin/contracts": "4.7.3",
     "@uniswap/v3-core": "1.0.1"
