@@ -58,12 +58,6 @@ interface IStatefulChainlinkOracle is ITokenPriceOracle {
    */
   event MappingsAdded(address[] tokens, address[] mappings);
 
-  /**
-   * @notice Emitted when a new max delay is set
-   * @param newMaxDelay The new max delay
-   */
-  event MaxDelaySet(uint32 newMaxDelay);
-
   /// @notice Thrown when the price is non-positive
   error InvalidPrice();
 
@@ -73,23 +67,21 @@ interface IStatefulChainlinkOracle is ITokenPriceOracle {
   /// @notice Thrown when one of the parameters is a zero address
   error ZeroAddress();
 
-  /// @notice Thrown when the given max delay is zero
-  error ZeroMaxDelay();
-
   /// @notice Thrown when the input for adding mappings in invalid
   error InvalidMappingsInput();
+
+  /**
+   * @notice Returns how old the last price update can be before the oracle reverts by considering it too old
+   * @dev Cannot be modified
+   * @return How old the last price update can be in seconds
+   */
+  function MAX_DELAY() external view returns (uint32);
 
   /**
    * @notice Returns the Chainlink feed registry
    * @return The Chainlink registry
    */
   function registry() external view returns (FeedRegistryInterface);
-
-  /**
-   * @notice Returns how old the last price update can be before the oracle reverts by considering it too old
-   * @return How old the last price update can be in seconds
-   */
-  function maxDelay() external view returns (uint32);
 
   /**
    * @notice Returns the pricing plan that will be used when quoting the given pair
@@ -110,10 +102,4 @@ interface IStatefulChainlinkOracle is ITokenPriceOracle {
    * @param mappings The addresses of their mappings
    */
   function addMappings(address[] calldata addresses, address[] calldata mappings) external;
-
-  /**
-   * @notice Sets a new max delay
-   * @param maxDelay The new max delay
-   */
-  function setMaxDelay(uint32 maxDelay) external;
 }

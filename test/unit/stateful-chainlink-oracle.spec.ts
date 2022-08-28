@@ -18,10 +18,9 @@ import { snapshot } from '@utils/evm';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { FakeContract, smock } from '@defi-wonderland/smock';
 import moment from 'moment';
-import { BigNumber } from '@ethersproject/bignumber';
 import { constants } from 'ethers';
 
-describe('StatefulChainlinkOracle', () => {
+describe.only('StatefulChainlinkOracle', () => {
   const ONE_DAY = moment.duration('24', 'hours').asSeconds();
   const TOKEN_A = '0x0000000000000000000000000000000000000001';
   const TOKEN_B = '0x0000000000000000000000000000000000000002';
@@ -39,7 +38,7 @@ describe('StatefulChainlinkOracle', () => {
     [, superAdmin, admin] = await ethers.getSigners();
     chainlinkOracleFactory = await ethers.getContractFactory('StatefulChainlinkOracleMock');
     feedRegistry = await smock.fake('FeedRegistryInterface');
-    chainlinkOracle = await chainlinkOracleFactory.deploy(feedRegistry.address, ONE_DAY, superAdmin.address, [admin.address]);
+    chainlinkOracle = await chainlinkOracleFactory.deploy(feedRegistry.address, superAdmin.address, [admin.address]);
     superAdminRole = await chainlinkOracle.SUPER_ADMIN_ROLE();
     adminRole = await chainlinkOracle.ADMIN_ROLE();
     snapshotId = await snapshot.take();
@@ -55,17 +54,8 @@ describe('StatefulChainlinkOracle', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: chainlinkOracleFactory,
-          args: [constants.AddressZero, ONE_DAY, superAdmin.address, [admin.address]],
+          args: [constants.AddressZero, superAdmin.address, [admin.address]],
           message: 'ZeroAddress',
-        });
-      });
-    });
-    when('max delay is zero', () => {
-      then('tx is reverted with reason error', async () => {
-        await behaviours.deployShouldRevertWithMessage({
-          contract: chainlinkOracleFactory,
-          args: [feedRegistry.address, 0, superAdmin.address, [admin.address]],
-          message: 'ZeroMaxDelay',
         });
       });
     });
@@ -73,7 +63,7 @@ describe('StatefulChainlinkOracle', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: chainlinkOracleFactory,
-          args: [feedRegistry.address, ONE_DAY, constants.AddressZero, [admin.address]],
+          args: [feedRegistry.address, constants.AddressZero, [admin.address]],
           message: 'ZeroAddress',
         });
       });
@@ -84,7 +74,7 @@ describe('StatefulChainlinkOracle', () => {
         expect(registry).to.eql(feedRegistry.address);
       });
       then('max delay is set correctly', async () => {
-        const maxDelay = await chainlinkOracle.maxDelay();
+        const maxDelay = await chainlinkOracle.MAX_DELAY();
         expect(maxDelay).to.eql(ONE_DAY);
       });
       then('super admin is set correctly', async () => {
@@ -241,29 +231,6 @@ describe('StatefulChainlinkOracle', () => {
       addressWithRole: () => admin,
     });
   });
-  describe('setMaxDelay', () => {
-    when('function is called by admin', () => {
-      const MAX_DELAY = 300000;
-      let tx: TransactionResponse;
-      given(async () => {
-        tx = await chainlinkOracle.connect(admin).setMaxDelay(MAX_DELAY);
-      });
-      then('new max delay registered', async () => {
-        expect(await chainlinkOracle.maxDelay()).to.equal(MAX_DELAY);
-      });
-      then('event is emmitted', async () => {
-        await expect(tx).to.emit(chainlinkOracle, 'MaxDelaySet').withArgs(MAX_DELAY);
-      });
-    });
-    behaviours.shouldBeExecutableOnlyByRole({
-      contract: () => chainlinkOracle,
-      funcAndSignature: 'setMaxDelay(uint32)',
-      params: [20],
-      role: () => adminRole,
-      addressWithRole: () => admin,
-    });
-  });
-
   describe('supportsInterface', () => {
     behaviours.shouldSupportInterface({
       contract: () => chainlinkOracle,
@@ -318,19 +285,6 @@ describe('StatefulChainlinkOracle', () => {
       const NO_REASON = '';
       given(() => feedRegistry.latestRoundData.reverts(NO_REASON));
       thenRegistryCallRevertsWithReason(NO_REASON);
-    });
-    when('max delay is the biggest possible', () => {
-      const PRICE = 10;
-      let chainlinkOracle: StatefulChainlinkOracleMock;
-      given(async () => {
-        makeRegistryReturn({ price: PRICE });
-        chainlinkOracle = await chainlinkOracleFactory.deploy(feedRegistry.address, BigNumber.from(2).pow(32).sub(1), superAdmin.address, [
-          admin.address,
-        ]);
-      });
-      then('price is returned correctly', async () => {
-        expect(await chainlinkOracle.intercalCallRegistry(TOKEN_A, TOKEN_A)).to.equal(PRICE);
-      });
     });
     function makeRegistryReturn({ price, lastUpdate }: { price?: number; lastUpdate?: number }) {
       feedRegistry.latestRoundData.returns([0, price ?? 1, 0, lastUpdate ?? moment().unix(), 0]);
