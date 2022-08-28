@@ -20,7 +20,7 @@ import { FakeContract, smock } from '@defi-wonderland/smock';
 import moment from 'moment';
 import { constants } from 'ethers';
 
-describe.only('StatefulChainlinkOracle', () => {
+describe('StatefulChainlinkOracle', () => {
   const ONE_DAY = moment.duration('24', 'hours').asSeconds();
   const TOKEN_A = '0x0000000000000000000000000000000000000001';
   const TOKEN_B = '0x0000000000000000000000000000000000000002';
