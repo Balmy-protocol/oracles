@@ -224,9 +224,9 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
       // Note: there are stablecoins/ETH pairs on Chainlink, but they are updated less often than the USD/ETH pair.
       // That's why we prefer to use the USD/ETH pair instead
       return PricingPlan.ETH_USD_PAIR;
-    } else if (_isTokenBUSD && !_isTokenAUSD) {
+    } else if (_isTokenBUSD) {
       return _tryWithBases(_tokenA, PricingPlan.TOKEN_USD_PAIR, PricingPlan.TOKEN_A_TO_ETH_TO_USD_TO_TOKEN_B);
-    } else if (_isTokenAUSD && !_isTokenBUSD) {
+    } else if (_isTokenAUSD) {
       return _tryWithBases(_tokenB, PricingPlan.TOKEN_USD_PAIR, PricingPlan.TOKEN_A_TO_USD_TO_ETH_TO_TOKEN_B);
     } else if (_isTokenBETH) {
       return _tryWithBases(_tokenA, PricingPlan.TOKEN_A_TO_USD_TO_ETH_TO_TOKEN_B, PricingPlan.TOKEN_ETH_PAIR);
