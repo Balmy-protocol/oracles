@@ -14,9 +14,9 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
   bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
 
   /// @inheritdoc IStatefulChainlinkOracle
-  FeedRegistryInterface public immutable registry;
+  uint32 public constant MAX_DELAY = 24 hours;
   /// @inheritdoc IStatefulChainlinkOracle
-  uint32 public maxDelay;
+  FeedRegistryInterface public immutable registry;
 
   // solhint-disable private-vars-leading-underscore
   int8 private constant FOREX_DECIMALS = 8;
@@ -28,14 +28,11 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
 
   constructor(
     FeedRegistryInterface _registry,
-    uint32 _maxDelay,
     address _superAdmin,
     address[] memory _initialAdmins
   ) {
     if (address(_registry) == address(0) || _superAdmin == address(0)) revert ZeroAddress();
-    if (_maxDelay == 0) revert ZeroMaxDelay();
     registry = _registry;
-    maxDelay = _maxDelay;
     // We are setting the super admin role as its own admin so we can transfer it
     _setRoleAdmin(SUPER_ADMIN_ROLE, SUPER_ADMIN_ROLE);
     _setRoleAdmin(ADMIN_ROLE, SUPER_ADMIN_ROLE);
@@ -115,12 +112,6 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
       _tokenMappings[_addresses[i]] = _mappings[i];
     }
     emit MappingsAdded(_addresses, _mappings);
-  }
-
-  /// @inheritdoc IStatefulChainlinkOracle
-  function setMaxDelay(uint32 _maxDelay) external onlyRole(ADMIN_ROLE) {
-    maxDelay = _maxDelay;
-    emit MaxDelaySet(_maxDelay);
   }
 
   /// @inheritdoc IStatefulChainlinkOracle
@@ -287,7 +278,7 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
   function _callRegistry(address _base, address _quote) internal view returns (uint256) {
     (, int256 _price, , uint256 _updatedAt, ) = registry.latestRoundData(_base, _quote);
     if (_price <= 0) revert InvalidPrice();
-    if (maxDelay < block.timestamp && _updatedAt < block.timestamp - maxDelay) revert LastUpdateIsTooOld();
+    if (block.timestamp > _updatedAt + MAX_DELAY) revert LastUpdateIsTooOld();
     return uint256(_price);
   }
 
