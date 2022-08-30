@@ -5,7 +5,7 @@ import { evm, wallet } from '@utils';
 import { contract, given, then, when } from '@utils/bdd';
 import { expect } from 'chai';
 import { convertPriceToBigNumberWithDecimals, getPrice } from '@utils/defillama';
-import { DeterministicFactory, DeterministicFactory__factory } from '@mean-finance/deterministic-factory/typechained';
+import { DeterministicFactory, DeterministicFactory__factory } from '@mean-finance/deterministic-factory';
 
 let oracle: StatefulChainlinkOracle;
 

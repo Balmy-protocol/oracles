@@ -2,7 +2,7 @@ import { deployments, ethers, getNamedAccounts } from 'hardhat';
 import { evm, wallet } from '@utils';
 import { UniswapV3Adapter } from '@typechained';
 import { constants } from 'ethers';
-import { DeterministicFactory, DeterministicFactory__factory } from '@mean-finance/deterministic-factory/typechained';
+import { DeterministicFactory, DeterministicFactory__factory } from '@mean-finance/deterministic-factory';
 import { expect } from 'chai';
 import { given, then, when } from '@utils/bdd';
 import { snapshot } from '@utils/evm';

@@ -1,4 +1,5 @@
 # General
+dist
 .prettierignore
 .solhintignore
 .husky

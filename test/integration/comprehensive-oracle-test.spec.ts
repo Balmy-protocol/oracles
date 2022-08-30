@@ -5,13 +5,8 @@ import { expect } from 'chai';
 import { BaseOracle, ITokenPriceOracle__factory, Multicall__factory, OracleAggregator, StatefulChainlinkOracle } from '@typechained';
 import { convertPriceToBigNumberWithDecimals, getTokenData } from '../utils/defillama';
 import { BigNumber, constants, utils } from 'ethers';
-import {
-  DeterministicFactory,
-  DeterministicFactory__factory,
-  IERC165__factory,
-  IERC20__factory,
-} from '@mean-finance/deterministic-factory/typechained';
-import { ChainlinkRegistry } from '@mean-finance/chainlink-registry/typechained';
+import { DeterministicFactory, DeterministicFactory__factory, IERC165__factory, IERC20__factory } from '@mean-finance/deterministic-factory';
+import { ChainlinkRegistry } from '@mean-finance/chainlink-registry';
 import { snapshot } from '@utils/evm';
 
 const CHAIN = 'optimism';

@@ -30,15 +30,16 @@
       "url": "https://github.com/0xsambugs"
     }
   ],
+  "main": "dist",
+  "types": "dist",
   "files": [
     "solidity",
     "!solidity/contracts/test/**",
     "artifacts/solidity/**/*.json",
     "!artifacts/solidity/contracts/test/**",
     "!artifacts/solidity/**/**/*.dbg.json",
-    "typechained",
-    "!typechained/**/*test*",
-    "!typechained/**/*Mock*",
+    "!/**/*test*",
+    "!/**/*Mock*",
     "deployments",
     "!deployments/localhost",
     "deploy",
@@ -56,7 +57,7 @@
     "lint:check": "cross-env solhint 'contracts/**/*.sol' 'interfaces/**/*.sol' && cross-env prettier --check './**'",
     "lint:fix": "sort-package-json && cross-env prettier --write './**' && cross-env solhint --fix 'contracts/**/*.sol' 'interfaces/**/*.sol'",
     "prepare": "husky install",
-    "prepublishOnly": "hardhat clean && PUBLISHING_NPM=true hardhat compile && pinst --disable",
+    "prepublishOnly": "hardhat clean && PUBLISHING_NPM=true hardhat compile && yarn transpile && pinst --disable",
     "postpublish": "pinst --enable",
     "release": "standard-version",
     "test": "yarn compile:test && cross-env TEST=true mocha",
@@ -64,10 +65,11 @@
     "test:e2e": "yarn test './test/e2e/**/*.spec.ts'",
     "test:gas": "cross-env REPORT_GAS=1 npx hardhat test",
     "test:integration": "yarn test './test/integration/**/*.spec.ts'",
-    "test:unit": "yarn test 'test/unit/**/*.spec.ts'"
+    "test:unit": "yarn test 'test/unit/**/*.spec.ts'",
+    "transpile": "rm -rf dist && npx tsc -p tsconfig.publish.json"
   },
   "lint-staged": {
-    "*.{js,css,md,ts,sol}": "prettier --write",
+    "*.{js,css,md,ts,sol,json}": "prettier --write",
     "*.sol": "cross-env solhint --fix 'contracts/**/*.sol' 'interfaces/**/*.sol'",
     "package.json": "sort-package-json"
   },
@@ -79,9 +81,9 @@
   "dependencies": {
     "@0xged/hardhat-deploy": "0.11.5",
     "@chainlink/contracts": "0.4.2",
-    "@mean-finance/chainlink-registry": "2.0.0-rc5",
-    "@mean-finance/deterministic-factory": "1.3.2",
-    "@mean-finance/transformers": "1.0.0-rc7",
+    "@mean-finance/chainlink-registry": "2.0.0-rc9",
+    "@mean-finance/deterministic-factory": "1.4.2",
+    "@mean-finance/transformers": "1.0.0-rc9",
     "@mean-finance/uniswap-v3-oracle": "1.0.0",
     "@openzeppelin/contracts": "4.7.3",
     "@uniswap/v3-core": "1.0.1"
@@ -90,13 +92,13 @@
     "@codechecks/client": "0.1.12",
     "@commitlint/cli": "16.2.4",
     "@commitlint/config-conventional": "16.2.4",
-    "@defi-wonderland/smock": "2.0.7",
+    "@defi-wonderland/smock": "2.2.0",
     "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers@0.3.0-beta.13",
     "@nomiclabs/hardhat-etherscan": "3.1.0",
     "@nomiclabs/hardhat-waffle": "2.0.3",
     "@openzeppelin/test-helpers": "0.5.15",
-    "@typechain/ethers-v5": "10.0.0",
-    "@typechain/hardhat": "6.0.0",
+    "@typechain/ethers-v5": "10.1.0",
+    "@typechain/hardhat": "6.1.2",
     "@types/axios": "0.14.0",
     "@types/chai": "4.3.1",
     "@types/chai-as-promised": "7.1.5",
@@ -131,7 +133,7 @@
     "standard-version": "9.3.2",
     "ts-node": "10.7.0",
     "tsconfig-paths": "4.0.0",
-    "typechain": "8.0.0",
+    "typechain": "8.1.0",
     "typescript": "4.6.4"
   },
   "publishConfig": {
