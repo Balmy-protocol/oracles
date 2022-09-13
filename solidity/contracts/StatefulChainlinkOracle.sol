@@ -66,8 +66,8 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
     if (_plan == PricingPlan.NONE) revert PairNotSupportedYet(_tokenIn, _tokenOut);
     if (_plan == PricingPlan.SAME_TOKENS) return _amountIn;
 
-    int8 _inDecimals = _getDecimals(_tokenIn);
-    int8 _outDecimals = _getDecimals(_tokenOut);
+    int16 _inDecimals = _getDecimals(_tokenIn);
+    int16 _outDecimals = _getDecimals(_tokenOut);
 
     if (_plan <= PricingPlan.TOKEN_ETH_PAIR) {
       return _getDirectPrice(_mappedTokenIn, _mappedTokenOut, _inDecimals, _outDecimals, _amountIn, _plan);
@@ -132,8 +132,8 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
   function _getDirectPrice(
     address _tokenIn,
     address _tokenOut,
-    int8 _inDecimals,
-    int8 _outDecimals,
+    int16 _inDecimals,
+    int16 _outDecimals,
     uint256 _amountIn,
     PricingPlan _plan
   ) internal view returns (uint256) {
@@ -159,8 +159,8 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
   function _getPriceSameBase(
     address _tokenIn,
     address _tokenOut,
-    int8 _inDecimals,
-    int8 _outDecimals,
+    int16 _inDecimals,
+    int16 _outDecimals,
     uint256 _amountIn,
     PricingPlan _plan
   ) internal view returns (uint256) {
@@ -174,8 +174,8 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
   function _getPriceDifferentBases(
     address _tokenIn,
     address _tokenOut,
-    int8 _inDecimals,
-    int8 _outDecimals,
+    int16 _inDecimals,
+    int16 _outDecimals,
     uint256 _amountIn,
     PricingPlan _plan
   ) internal view returns (uint256) {
@@ -265,13 +265,13 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
     }
   }
 
-  function _getDecimals(address _token) internal view returns (int8) {
+  function _getDecimals(address _token) internal view returns (int16) {
     if (_isETH(_token)) {
       return ETH_DECIMALS;
     } else if (!Address.isContract(_token)) {
       return FOREX_DECIMALS;
     } else {
-      return int8(IERC20Metadata(_token).decimals());
+      return int16(uint16(IERC20Metadata(_token).decimals()));
     }
   }
 
