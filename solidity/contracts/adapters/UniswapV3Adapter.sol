@@ -18,15 +18,15 @@ contract UniswapV3Adapter is AccessControl, SimpleOracle, IUniswapV3Adapter {
   /// @inheritdoc IUniswapV3Adapter
   IStaticOracle public immutable UNISWAP_V3_ORACLE;
   /// @inheritdoc IUniswapV3Adapter
-  uint16 public immutable MAX_PERIOD;
+  uint32 public immutable MAX_PERIOD;
   /// @inheritdoc IUniswapV3Adapter
-  uint16 public immutable MIN_PERIOD;
+  uint32 public immutable MIN_PERIOD;
   /// @inheritdoc IUniswapV3Adapter
-  uint16 public period;
+  uint32 public period;
   /// @inheritdoc IUniswapV3Adapter
   uint8 public cardinalityPerMinute;
   /// @inheritdoc IUniswapV3Adapter
-  uint32 public gasPerCardinality = 22_250;
+  uint216 public gasPerCardinality = 22_250;
 
   mapping(bytes32 => bool) internal _isPairDenylisted; // key(tokenA, tokenB) => is denylisted
   mapping(bytes32 => address[]) internal _poolsForPair; // key(tokenA, tokenB) => pools
@@ -96,7 +96,7 @@ contract UniswapV3Adapter is AccessControl, SimpleOracle, IUniswapV3Adapter {
   }
 
   /// @inheritdoc IUniswapV3Adapter
-  function setPeriod(uint16 _newPeriod) external onlyRole(ADMIN_ROLE) {
+  function setPeriod(uint32 _newPeriod) external onlyRole(ADMIN_ROLE) {
     if (_newPeriod < MIN_PERIOD || _newPeriod > MAX_PERIOD) revert InvalidPeriod(_newPeriod);
     period = _newPeriod;
     emit PeriodChanged(_newPeriod);
@@ -110,7 +110,7 @@ contract UniswapV3Adapter is AccessControl, SimpleOracle, IUniswapV3Adapter {
   }
 
   /// @inheritdoc IUniswapV3Adapter
-  function setGasPerCardinality(uint32 _gasPerCardinality) external onlyRole(ADMIN_ROLE) {
+  function setGasPerCardinality(uint216 _gasPerCardinality) external onlyRole(ADMIN_ROLE) {
     if (_gasPerCardinality == 0) revert InvalidGasPerCardinality();
     gasPerCardinality = _gasPerCardinality;
     emit GasPerCardinalityChanged(_gasPerCardinality);
@@ -151,15 +151,15 @@ contract UniswapV3Adapter is AccessControl, SimpleOracle, IUniswapV3Adapter {
     // Load to mem to avoid multiple storage reads
     address[] storage _storagePools = _poolsForPair[_pairKey];
     uint256 _poolsPreviouslyInStorage = _storagePools.length;
-    uint32 _gasCostPerCardinality = gasPerCardinality;
+    uint216 _gasCostPerCardinality = gasPerCardinality;
 
-    uint16 _targetCardinality = uint16((uint32(period) * cardinalityPerMinute) / 60) + 1;
+    uint16 _targetCardinality = uint16((period * cardinalityPerMinute) / 60) + 1;
     uint256 _preparedPools;
     for (uint256 i; i < _pools.length; i++) {
       address _pool = _pools[i];
       (, , , , uint16 _currentCardinality, , ) = IUniswapV3Pool(_pool).slot0();
       if (_currentCardinality < _targetCardinality) {
-        uint32 _gasCostToIncreaseAndAddSupport = uint32(_targetCardinality - _currentCardinality) *
+        uint216 _gasCostToIncreaseAndAddSupport = uint216(_targetCardinality - _currentCardinality) *
           _gasCostPerCardinality +
           _FIXED_GAS_COST_TO_SUPPORT_POOL;
         if (_gasCostToIncreaseAndAddSupport > gasleft()) {

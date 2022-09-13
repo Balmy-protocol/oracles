@@ -8,9 +8,9 @@ interface IUniswapV3Adapter is ITokenPriceOracle {
   /// @notice The initial adapter's configuration
   struct InitialConfig {
     IStaticOracle uniswapV3Oracle;
-    uint16 maxPeriod;
-    uint16 minPeriod;
-    uint16 initialPeriod;
+    uint32 maxPeriod;
+    uint32 minPeriod;
+    uint32 initialPeriod;
     address superAdmin;
     address[] initialAdmins;
   }
@@ -37,7 +37,7 @@ interface IUniswapV3Adapter is ITokenPriceOracle {
    * @notice Emitted when a new gas cost per cardinality is set
    * @param gasPerCardinality The new gas per cardinality
    */
-  event GasPerCardinalityChanged(uint32 gasPerCardinality);
+  event GasPerCardinalityChanged(uint216 gasPerCardinality);
 
   /**
    * @notice Emitted when the denylist status is updated for some pairs
@@ -58,7 +58,7 @@ interface IUniswapV3Adapter is ITokenPriceOracle {
   error ZeroAddress();
 
   /// @notice Thrown when trying to set an invalid period
-  error InvalidPeriod(uint16 period);
+  error InvalidPeriod(uint32 period);
 
   /// @notice Thrown when trying to set an invalid cardinality
   error InvalidCardinalityPerMinute();
@@ -84,20 +84,20 @@ interface IUniswapV3Adapter is ITokenPriceOracle {
    * @dev Cannot be modified
    * @return The maximum possible period
    */
-  function MAX_PERIOD() external view returns (uint16);
+  function MAX_PERIOD() external view returns (uint32);
 
   /**
    * @notice Returns the minimum possible period
    * @dev Cannot be modified
    * @return The minimum possible period
    */
-  function MIN_PERIOD() external view returns (uint16);
+  function MIN_PERIOD() external view returns (uint32);
 
   /**
    * @notice Returns the period used for the TWAP calculation
    * @return The period used for the TWAP
    */
-  function period() external view returns (uint16);
+  function period() external view returns (uint32);
 
   /**
    * @notice Returns the cardinality per minute used for adding support to pairs
@@ -109,7 +109,7 @@ interface IUniswapV3Adapter is ITokenPriceOracle {
    * @notice Returns the approximate gas cost per each increased cardinality
    * @return The gas cost per cardinality increase
    */
-  function gasPerCardinality() external view returns (uint32);
+  function gasPerCardinality() external view returns (uint216);
 
   /**
    * @notice Returns whether the given pair is denylisted or not
@@ -137,7 +137,7 @@ interface IUniswapV3Adapter is ITokenPriceOracle {
    *      WARNING: increasing the period could cause big problems, because Uniswap V3 pools might not support a TWAP so old
    * @param newPeriod The new period
    */
-  function setPeriod(uint16 newPeriod) external;
+  function setPeriod(uint32 newPeriod) external;
 
   /**
    * @notice Sets the cardinality per minute to be used when increasing observation cardinality at the moment of adding support for pairs
@@ -154,7 +154,7 @@ interface IUniswapV3Adapter is ITokenPriceOracle {
    *      Can only be called by users with the admin role
    * @param gasPerCardinality The gas cost to set
    */
-  function setGasPerCardinality(uint32 gasPerCardinality) external;
+  function setGasPerCardinality(uint216 gasPerCardinality) external;
 
   /**
    * @notice Sets the denylist status for a set of pairs
