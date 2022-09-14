@@ -2,6 +2,7 @@
 pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/access/AccessControl.sol';
+import './libraries/TokenSorting.sol';
 import './base/BaseOracle.sol';
 import '../interfaces/ITransformerOracle.sol';
 
@@ -22,6 +23,7 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
 
   /// @inheritdoc ITransformerOracle
   mapping(address => bool) public willAvoidMappingToUnderlying;
+  mapping(bytes32 => PairSpecificMappingConfig) internal _pairSpecificMappingConfig;
 
   constructor(
     ITransformerRegistry _registry,
@@ -49,6 +51,11 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
   }
 
   /// @inheritdoc ITransformerOracle
+  function pairSpecificMappingConfig(address _tokenA, address _tokenB) public view virtual returns (PairSpecificMappingConfig memory) {
+    return _pairSpecificMappingConfig[_keyForPair(_tokenA, _tokenB)];
+  }
+
+  /// @inheritdoc ITransformerOracle
   function shouldMapToUnderlying(address[] calldata _dependents) external onlyRole(ADMIN_ROLE) {
     for (uint256 i; i < _dependents.length; i++) {
       willAvoidMappingToUnderlying[_dependents[i]] = false;
@@ -62,6 +69,30 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
       willAvoidMappingToUnderlying[_dependents[i]] = true;
     }
     emit DependentsWillAvoidMappingToUnderlying(_dependents);
+  }
+
+  /// @inheritdoc ITransformerOracle
+  function setPairSpecificMappingConfig(PairSpecificMappingConfigToSet[] calldata _config) external onlyRole(ADMIN_ROLE) {
+    for (uint256 i; i < _config.length; ) {
+      PairSpecificMappingConfigToSet memory _pairConfigToSet = _config[i];
+      // We make sure that the tokens are sorted correctly, of we reverse the config so that it ends up sorted
+      (bytes32 _key, bool _mapTokenAToUnderlying, bool _mapTokenBToUnderlying) = _pairConfigToSet.tokenA < _pairConfigToSet.tokenB
+        ? (
+          _keyForSortedPair(_pairConfigToSet.tokenA, _pairConfigToSet.tokenB),
+          _pairConfigToSet.mapTokenAToUnderlying,
+          _pairConfigToSet.mapTokenBToUnderlying
+        )
+        : (
+          _keyForSortedPair(_pairConfigToSet.tokenB, _pairConfigToSet.tokenA),
+          _pairConfigToSet.mapTokenBToUnderlying,
+          _pairConfigToSet.mapTokenAToUnderlying
+        );
+      _pairSpecificMappingConfig[_key] = PairSpecificMappingConfig(_mapTokenAToUnderlying, _mapTokenBToUnderlying, true);
+      unchecked {
+        i++;
+      }
+    }
+    emit PairSpecificConfigSet(_config);
   }
 
   /// @inheritdoc ITokenPriceOracle
@@ -172,5 +203,14 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
     _underlyingAmount = new ITransformer.UnderlyingAmount[](1);
     _underlyingAmount[0].underlying = _underlying;
     _underlyingAmount[0].amount = _amount;
+  }
+
+  function _keyForPair(address _tokenA, address _tokenB) internal pure returns (bytes32) {
+    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
+    return _keyForSortedPair(__tokenA, __tokenB);
+  }
+
+  function _keyForSortedPair(address _tokenA, address _tokenB) internal pure returns (bytes32) {
+    return keccak256(abi.encodePacked(_tokenA, _tokenB));
   }
 }
