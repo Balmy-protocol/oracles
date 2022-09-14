@@ -13,7 +13,6 @@ contract UniswapV3Adapter is AccessControl, SimpleOracle, IUniswapV3Adapter {
 
   bytes32 public constant SUPER_ADMIN_ROLE = keccak256('SUPER_ADMIN_ROLE');
   bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
-  uint16 private constant _FIXED_GAS_COST_TO_SUPPORT_POOL = 30_000;
 
   /// @inheritdoc IUniswapV3Adapter
   IStaticOracle public immutable UNISWAP_V3_ORACLE;
@@ -27,6 +26,8 @@ contract UniswapV3Adapter is AccessControl, SimpleOracle, IUniswapV3Adapter {
   uint8 public cardinalityPerMinute;
   /// @inheritdoc IUniswapV3Adapter
   uint104 public gasPerCardinality = 22_250;
+  /// @inheritdoc IUniswapV3Adapter
+  uint112 public gasCostToSupportPool = 30_000;
 
   mapping(bytes32 => bool) internal _isPairDenylisted; // key(tokenA, tokenB) => is denylisted
   mapping(bytes32 => address[]) internal _poolsForPair; // key(tokenA, tokenB) => pools
@@ -117,6 +118,13 @@ contract UniswapV3Adapter is AccessControl, SimpleOracle, IUniswapV3Adapter {
   }
 
   /// @inheritdoc IUniswapV3Adapter
+  function setGasCostToSupportPool(uint112 _gasCostToSupportPool) external onlyRole(ADMIN_ROLE) {
+    if (_gasCostToSupportPool == 0) revert InvalidGasCostToSupportPool();
+    gasCostToSupportPool = _gasCostToSupportPool;
+    emit GasCostToSupportPoolChanged(_gasCostToSupportPool);
+  }
+
+  /// @inheritdoc IUniswapV3Adapter
   function setDenylisted(Pair[] calldata _pairs, bool[] calldata _denylisted) external onlyRole(ADMIN_ROLE) {
     if (_pairs.length != _denylisted.length) revert InvalidDenylistParams();
     for (uint256 i; i < _pairs.length; i++) {
@@ -152,6 +160,7 @@ contract UniswapV3Adapter is AccessControl, SimpleOracle, IUniswapV3Adapter {
     address[] storage _storagePools = _poolsForPair[_pairKey];
     uint256 _poolsPreviouslyInStorage = _storagePools.length;
     uint104 _gasCostPerCardinality = gasPerCardinality;
+    uint112 _gasCostToSupportPool = gasCostToSupportPool;
 
     uint16 _targetCardinality = uint16((period * cardinalityPerMinute) / 60) + 1;
     uint256 _preparedPools;
@@ -159,9 +168,9 @@ contract UniswapV3Adapter is AccessControl, SimpleOracle, IUniswapV3Adapter {
       address _pool = _pools[i];
       (, , , , uint16 _currentCardinality, , ) = IUniswapV3Pool(_pool).slot0();
       if (_currentCardinality < _targetCardinality) {
-        uint104 _gasCostToIncreaseAndAddSupport = uint104(_targetCardinality - _currentCardinality) *
+        uint112 _gasCostToIncreaseAndAddSupport = uint112(_targetCardinality - _currentCardinality) *
           _gasCostPerCardinality +
-          _FIXED_GAS_COST_TO_SUPPORT_POOL;
+          _gasCostToSupportPool;
         if (_gasCostToIncreaseAndAddSupport > gasleft()) {
           continue;
         }
