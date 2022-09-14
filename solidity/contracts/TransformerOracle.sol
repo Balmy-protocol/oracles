@@ -95,6 +95,17 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
     emit PairSpecificConfigSet(_config);
   }
 
+  /// @inheritdoc ITransformerOracle
+  function clearPairSpecificMappingConfig(Pair[] calldata _pairs) external onlyRole(ADMIN_ROLE) {
+    for (uint256 i = 0; i < _pairs.length; ) {
+      delete _pairSpecificMappingConfig[_keyForPair(_pairs[i].tokenA, _pairs[i].tokenB)];
+      unchecked {
+        i++;
+      }
+    }
+    emit PairSpecificConfigCleared(_pairs);
+  }
+
   /// @inheritdoc ITokenPriceOracle
   function canSupportPair(address _tokenA, address _tokenB) external view returns (bool) {
     (address _mappedTokenA, address _mappedTokenB) = getMappingForPair(_tokenA, _tokenB);

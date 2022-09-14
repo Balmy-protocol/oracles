@@ -323,6 +323,65 @@ describe('TransformerOracle', () => {
     });
   });
 
+  describe('clearPairSpecificMappingConfig', () => {
+    given(async () => {
+      await transformerOracle
+        .connect(admin)
+        .setPairSpecificMappingConfig([{ tokenA: TOKEN_A, tokenB: TOKEN_B, mapTokenAToUnderlying: true, mapTokenBToUnderlying: false }]);
+    });
+    when('clearing data for a pair', () => {
+      let tx: TransactionResponse;
+      given(async () => {
+        tx = await transformerOracle.connect(admin).clearPairSpecificMappingConfig([{ tokenA: TOKEN_A, tokenB: TOKEN_B }]);
+      });
+      then('the config is cleared', async () => {
+        const { mapTokenAToUnderlying, mapTokenBToUnderlying, isSet } = await transformerOracle.pairSpecificMappingConfig(TOKEN_A, TOKEN_B);
+        expect(mapTokenAToUnderlying).to.be.false;
+        expect(mapTokenBToUnderlying).to.be.false;
+        expect(isSet).to.be.false;
+      });
+      then('event is emitted', async () => {
+        const emitted = await readArgFromEventOrFail<ITransformerOracle.PairSpecificMappingConfigToSetStruct[]>(
+          tx,
+          'PairSpecificConfigCleared',
+          'pairs'
+        );
+        expect(emitted).to.be.lengthOf(1);
+        expect(emitted[0].tokenA).to.equal(TOKEN_A);
+        expect(emitted[0].tokenB).to.equal(TOKEN_B);
+      });
+    });
+    when('clearing data for a pair in reverse order', () => {
+      let tx: TransactionResponse;
+      given(async () => {
+        tx = await transformerOracle.connect(admin).clearPairSpecificMappingConfig([{ tokenA: TOKEN_B, tokenB: TOKEN_A }]);
+      });
+      then('the config is cleared', async () => {
+        const { mapTokenAToUnderlying, mapTokenBToUnderlying, isSet } = await transformerOracle.pairSpecificMappingConfig(TOKEN_A, TOKEN_B);
+        expect(mapTokenAToUnderlying).to.be.false;
+        expect(mapTokenBToUnderlying).to.be.false;
+        expect(isSet).to.be.false;
+      });
+      then('event is emitted', async () => {
+        const emitted = await readArgFromEventOrFail<ITransformerOracle.PairSpecificMappingConfigToSetStruct[]>(
+          tx,
+          'PairSpecificConfigCleared',
+          'pairs'
+        );
+        expect(emitted).to.be.lengthOf(1);
+        expect(emitted[0].tokenA).to.equal(TOKEN_B);
+        expect(emitted[0].tokenB).to.equal(TOKEN_A);
+      });
+    });
+    behaviours.shouldBeExecutableOnlyByRole({
+      contract: () => transformerOracle,
+      funcAndSignature: 'clearPairSpecificMappingConfig',
+      params: [[]],
+      addressWithRole: () => admin,
+      role: () => adminRole,
+    });
+  });
+
   executeRedirectTest({
     func: 'canSupportPair',
     params: (mappedTokenA, mappedTokenB) => [mappedTokenA, mappedTokenB],
