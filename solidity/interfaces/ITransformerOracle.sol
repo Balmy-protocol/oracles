@@ -93,7 +93,8 @@ interface ITransformerOracle is ITokenPriceOracle {
 
   /**
    * @notice Takes a pair of tokens, and maps them to their underlying counterparts if they exist, and if they
-   *         haven't been configured to avoid mapping
+   *         haven't been configured to avoid mapping. Pair-specific config will be prioritized, but if it isn't
+   *         set, then global config will be used.
    * @param tokenA One of the pair's tokens
    * @param tokenB The other of the pair's tokens
    * @return mappedTokenA tokenA's underlying token, if exists and isn't configured to avoid mapping.
