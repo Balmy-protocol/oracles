@@ -37,7 +37,7 @@ interface IUniswapV3Adapter is ITokenPriceOracle {
    * @notice Emitted when a new gas cost per cardinality is set
    * @param gasPerCardinality The new gas per cardinality
    */
-  event GasPerCardinalityChanged(uint216 gasPerCardinality);
+  event GasPerCardinalityChanged(uint104 gasPerCardinality);
 
   /**
    * @notice Emitted when the denylist status is updated for some pairs
@@ -109,7 +109,7 @@ interface IUniswapV3Adapter is ITokenPriceOracle {
    * @notice Returns the approximate gas cost per each increased cardinality
    * @return The gas cost per cardinality increase
    */
-  function gasPerCardinality() external view returns (uint216);
+  function gasPerCardinality() external view returns (uint104);
 
   /**
    * @notice Returns whether the given pair is denylisted or not
@@ -154,7 +154,7 @@ interface IUniswapV3Adapter is ITokenPriceOracle {
    *      Can only be called by users with the admin role
    * @param gasPerCardinality The gas cost to set
    */
-  function setGasPerCardinality(uint216 gasPerCardinality) external;
+  function setGasPerCardinality(uint104 gasPerCardinality) external;
 
   /**
    * @notice Sets the denylist status for a set of pairs
