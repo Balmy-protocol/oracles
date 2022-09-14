@@ -23,7 +23,7 @@ import { TransactionResponse } from '@ethersproject/providers';
 
 chai.use(smock.matchers);
 
-describe('TransformerOracle', () => {
+describe.only('TransformerOracle', () => {
   const TOKEN_A = '0x0000000000000000000000000000000000000001';
   const TOKEN_B = '0x0000000000000000000000000000000000000002';
   const UNDERLYING_TOKEN_A = '0x0000000000000000000000000000000000000003';
@@ -469,8 +469,8 @@ describe('TransformerOracle', () => {
         await transformerOracle.connect(admin).avoidMappingToUnderlying([TOKEN_A, TOKEN_B]);
         transformers = await transformerOracle.internalGetTransformers(TOKEN_A, TOKEN_B);
       });
-      then('registry is never called', () => {
-        expect(registry.transformers).to.not.have.been.called;
+      then('registry is called correctly', () => {
+        expect(registry.transformers).to.have.been.calledOnceWith([TOKEN_A, TOKEN_B]);
       });
       then('zero addresses are returned', () => {
         expect(transformers).to.eql([constants.AddressZero, constants.AddressZero]);
@@ -482,8 +482,8 @@ describe('TransformerOracle', () => {
         await transformerOracle.connect(admin).avoidMappingToUnderlying([TOKEN_A]);
         transformers = await transformerOracle.internalGetTransformers(TOKEN_A, TOKEN_B);
       });
-      then('registry is called for tokenB', () => {
-        expect(registry.transformers).to.have.been.calledOnceWith([TOKEN_B]);
+      then('registry is called correctly', () => {
+        expect(registry.transformers).to.have.been.calledOnceWith([TOKEN_A, TOKEN_B]);
       });
       then('tokenB is mapped', () => {
         expect(transformers).to.eql([constants.AddressZero, UNDERLYING_TOKEN_B]);
@@ -495,8 +495,8 @@ describe('TransformerOracle', () => {
         await transformerOracle.connect(admin).avoidMappingToUnderlying([TOKEN_B]);
         transformers = await transformerOracle.internalGetTransformers(TOKEN_A, TOKEN_B);
       });
-      then('registry is called for tokenA', () => {
-        expect(registry.transformers).to.have.been.calledOnceWith([TOKEN_A]);
+      then('registry is called correctly', () => {
+        expect(registry.transformers).to.have.been.calledOnceWith([TOKEN_A, TOKEN_B]);
       });
       then('tokenA is mapped', () => {
         expect(transformers).to.eql([UNDERLYING_TOKEN_A, constants.AddressZero]);
@@ -507,7 +507,7 @@ describe('TransformerOracle', () => {
       given(async () => {
         transformers = await transformerOracle.internalGetTransformers(TOKEN_A, TOKEN_B);
       });
-      then('registry is called for tokenA and tokenB', () => {
+      then('registry is called correctly', () => {
         expect(registry.transformers).to.have.been.calledOnceWith([TOKEN_A, TOKEN_B]);
       });
       then('both tokens are mapped', () => {
