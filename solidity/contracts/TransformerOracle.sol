@@ -73,7 +73,7 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
 
   /// @inheritdoc ITransformerOracle
   function setPairSpecificMappingConfig(PairSpecificMappingConfigToSet[] calldata _config) external onlyRole(ADMIN_ROLE) {
-    for (uint256 i; i < _config.length; ) {
+    for (uint256 i = 0; i < _config.length; ) {
       PairSpecificMappingConfigToSet memory _pairConfigToSet = _config[i];
       // We make sure that the tokens are sorted correctly, of we reverse the config so that it ends up sorted
       (bytes32 _key, bool _mapTokenAToUnderlying, bool _mapTokenBToUnderlying) = _pairConfigToSet.tokenA < _pairConfigToSet.tokenB
