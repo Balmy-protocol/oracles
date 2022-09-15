@@ -197,12 +197,29 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
     _transformerTokenA = _transformers[0];
     _transformerTokenB = _transformers[1];
 
-    if (address(_transformerTokenA) != address(0) && willAvoidMappingToUnderlying[_tokenA]) {
-      _transformerTokenA = ITransformer(address(0));
-    }
+    bool _tokenAHasTransformer = address(_transformerTokenA) != address(0);
+    bool _tokenBHasTransformer = address(_transformerTokenB) != address(0);
 
-    if (address(_transformerTokenB) != address(0) && willAvoidMappingToUnderlying[_tokenB]) {
-      _transformerTokenB = ITransformer(address(0));
+    if (_tokenAHasTransformer || _tokenBHasTransformer) {
+      bool _avoidMappingTokenA = false;
+      bool _avoidMappingTokenB = false;
+
+      PairSpecificMappingConfig memory _config = pairSpecificMappingConfig(_tokenA, _tokenB);
+      if (_config.isSet) {
+        _avoidMappingTokenA = _tokenAHasTransformer && (_tokenA < _tokenB ? !_config.mapTokenAToUnderlying : !_config.mapTokenBToUnderlying);
+        _avoidMappingTokenB = _tokenBHasTransformer && (_tokenA < _tokenB ? !_config.mapTokenBToUnderlying : !_config.mapTokenAToUnderlying);
+      } else {
+        _avoidMappingTokenA = _tokenAHasTransformer && willAvoidMappingToUnderlying[_tokenA];
+        _avoidMappingTokenB = _tokenBHasTransformer && willAvoidMappingToUnderlying[_tokenB];
+      }
+
+      if (_avoidMappingTokenA) {
+        _transformerTokenA = ITransformer(address(0));
+      }
+
+      if (_avoidMappingTokenB) {
+        _transformerTokenB = ITransformer(address(0));
+      }
     }
   }
 
