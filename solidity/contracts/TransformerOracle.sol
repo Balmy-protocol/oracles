@@ -86,25 +86,22 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
     ITransformer[] memory _transformers = _getTransformers(_tokenIn, _tokenOut);
     ITransformer _transformerTokenIn = _transformers[0];
     ITransformer _transformerTokenOut = _transformers[1];
-    if (address(_transformerTokenIn) != address(0) && address(_transformerTokenOut) != address(0)) {
-      // If both tokens have a transformer, then we need to transform both in and out data
-      ITransformer.UnderlyingAmount[] memory _transformedIn = _transformerTokenIn.calculateTransformToUnderlying(_tokenIn, _amountIn);
-      address[] memory _underlyingOut = _transformerTokenOut.getUnderlying(_tokenOut);
-      uint256 _amountOutUnderlying = UNDERLYING_ORACLE.quote(_transformedIn[0].underlying, _transformedIn[0].amount, _underlyingOut[0], _data);
-      return _transformerTokenOut.calculateTransformToDependent(_tokenOut, _toUnderlyingAmount(_underlyingOut[0], _amountOutUnderlying));
-    } else if (address(_transformerTokenIn) != address(0)) {
+
+    if (address(_transformerTokenIn) != address(0)) {
       // If token in has a transformer, then calculate how much amount it would be in underlying, and calculate the quote for that
       ITransformer.UnderlyingAmount[] memory _transformedIn = _transformerTokenIn.calculateTransformToUnderlying(_tokenIn, _amountIn);
-      return UNDERLYING_ORACLE.quote(_transformedIn[0].underlying, _transformedIn[0].amount, _tokenOut, _data);
-    } else if (address(_transformerTokenOut) != address(0)) {
+      _tokenIn = _transformedIn[0].underlying;
+      _amountIn = _transformedIn[0].amount;
+    }
+
+    if (address(_transformerTokenOut) != address(0)) {
       // If token out has a transformer, then calculate the quote for the underlying and then transform the result
       address[] memory _underlyingOut = _transformerTokenOut.getUnderlying(_tokenOut);
       uint256 _amountOutUnderlying = UNDERLYING_ORACLE.quote(_tokenIn, _amountIn, _underlyingOut[0], _data);
       return _transformerTokenOut.calculateTransformToDependent(_tokenOut, _toUnderlyingAmount(_underlyingOut[0], _amountOutUnderlying));
-    } else {
-      // If there are no transformers, then just call the underlying oracle
-      return UNDERLYING_ORACLE.quote(_tokenIn, _amountIn, _tokenOut, _data);
     }
+
+    return UNDERLYING_ORACLE.quote(_tokenIn, _amountIn, _tokenOut, _data);
   }
 
   /// @inheritdoc ITokenPriceOracle
