@@ -40,6 +40,12 @@ interface IUniswapV3Adapter is ITokenPriceOracle {
   event GasPerCardinalityChanged(uint104 gasPerCardinality);
 
   /**
+   * @notice Emitted when a new gas cost to support pools is set
+   * @param gasCostToSupportPool The new gas cost
+   */
+  event GasCostToSupportPoolChanged(uint112 gasCostToSupportPool);
+
+  /**
    * @notice Emitted when the denylist status is updated for some pairs
    * @param pairs The pairs that were updated
    * @param denylisted Whether they will be denylisted or not
@@ -65,6 +71,9 @@ interface IUniswapV3Adapter is ITokenPriceOracle {
 
   /// @notice Thrown when trying to set an invalid gas cost per cardinality
   error InvalidGasPerCardinality();
+
+  /// @notice Thrown when trying to set an invalid gas cost to support a pools
+  error InvalidGasCostToSupportPool();
 
   /// @notice Thrown when trying to set a denylist but the given parameters are invalid
   error InvalidDenylistParams();
@@ -112,6 +121,12 @@ interface IUniswapV3Adapter is ITokenPriceOracle {
   function gasPerCardinality() external view returns (uint104);
 
   /**
+   * @notice Returns the approximate gas cost to add support for a new pool internally
+   * @return The gas cost to support a new pool
+   */
+  function gasCostToSupportPool() external view returns (uint112);
+
+  /**
    * @notice Returns whether the given pair is denylisted or not
    * @param tokenA One of the pair's tokens
    * @param tokenB The other of the pair's tokens
@@ -155,6 +170,14 @@ interface IUniswapV3Adapter is ITokenPriceOracle {
    * @param gasPerCardinality The gas cost to set
    */
   function setGasPerCardinality(uint104 gasPerCardinality) external;
+
+  /**
+   * @notice Sets the gas cost to support a new pool
+   * @dev Will revert if the given gas cost is zero
+   *      Can only be called by users with the admin role
+   * @param gasCostToSupportPool The gas cost to set
+   */
+  function setGasCostToSupportPool(uint112 gasCostToSupportPool) external;
 
   /**
    * @notice Sets the denylist status for a set of pairs

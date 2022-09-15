@@ -524,6 +524,38 @@ describe('UniswapV3Adapter', () => {
     });
   });
 
+  describe('setGasCostToSupportPool', () => {
+    when('gas cost  is zero', () => {
+      then('tx is reverted with reason error', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: adapter.connect(admin),
+          func: 'setGasCostToSupportPool',
+          args: [0],
+          message: 'InvalidGasCostToSupportPool',
+        });
+      });
+    });
+    when('a valid gas cost is provided', () => {
+      let tx: TransactionResponse;
+      given(async () => {
+        tx = await adapter.connect(admin).setGasCostToSupportPool(5000);
+      });
+      then('gas cost is updated', async () => {
+        expect(await adapter.gasCostToSupportPool()).to.equal(5000);
+      });
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(adapter, 'GasCostToSupportPoolChanged').withArgs(5000);
+      });
+    });
+    shouldBeExecutableOnlyByRole({
+      contract: () => adapter,
+      funcAndSignature: 'setGasCostToSupportPool',
+      params: [10],
+      addressWithRole: () => admin,
+      role: () => adminRole,
+    });
+  });
+
   describe('setDenylisted', () => {
     when('parameters are invalid', () => {
       then('tx is reverted with reason error', async () => {
