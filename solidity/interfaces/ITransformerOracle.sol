@@ -35,6 +35,14 @@ interface ITransformerOracle is ITokenPriceOracle {
     bool mapTokenBToUnderlying;
   }
 
+  /// @notice A pair of tokens
+  struct Pair {
+    // One of the pair's tokens
+    address tokenA;
+    // The other of the pair's tokens
+    address tokenB;
+  }
+
   /// @notice Thrown when a parameter is the zero address
   error ZeroAddress();
 
@@ -55,6 +63,12 @@ interface ITransformerOracle is ITokenPriceOracle {
    * @param config The config that was set
    */
   event PairSpecificConfigSet(PairSpecificMappingConfigToSet[] config);
+
+  /**
+   * @notice Emitted when dependents pair-specific mapping config is cleared
+   * @param pairs The pairs that had their config cleared
+   */
+  event PairSpecificConfigCleared(Pair[] pairs);
 
   /**
    * @notice Returns the address of the transformer registry
@@ -117,4 +131,10 @@ interface ITransformerOracle is ITokenPriceOracle {
    * @param config A list of pairs to configure
    */
   function setPairSpecificMappingConfig(PairSpecificMappingConfigToSet[] calldata config) external;
+
+  /**
+   * @notice Cleares any pair-specific mapping config for the given list of pairs
+   * @param pairs The pairs that will have their config cleared
+   */
+  function clearPairSpecificMappingConfig(Pair[] calldata pairs) external;
 }
