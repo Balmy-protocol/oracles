@@ -33,14 +33,23 @@ contract TransformerOracleMock is TransformerOracle {
     _transformersForPair[_tokenA][_tokenB] = [_transformerTokenA, _transformerTokenB];
   }
 
-  function internalGetTransformers(address _tokenA, address _tokenB) external view returns (ITransformer[] memory) {
+  function internalGetTransformers(address _tokenA, address _tokenB)
+    external
+    view
+    returns (ITransformer _transformerTokenA, ITransformer _transformerTokenB)
+  {
     return _getTransformers(_tokenA, _tokenB);
   }
 
-  function _getTransformers(address _tokenA, address _tokenB) internal view override returns (ITransformer[] memory) {
+  function _getTransformers(address _tokenA, address _tokenB)
+    internal
+    view
+    override
+    returns (ITransformer _transformerTokenA, ITransformer _transformerTokenB)
+  {
     ITransformer[] memory _transformers = _transformersForPair[_tokenA][_tokenB];
     if (_transformers.length > 0) {
-      return _transformers;
+      return (_transformers[0], _transformers[1]);
     } else {
       return super._getTransformers(_tokenA, _tokenB);
     }
