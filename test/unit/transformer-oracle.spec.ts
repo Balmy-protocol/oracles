@@ -16,10 +16,12 @@ import {
   ITransformer,
   IAccessControl__factory,
 } from '@typechained';
+import { ITransformerOracle } from 'typechained/solidity/contracts/TransformerOracle';
 import { snapshot } from '@utils/evm';
 import { smock, FakeContract } from '@defi-wonderland/smock';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { TransactionResponse } from '@ethersproject/providers';
+import { readArgFromEventOrFail } from '@utils/event-utils';
 
 chai.use(smock.matchers);
 
@@ -242,6 +244,80 @@ describe('TransformerOracle', () => {
       contract: () => transformerOracle,
       funcAndSignature: 'shouldMapToUnderlying',
       params: [[TOKEN_A]],
+      addressWithRole: () => admin,
+      role: () => adminRole,
+    });
+  });
+
+  describe('setPairSpecificMappingConfig', () => {
+    when('setting a pair-specific config', () => {
+      let tx: TransactionResponse;
+      given(async () => {
+        tx = await transformerOracle
+          .connect(admin)
+          .setPairSpecificMappingConfig([{ tokenA: TOKEN_A, tokenB: TOKEN_B, mapTokenAToUnderlying: true, mapTokenBToUnderlying: false }]);
+      });
+      then('checking the config returns the correct value', async () => {
+        const { mapTokenAToUnderlying, mapTokenBToUnderlying, isSet } = await transformerOracle.pairSpecificMappingConfig(TOKEN_A, TOKEN_B);
+        expect(mapTokenAToUnderlying).to.be.true;
+        expect(mapTokenBToUnderlying).to.be.false;
+        expect(isSet).to.be.true;
+      });
+      then('checking the config with reverse order returns the correct value', async () => {
+        const { mapTokenAToUnderlying, mapTokenBToUnderlying, isSet } = await transformerOracle.pairSpecificMappingConfig(TOKEN_B, TOKEN_A);
+        expect(mapTokenAToUnderlying).to.be.true;
+        expect(mapTokenBToUnderlying).to.be.false;
+        expect(isSet).to.be.true;
+      });
+      then('event is emitted', async () => {
+        const emitted = await readArgFromEventOrFail<ITransformerOracle.PairSpecificMappingConfigToSetStruct[]>(
+          tx,
+          'PairSpecificConfigSet',
+          'config'
+        );
+        expect(emitted).to.be.lengthOf(1);
+        expect(emitted[0].tokenA).to.equal(TOKEN_A);
+        expect(emitted[0].tokenB).to.equal(TOKEN_B);
+        expect(emitted[0].mapTokenAToUnderlying).to.equal(true);
+        expect(emitted[0].mapTokenBToUnderlying).to.equal(false);
+      });
+    });
+    when('setting a pair-specific config with reverse order', () => {
+      let tx: TransactionResponse;
+      given(async () => {
+        tx = await transformerOracle
+          .connect(admin)
+          .setPairSpecificMappingConfig([{ tokenA: TOKEN_B, tokenB: TOKEN_A, mapTokenAToUnderlying: false, mapTokenBToUnderlying: true }]);
+      });
+      then('checking the config returns the correct value', async () => {
+        const { mapTokenAToUnderlying, mapTokenBToUnderlying, isSet } = await transformerOracle.pairSpecificMappingConfig(TOKEN_A, TOKEN_B);
+        expect(mapTokenAToUnderlying).to.be.true;
+        expect(mapTokenBToUnderlying).to.be.false;
+        expect(isSet).to.be.true;
+      });
+      then('checking the config with reverse order returns the correct value', async () => {
+        const { mapTokenAToUnderlying, mapTokenBToUnderlying, isSet } = await transformerOracle.pairSpecificMappingConfig(TOKEN_B, TOKEN_A);
+        expect(mapTokenAToUnderlying).to.be.true;
+        expect(mapTokenBToUnderlying).to.be.false;
+        expect(isSet).to.be.true;
+      });
+      then('event is emitted', async () => {
+        const emitted = await readArgFromEventOrFail<ITransformerOracle.PairSpecificMappingConfigToSetStruct[]>(
+          tx,
+          'PairSpecificConfigSet',
+          'config'
+        );
+        expect(emitted).to.be.lengthOf(1);
+        expect(emitted[0].tokenA).to.equal(TOKEN_B);
+        expect(emitted[0].tokenB).to.equal(TOKEN_A);
+        expect(emitted[0].mapTokenAToUnderlying).to.equal(false);
+        expect(emitted[0].mapTokenBToUnderlying).to.equal(true);
+      });
+    });
+    behaviours.shouldBeExecutableOnlyByRole({
+      contract: () => transformerOracle,
+      funcAndSignature: 'setPairSpecificMappingConfig',
+      params: [[]],
       addressWithRole: () => admin,
       role: () => adminRole,
     });

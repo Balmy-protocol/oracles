@@ -13,6 +13,28 @@ import './ITokenPriceOracle.sol';
  *         quote the underlyings.
  */
 interface ITransformerOracle is ITokenPriceOracle {
+  /// @notice How a specific pair will be mapped to their underlying tokens
+  struct PairSpecificMappingConfig {
+    // Whether tokenA will be mapped to its underlying (tokenA < tokenB)
+    bool mapTokenAToUnderlying;
+    // Whether tokenB will be mapped to its underlying (tokenA < tokenB)
+    bool mapTokenBToUnderlying;
+    // Whether the config is set
+    bool isSet;
+  }
+
+  /// @notice Pair-specifig mapping configuration to set
+  struct PairSpecificMappingConfigToSet {
+    // One of the pair's tokens
+    address tokenA;
+    // The other of the pair's tokens
+    address tokenB;
+    // Whether to map tokenA to its underlying
+    bool mapTokenAToUnderlying;
+    // Whether to map tokenB to its underlying
+    bool mapTokenBToUnderlying;
+  }
+
   /// @notice Thrown when a parameter is the zero address
   error ZeroAddress();
 
@@ -27,6 +49,12 @@ interface ITransformerOracle is ITokenPriceOracle {
    * @param dependents The tokens that will map to underlying
    */
   event DependentsWillMapToUnderlying(address[] dependents);
+
+  /**
+   * @notice Emitted when dependents pair-specific mapping config is set
+   * @param config The config that was set
+   */
+  event PairSpecificConfigSet(PairSpecificMappingConfigToSet[] config);
 
   /**
    * @notice Returns the address of the transformer registry
@@ -62,6 +90,14 @@ interface ITransformerOracle is ITokenPriceOracle {
   function getMappingForPair(address tokenA, address tokenB) external view returns (address mappedTokenA, address mappedTokenB);
 
   /**
+   * @notice Returns any pair-specific mapping configuration for the given tokens
+   * @dev tokenA and tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order
+   * @param tokenA One of the pair's tokens
+   * @param tokenB The other of the pair's tokens
+   */
+  function pairSpecificMappingConfig(address tokenA, address tokenB) external view returns (PairSpecificMappingConfig memory);
+
+  /**
    * @notice Determines that the given dependents will avoid mapping to their underlying counterparts, and
    *         instead perform quotes with their own addreses. This comes in handy with situations such as
    *         ETH/WETH, where some oracles use WETH instead of ETH
@@ -75,4 +111,10 @@ interface ITransformerOracle is ITokenPriceOracle {
    * @param dependents The dependent tokens that should go back to mapping to underlying
    */
   function shouldMapToUnderlying(address[] calldata dependents) external;
+
+  /**
+   * @notice Determines how the given pairs should be mapped to their underlying tokens
+   * @param config A list of pairs to configure
+   */
+  function setPairSpecificMappingConfig(PairSpecificMappingConfigToSet[] calldata config) external;
 }
