@@ -3,11 +3,12 @@ import { evm, wallet } from '@utils';
 import { UniswapV3Adapter } from '@typechained';
 import { constants } from 'ethers';
 import { DeterministicFactory, DeterministicFactory__factory } from '@mean-finance/deterministic-factory';
+import { address as DETERMINISTIC_FACTORY_ADDRESS } from '@mean-finance/deterministic-factory/deployments/optimism/DeterministicFactory.json';
 import { expect } from 'chai';
 import { given, then, when } from '@utils/bdd';
 import { snapshot } from '@utils/evm';
 
-const BLOCK_NUMBER = 13838662;
+const BLOCK_NUMBER = 24283642;
 const BYTES = '0xf2c047db4a7cf81f935c'; // Some random bytes
 
 const DAI = '0xda10009cbd5d07dd0cecc66161fc93d7c9000da1';
@@ -46,13 +47,13 @@ describe('Uniswap v3 Add Support - Gas Test', () => {
       network: chain,
       blockNumber,
     });
-    const { deployer: deployerAddress, eoaAdmin } = await getNamedAccounts();
+    const { deployer: deployerAddress, msig } = await getNamedAccounts();
     // Give deployer role to our deployer address
-    const admin = await wallet.impersonate(eoaAdmin);
+    const admin = await wallet.impersonate(msig);
     await wallet.setBalance({ account: admin._address, balance: constants.MaxUint256 });
     const deterministicFactory = await ethers.getContractAt<DeterministicFactory>(
       DeterministicFactory__factory.abi,
-      '0xbb681d77506df5CA21D2214ab3923b4C056aa3e2'
+      DETERMINISTIC_FACTORY_ADDRESS
     );
     await deterministicFactory.connect(admin).grantRole(await deterministicFactory.DEPLOYER_ROLE(), deployerAddress);
   }

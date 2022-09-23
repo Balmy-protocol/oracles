@@ -6,11 +6,12 @@ import { BaseOracle, ITokenPriceOracle__factory, Multicall__factory, OracleAggre
 import { convertPriceToBigNumberWithDecimals, getTokenData } from '../utils/defillama';
 import { BigNumber, constants, utils } from 'ethers';
 import { DeterministicFactory, DeterministicFactory__factory, IERC165__factory, IERC20__factory } from '@mean-finance/deterministic-factory';
+import { address as DETERMINISTIC_FACTORY_ADDRESS } from '@mean-finance/deterministic-factory/deployments/optimism/DeterministicFactory.json';
 import { ChainlinkRegistry } from '@mean-finance/chainlink-registry';
 import { snapshot } from '@utils/evm';
 
 const CHAIN = 'optimism';
-const BLOCK_NUMBER = 12350000;
+const BLOCK_NUMBER = 24283642;
 const BYTES = '0xf2c047db4a7cf81f935c'; // Some random bytes
 
 const UNI = '0x6fd9d7AD17242c41f7131d257212c54A0e816691';
@@ -279,13 +280,13 @@ describe('Comprehensive Oracle Test', () => {
       blockNumber,
     });
 
-    const { deployer, eoaAdmin } = await getNamedAccounts();
+    const { deployer, msig } = await getNamedAccounts();
     // Give deployer role to our deployer address
-    const admin = await wallet.impersonate(eoaAdmin);
+    const admin = await wallet.impersonate(msig);
     await wallet.setBalance({ account: admin._address, balance: constants.MaxUint256 });
     const deterministicFactory = await ethers.getContractAt<DeterministicFactory>(
       DeterministicFactory__factory.abi,
-      '0xbb681d77506df5CA21D2214ab3923b4C056aa3e2'
+      DETERMINISTIC_FACTORY_ADDRESS
     );
     await deterministicFactory.connect(admin).grantRole(await deterministicFactory.DEPLOYER_ROLE(), deployer);
   }

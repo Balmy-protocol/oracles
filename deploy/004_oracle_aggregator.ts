@@ -14,7 +14,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   await deployThroughDeterministicFactory({
     deployer,
     name: 'OracleAggregator',
-    salt: 'MF-Oracle-Aggregator-V2',
+    salt: 'MF-Oracle-Aggregator-V1',
     contract: 'solidity/contracts/OracleAggregator.sol:OracleAggregator',
     bytecode,
     constructorArgs: {

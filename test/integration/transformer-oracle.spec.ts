@@ -3,13 +3,14 @@ import { evm, wallet } from '@utils';
 import { TransformerOracle } from '@typechained';
 import { BigNumber, BytesLike, constants, utils } from 'ethers';
 import { DeterministicFactory, DeterministicFactory__factory } from '@mean-finance/deterministic-factory';
+import { address as DETERMINISTIC_FACTORY_ADDRESS } from '@mean-finance/deterministic-factory/deployments/ethereum/DeterministicFactory.json';
 import { ProtocolTokenWrapperTransformer, TransformerRegistry } from '@mean-finance/transformers';
 import { expect } from 'chai';
 import { given, then, when } from '@utils/bdd';
 import { snapshot } from '@utils/evm';
 import { convertPriceToBigNumberWithDecimals, getTokenData } from '@utils/defillama';
 
-const BLOCK_NUMBER = 15321801;
+const BLOCK_NUMBER = 15583285;
 const EMPTY_BYTES: BytesLike = [];
 
 const DAI = '0x6b175474e89094c44da98b954eedeac495271d0f';
@@ -88,13 +89,13 @@ describe('TransformerOracle', () => {
       network: chain,
       blockNumber,
     });
-    const { deployer: deployerAddress, eoaAdmin } = await getNamedAccounts();
+    const { deployer: deployerAddress } = await getNamedAccounts();
     // Give deployer role to our deployer address
-    const admin = await wallet.impersonate(eoaAdmin);
+    const admin = await wallet.impersonate('0xEC864BE26084ba3bbF3cAAcF8F6961A9263319C4');
     await wallet.setBalance({ account: admin._address, balance: constants.MaxUint256 });
     const deterministicFactory = await ethers.getContractAt<DeterministicFactory>(
       DeterministicFactory__factory.abi,
-      '0xbb681d77506df5CA21D2214ab3923b4C056aa3e2'
+      DETERMINISTIC_FACTORY_ADDRESS
     );
     await deterministicFactory.connect(admin).grantRole(await deterministicFactory.DEPLOYER_ROLE(), deployerAddress);
   }

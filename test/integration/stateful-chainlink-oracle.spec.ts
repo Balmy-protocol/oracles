@@ -6,6 +6,7 @@ import { contract, given, then, when } from '@utils/bdd';
 import { expect } from 'chai';
 import { convertPriceToBigNumberWithDecimals, getPrice } from '@utils/defillama';
 import { DeterministicFactory, DeterministicFactory__factory } from '@mean-finance/deterministic-factory';
+import { address as DETERMINISTIC_FACTORY_ADDRESS } from '@mean-finance/deterministic-factory/deployments/ethereum/DeterministicFactory.json';
 
 let oracle: StatefulChainlinkOracle;
 
@@ -86,28 +87,29 @@ const PLANS: { tokenIn: Token; tokenOut: Token }[][] = [
   ],
 ];
 
-const TRESHOLD_PERCENTAGE = 2.5; // In mainnet, max threshold is usually 2%, but since we are combining pairs, it can sometimes be a little higher
+const TRESHOLD_PERCENTAGE = 3; // In mainnet, max threshold is usually 2%, but since we are combining pairs, it can sometimes be a little higher
+const BLOCK_NUMBER = 15591000;
 
-contract('StatefulChainlinkOracle', () => {
+contract.only('StatefulChainlinkOracle', () => {
   before(async () => {
     // Set fork of network
     await evm.reset({
       network: 'ethereum',
-      blockNumber: 14783400,
+      blockNumber: BLOCK_NUMBER,
     });
 
-    const { eoaAdmin, msig, deployer } = await getNamedAccounts();
-    const deploymentAdmin = await wallet.impersonate(eoaAdmin);
+    const { deployer, msig } = await getNamedAccounts();
     const admin = await wallet.impersonate(msig);
-    await wallet.setBalance({ account: eoaAdmin, balance: utils.parseEther('10') });
-    await wallet.setBalance({ account: msig, balance: utils.parseEther('10') });
+    const ethMsig = await wallet.impersonate('0xEC864BE26084ba3bbF3cAAcF8F6961A9263319C4');
+    await wallet.setBalance({ account: admin._address, balance: utils.parseEther('10') });
+    await wallet.setBalance({ account: ethMsig._address, balance: utils.parseEther('10') });
 
     const deterministicFactory = await ethers.getContractAt<DeterministicFactory>(
       DeterministicFactory__factory.abi,
-      '0xbb681d77506df5CA21D2214ab3923b4C056aa3e2'
+      DETERMINISTIC_FACTORY_ADDRESS
     );
 
-    await deterministicFactory.connect(deploymentAdmin).grantRole(await deterministicFactory.DEPLOYER_ROLE(), deployer);
+    await deterministicFactory.connect(ethMsig).grantRole(await deterministicFactory.DEPLOYER_ROLE(), deployer);
     await deployments.run(['ChainlinkFeedRegistry', 'StatefulChainlinkOracle'], {
       resetMemory: true,
       deletePreviousDeployments: false,
@@ -192,7 +194,8 @@ async function getPriceBetweenTokens(tokenA: Token, tokenB: Token) {
 let priceCache: Map<string, number> = new Map();
 async function fetchPrice(address: string): Promise<number> {
   if (!priceCache.has(address)) {
-    const price = await getPrice('ethereum', address, 1652664896);
+    const { timestamp } = await ethers.provider.getBlock(BLOCK_NUMBER);
+    const price = await getPrice('ethereum', address, timestamp);
     priceCache.set(address, price);
   }
   return priceCache.get(address)!;
