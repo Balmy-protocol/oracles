@@ -5,6 +5,24 @@ import { DeployFunction } from '@0xged/hardhat-deploy/dist/types';
 import moment from 'moment';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+  const supportedNetworks = [
+    'ethereum-rinkeby',
+    'ethereum-kovan',
+    'ethereum-goerli',
+    'ethereum',
+    'optimism',
+    'optimism-kovan',
+    'optimism-goerli',
+    'arbitrum',
+    'arbitrum-rinkeby',
+    'polygon',
+    'polygon-mumbai',
+  ];
+
+  if (!supportedNetworks.includes(hre.deployments.getNetworkName().toLowerCase())) {
+    return;
+  }
+
   const { deployer, msig } = await hre.getNamedAccounts();
 
   const minimumPeriod = moment.duration('5', 'minutes').as('seconds');

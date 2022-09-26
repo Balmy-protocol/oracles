@@ -8,8 +8,11 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 
   const identityOracle = await hre.deployments.get('IdentityOracle');
   const chainlinOracle = await hre.deployments.get('StatefulChainlinkOracle');
-  const uniswapAdapter = await hre.deployments.get('UniswapV3Adapter');
-  const oracles = [identityOracle.address, chainlinOracle.address, uniswapAdapter.address];
+  const uniswapAdapter = await hre.deployments.getOrNull('UniswapV3Adapter');
+  const oracles = [identityOracle.address, chainlinOracle.address];
+  if (uniswapAdapter) {
+    oracles.push(uniswapAdapter.address);
+  }
 
   await deployThroughDeterministicFactory({
     deployer,

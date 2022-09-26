@@ -1,6 +1,6 @@
 {
   "name": "@mean-finance/oracles",
-  "version": "2.0.0-rc8",
+  "version": "2.0.0",
   "description": "Mean Oracles",
   "keywords": [
     "ethereum",
@@ -84,7 +84,8 @@
     "@mean-finance/transformers": "1.0.0-rc11",
     "@mean-finance/uniswap-v3-oracle": "1.0.0",
     "@openzeppelin/contracts": "4.7.3",
-    "@uniswap/v3-core": "1.0.1"
+    "@uniswap/v3-core": "1.0.1",
+    "moment": "2.29.3"
   },
   "devDependencies": {
     "@codechecks/client": "0.1.12",
@@ -118,7 +119,6 @@
     "lint-staged": "12.4.1",
     "lodash": "4.17.21",
     "mocha": "10.0.0",
-    "moment": "2.29.3",
     "pinst": "3.0.0",
     "prettier": "2.6.2",
     "prettier-plugin-solidity": "1.0.0-beta.19",
