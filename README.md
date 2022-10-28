@@ -8,19 +8,22 @@ This repository will hold all Mean Finance's oracle infrastructure. It aims to h
 
 Some of this is achieved by leveraging already existing oracles like [Uniswap V3 Static Oracle](https://github.com/Mean-Finance/uniswap-v3-oracle).
 
-## Package
+## 🔒 Audits
+
+Oracles has been audited by [Omniscia](https://omniscia.io/) and can be find [here](https://omniscia.io/reports/mean-finance-oracle-module/).
+
+## 📦 NPM/YARN Package
 
 The package will contain:
 
 - Artifacts can be found under `@mean-finance/oracles/artifacts`
-- Compatible deployments for [hardhat-deploy](https://github.com/wighawag/hardhat-deploy) plugin under the `@mean-finance/oracles/deployments` folder.
 - Typescript smart contract typings under `@mean-finance/oracles/typechained`
 
-## Documentation
+## 📚 Documentation
 
 Everything that you need to know as a developer on how to use all repository smart contracts can be found in the [documented interfaces](./solidity/interfaces/).
 
-## Installation
+## 🛠 Installation
 
 To install with [**Hardhat**](https://github.com/nomiclabs/hardhat) or [**Truffle**](https://github.com/trufflesuite/truffle):
 
@@ -36,11 +39,14 @@ yarn add @mean-finance/oracles
 npm install @mean-finance/oracles
 ```
 
-### Deployment Registry
+## 📖 Deployment Registry
 
 Contracts are deployed at the same address on all available networks via the [deterministic contract factory](https://github.com/Mean-Finance/deterministic-factory)
 
-> Available networks: Optimism, Optimism Kovan, Arbitrum Rinkeby, Polygon, Mumbai (Polygon testnet).
+> Available networks: Optimism, Arbitrum One, Polygon.
 
-- OracleAggregator: `0xFD8aD08F7e35FA949c6dEB9B58623345Faa5D3EF`
-- UniswapV3Adapter: `0xdd18E04096c5E974B23d6205e2138EDA139848D3`
+- Identity Oracle: `0x0171C3D8315159d771f4A4e09840b1747b7f7364`
+- OracleAggregator: `0x9e1ca4Cd00ED059C5d34204DCe622549583545d9`
+- StatefulChainlinkOracle: `0x5587d300d41E418B3F4DC7c273351748a116d78B`
+- UniswapV3Adapter: `0xD741623299413d02256aAC2101f8B30873fED1d2`
+- TransformerOracle: `0xEB8615cF5bf0f851aEFa894307aAe2b595628148`
