@@ -1,6 +1,6 @@
 {
   "name": "@mean-finance/oracles",
-  "version": "2.1.2",
+  "version": "2.1.3",
   "description": "Mean Oracles",
   "keywords": [
     "ethereum",
@@ -33,6 +33,7 @@
   "main": "dist",
   "types": "dist",
   "files": [
+    "dist",
     "solidity",
     "!solidity/contracts/test/**",
     "artifacts/solidity/**/*.json",
