@@ -151,7 +151,7 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
     if (!_needsInverting) {
       return _adjustDecimals(_price * _amountIn, _outDecimals - _resultDecimals - _inDecimals);
     } else {
-      return _adjustDecimals(_adjustDecimals(_amountIn, _resultDecimals + _outDecimals) / _price, -_inDecimals);
+      return _adjustDecimals(_amountIn, _resultDecimals + _outDecimals - _inDecimals) / _price;
     }
   }
 
@@ -167,7 +167,7 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
     address _base = _plan == PricingPlan.TOKEN_TO_USD_TO_TOKEN_PAIR ? Denominations.USD : Denominations.ETH;
     uint256 _tokenInToBase = _callRegistry(_tokenIn, _base);
     uint256 _tokenOutToBase = _callRegistry(_tokenOut, _base);
-    return _adjustDecimals((_amountIn * _tokenInToBase) / _tokenOutToBase, _outDecimals - _inDecimals);
+    return _adjustDecimals(_amountIn * _tokenInToBase, _outDecimals - _inDecimals) / _tokenOutToBase;
   }
 
   /** Handles prices when one of the tokens uses ETH as the base, and the other USD */
@@ -190,7 +190,7 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
     } else {
       uint256 _tokenInToETH = _getPriceAgainstETH(_tokenIn);
       uint256 _tokenOutToUSD = _getPriceAgainstUSD(_tokenOut);
-      return _adjustDecimals((_amountIn * _tokenInToETH * _ethToUSDPrice) / _tokenOutToUSD, _outDecimals - _inDecimals - ETH_DECIMALS);
+      return _adjustDecimals(_amountIn * _tokenInToETH * _ethToUSDPrice, _outDecimals - _inDecimals - ETH_DECIMALS) / _tokenOutToUSD;
     }
   }
 
@@ -256,7 +256,9 @@ contract StatefulChainlinkOracle is AccessControl, SimpleOracle, IStatefulChainl
   }
 
   function _adjustDecimals(uint256 _amount, int256 _factor) internal pure returns (uint256) {
-    if (_factor < 0) {
+    if (_factor == 0) {
+      return _amount;
+    } else if (_factor < 0) {
       return _amount / (10**uint256(-_factor));
     } else {
       return _amount * (10**uint256(_factor));
