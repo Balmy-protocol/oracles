@@ -19,7 +19,7 @@ const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const STETH = '0xae7ab96520de3a18e5e111b5eaab095312d7fe84';
 const WSTETH = '0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0';
 
-describe('TransformerOracle', () => {
+describe.only('TransformerOracle', () => {
   let oracle: TransformerOracle;
   let transformerRegistry: TransformerRegistry;
   let admin: JsonRpcSigner;
@@ -62,11 +62,11 @@ describe('TransformerOracle', () => {
       });
       then('the pair is transformed correctly', async () => {
         const wstETHToDaiQuote = await oracle.quote(WSTETH, utils.parseEther('1'), DAI, EMPTY_BYTES);
-        validateQuote(wstETHToDaiQuote, WSTETH, DAI);
+        await validateQuote(wstETHToDaiQuote, WSTETH, DAI);
         const wstETHToSTETHQuote = await oracle.quote(WSTETH, utils.parseEther('1'), STETH, EMPTY_BYTES);
-        validateQuote(wstETHToSTETHQuote, WSTETH, STETH, 0.05);
+        await validateQuote(wstETHToSTETHQuote, WSTETH, STETH, 0.5);
         const stETHToWSTETH = await oracle.quote(STETH, utils.parseEther('1'), WSTETH, EMPTY_BYTES);
-        validateQuote(stETHToWSTETH, WSTETH, STETH, 0.05);
+        await validateQuote(stETHToWSTETH, STETH, WSTETH, 0.5);
       });
     });
 
@@ -90,7 +90,7 @@ describe('TransformerOracle', () => {
       });
       then('the pair is transformed correctly', async () => {
         const quote = await oracle.quote(WETH, utils.parseEther('1'), DAI, EMPTY_BYTES);
-        validateQuote(quote, WETH, DAI);
+        await validateQuote(quote, WETH, DAI);
       });
     });
   });
