@@ -63,7 +63,7 @@
     "test:all": "yarn test './test/integration/**/*.spec.ts' && cross-env TEST=true mocha 'test/unit/**/*.spec.ts'",
     "test:e2e": "yarn test './test/e2e/**/*.spec.ts'",
     "test:gas": "cross-env REPORT_GAS=1 npx hardhat test",
-    "test:integration": "yarn test './test/integration/**/*.spec.ts'",
+    "test:integration": "cross-env USE_RANDOM_SALT=true yarn test './test/integration/**/*.spec.ts'",
     "test:unit": "yarn test 'test/unit/**/*.spec.ts'",
     "transpile": "rm -rf dist && npx tsc -p tsconfig.publish.json"
   },
@@ -82,7 +82,7 @@
     "@chainlink/contracts": "0.4.2",
     "@mean-finance/chainlink-registry": "2.1.0",
     "@mean-finance/deterministic-factory": "1.6.0",
-    "@mean-finance/transformers": "1.1.0",
+    "@mean-finance/transformers": "1.2.1",
     "@mean-finance/uniswap-v3-oracle": "1.0.2",
     "@openzeppelin/contracts": "4.7.3",
     "@uniswap/v3-core": "1.0.1",
