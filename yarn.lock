@@ -1232,10 +1232,10 @@
     "@openzeppelin/contracts" "4.6.0"
     "@rari-capital/solmate" "6.2.0"
 
-"@mean-finance/transformers@1.1.0":
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/@mean-finance/transformers/-/transformers-1.1.0.tgz#24544c106d444df8f118e1bbbdd9868953aa17a0"
-  integrity sha512-WL8K+Uvvbo+NYylS8YpLFY5Ok23M5Dzpx38aewfkhFoXyZUQQwLJFTwKmOXcsHtXrSJRjCTkT7XN5PKkOzo3Qg==
+"@mean-finance/transformers@1.2.1":
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/@mean-finance/transformers/-/transformers-1.2.1.tgz#35395b1853663a1196a0978134bd0d631bfd2c33"
+  integrity sha512-aswHX7V5XuCc/N3Pze011/3mXI3ABhg1Mn83qAIX9KERtnJJjPKLb7h1cy17weaNYTzYZJYL5boLjyba3IDOYg==
   dependencies:
     "@0xged/hardhat-deploy" "0.11.5"
     "@mean-finance/deterministic-factory" "1.6.0"
