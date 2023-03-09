@@ -118,13 +118,13 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
 
   /// @inheritdoc ITokenPriceOracle
   function canSupportPair(address _tokenA, address _tokenB) external view returns (bool) {
-    (address _mappedTokenA, address _mappedTokenB) = getMappingForPair(_tokenA, _tokenB);
+    (address _mappedTokenA, address _mappedTokenB) = getRecursiveMappingForPair(_tokenA, _tokenB);
     return UNDERLYING_ORACLE.canSupportPair(_mappedTokenA, _mappedTokenB);
   }
 
   /// @inheritdoc ITokenPriceOracle
   function isPairAlreadySupported(address _tokenA, address _tokenB) external view returns (bool) {
-    (address _mappedTokenA, address _mappedTokenB) = getMappingForPair(_tokenA, _tokenB);
+    (address _mappedTokenA, address _mappedTokenB) = getRecursiveMappingForPair(_tokenA, _tokenB);
     return UNDERLYING_ORACLE.isPairAlreadySupported(_mappedTokenA, _mappedTokenB);
   }
 
@@ -160,7 +160,7 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
     address _tokenB,
     bytes calldata _data
   ) external {
-    (address _mappedTokenA, address _mappedTokenB) = getMappingForPair(_tokenA, _tokenB);
+    (address _mappedTokenA, address _mappedTokenB) = getRecursiveMappingForPair(_tokenA, _tokenB);
     UNDERLYING_ORACLE.addOrModifySupportForPair(_mappedTokenA, _mappedTokenB, _data);
   }
 
@@ -170,7 +170,7 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
     address _tokenB,
     bytes calldata _data
   ) external {
-    (address _mappedTokenA, address _mappedTokenB) = getMappingForPair(_tokenA, _tokenB);
+    (address _mappedTokenA, address _mappedTokenB) = getRecursiveMappingForPair(_tokenA, _tokenB);
     UNDERLYING_ORACLE.addSupportForPairIfNeeded(_mappedTokenA, _mappedTokenB, _data);
   }
 
