@@ -25,7 +25,7 @@ import { readArgFromEventOrFail } from '@utils/event-utils';
 
 chai.use(smock.matchers);
 
-describe.only('TransformerOracle', () => {
+describe('TransformerOracle', () => {
   const TOKEN_A = '0x0000000000000000000000000000000000000001';
   const TOKEN_B = '0x0000000000000000000000000000000000000002';
   const UNDERLYING_TOKEN_A = '0x0000000000000000000000000000000000000003';
