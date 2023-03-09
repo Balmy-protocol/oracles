@@ -73,4 +73,18 @@ contract TransformerOracleMock is TransformerOracle {
       return (_mapping[0], _mapping[1]);
     }
   }
+
+  function getRecursiveMappingForPair(address _tokenA, address _tokenB)
+    public
+    view
+    override
+    returns (address _mappedTokenA, address _mappedTokenB)
+  {
+    address[] memory _mapping = _mappingForPair[_tokenA][_tokenB];
+    if (_mapping.length == 0) {
+      return super.getRecursiveMappingForPair(_tokenA, _tokenB);
+    } else {
+      return (_mapping[0], _mapping[1]);
+    }
+  }
 }
