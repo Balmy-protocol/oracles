@@ -33,25 +33,35 @@ contract TransformerOracleMock is TransformerOracle {
     _transformersForPair[_tokenA][_tokenB] = [_transformerTokenA, _transformerTokenB];
   }
 
-  function internalGetTransformers(address _tokenA, address _tokenB)
-    external
-    view
-    returns (ITransformer _transformerTokenA, ITransformer _transformerTokenB)
-  {
-    return _getTransformers(_tokenA, _tokenB);
+  function internalFetchTransformers(
+    address _tokenA,
+    address _tokenB,
+    bool _shouldCheckA,
+    bool _shouldCheckB
+  ) external view returns (ITransformer _transformerTokenA, ITransformer _transformerTokenB) {
+    return _fetchTransformers(_tokenA, _tokenB, _shouldCheckA, _shouldCheckB);
   }
 
-  function _getTransformers(address _tokenA, address _tokenB)
-    internal
-    view
-    override
-    returns (ITransformer _transformerTokenA, ITransformer _transformerTokenB)
-  {
+  function internalHideTransformersBasedOnConfig(
+    address _tokenA,
+    address _tokenB,
+    ITransformer _transformerTokenA,
+    ITransformer _transformerTokenB
+  ) external view returns (ITransformer, ITransformer) {
+    return _hideTransformersBasedOnConfig(_tokenA, _tokenB, _transformerTokenA, _transformerTokenB);
+  }
+
+  function _getTransformersOptimized(
+    address _tokenA,
+    address _tokenB,
+    bool _shouldCheckA,
+    bool _shouldCheckB
+  ) internal view override returns (ITransformer _transformerTokenA, ITransformer _transformerTokenB) {
     ITransformer[] memory _transformers = _transformersForPair[_tokenA][_tokenB];
     if (_transformers.length > 0) {
       return (_transformers[0], _transformers[1]);
     } else {
-      return super._getTransformers(_tokenA, _tokenB);
+      return super._getTransformersOptimized(_tokenA, _tokenB, _shouldCheckA, _shouldCheckB);
     }
   }
 

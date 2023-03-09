@@ -25,7 +25,7 @@ import { readArgFromEventOrFail } from '@utils/event-utils';
 
 chai.use(smock.matchers);
 
-describe('TransformerOracle', () => {
+describe.only('TransformerOracle', () => {
   const TOKEN_A = '0x0000000000000000000000000000000000000001';
   const TOKEN_B = '0x0000000000000000000000000000000000000002';
   const UNDERLYING_TOKEN_A = '0x0000000000000000000000000000000000000003';
@@ -583,8 +583,8 @@ describe('TransformerOracle', () => {
     });
   });
 
-  describe('_getTransformers', () => {
-    getTransformersTest({
+  describe('_hideTransformersBasedOnConfig', () => {
+    hideTransformerTest({
       when: 'tokens have no transformer and pair-specific config says they should be mapped',
       tokenAHasTransformer: false,
       tokenBHasTransformer: false,
@@ -595,7 +595,7 @@ describe('TransformerOracle', () => {
       ],
     });
 
-    getTransformersTest({
+    hideTransformerTest({
       when: 'tokens have no transformer and global config says they should be mapped',
       tokenAHasTransformer: false,
       tokenBHasTransformer: false,
@@ -606,7 +606,7 @@ describe('TransformerOracle', () => {
       ],
     });
 
-    getTransformersTest({
+    hideTransformerTest({
       when: 'tokens have a transformer and pair-specific config is present',
       pairSpecific: { mapTokenA: true, mapTokenB: false },
       global: { mapTokenA: true, mapTokenB: true },
@@ -616,7 +616,7 @@ describe('TransformerOracle', () => {
       ],
     });
 
-    getTransformersTest({
+    hideTransformerTest({
       when: 'tokens have a transformer, pair-specific config is present and tokens are reversed',
       pairSpecific: { mapTokenA: false, mapTokenB: true },
       global: { mapTokenA: false, mapTokenB: false },
@@ -626,7 +626,7 @@ describe('TransformerOracle', () => {
       ],
     });
 
-    getTransformersTest({
+    hideTransformerTest({
       when: 'tokens have a transformer and pair-specific config says nothing should be mapped',
       pairSpecific: { mapTokenA: false, mapTokenB: false },
       global: { mapTokenA: true, mapTokenB: true },
@@ -636,7 +636,7 @@ describe('TransformerOracle', () => {
       ],
     });
 
-    getTransformersTest({
+    hideTransformerTest({
       when: 'tokens have a transformer, but pair-specific config is not present',
       global: { mapTokenA: false, mapTokenB: true },
       expected: [
@@ -646,7 +646,7 @@ describe('TransformerOracle', () => {
     });
 
     type Expected = { token: string; result: 'transformer' | 'zero address' };
-    function getTransformersTest({
+    function hideTransformerTest({
       when: title,
       tokenAHasTransformer,
       tokenBHasTransformer,
@@ -666,18 +666,6 @@ describe('TransformerOracle', () => {
       when(title, () => {
         let transformers: string[];
         given(async () => {
-          registry.transformers.returns(({ dependents }: { dependents: string[] }) =>
-            dependents.map((dependent) => {
-              switch (dependent) {
-                case TOKEN_A:
-                  return tokenAHasTransformer === false ? constants.AddressZero : TRANSFORMER_TOKEN_A;
-                case TOKEN_B:
-                  return tokenBHasTransformer === false ? constants.AddressZero : TRANSFORMER_TOKEN_B;
-                default:
-                  throw new Error('WTF');
-              }
-            })
-          );
           const avoidGlobal: string[] = [];
           if (global?.mapTokenA === false) avoidGlobal.push(TOKEN_A);
           if (global?.mapTokenB === false) avoidGlobal.push(TOKEN_B);
@@ -693,10 +681,14 @@ describe('TransformerOracle', () => {
               },
             ]);
           }
-          transformers = await transformerOracle.internalGetTransformers(expected[0].token, expected[1].token);
-        });
-        then('registry is called correctly', () => {
-          expect(registry.transformers).to.have.been.calledOnceWith([expected[0].token, expected[1].token]);
+          const tokenATransformer = tokenAHasTransformer === false ? constants.AddressZero : TRANSFORMER_TOKEN_A;
+          const tokenBTransformer = tokenBHasTransformer === false ? constants.AddressZero : TRANSFORMER_TOKEN_B;
+          transformers = await transformerOracle.internalHideTransformersBasedOnConfig(
+            expected[0].token,
+            expected[1].token,
+            expected[0].token === TOKEN_A ? tokenATransformer : tokenBTransformer,
+            expected[1].token === TOKEN_A ? tokenATransformer : tokenBTransformer
+          );
         });
         then('result is returned correctly', () => {
           const result = [
@@ -710,6 +702,87 @@ describe('TransformerOracle', () => {
               : expected[1].token === TOKEN_A
               ? TRANSFORMER_TOKEN_A
               : TRANSFORMER_TOKEN_B,
+          ];
+          expect(transformers).to.eql(result);
+        });
+      });
+    }
+  });
+
+  describe('_fetchTransformers', () => {
+    fetchTransformersTest({
+      when: 'both tokens should be checked',
+      shouldCheckA: true,
+      shouldCheckB: true,
+      expected: ['transformer', 'transformer'],
+    });
+
+    fetchTransformersTest({
+      when: 'only token A should be checked',
+      shouldCheckA: true,
+      shouldCheckB: false,
+      expected: ['transformer', 'zero address'],
+    });
+
+    fetchTransformersTest({
+      when: 'only token B should be checked',
+      shouldCheckA: false,
+      shouldCheckB: true,
+      expected: ['zero address', 'transformer'],
+    });
+
+    fetchTransformersTest({
+      when: 'none of the tokens should be checked',
+      shouldCheckA: false,
+      shouldCheckB: false,
+      expected: ['zero address', 'zero address'],
+    });
+
+    type Expected = 'transformer' | 'zero address';
+    function fetchTransformersTest({
+      when: title,
+      shouldCheckA,
+      shouldCheckB,
+      expected,
+    }: {
+      when: string;
+      shouldCheckA: boolean;
+      shouldCheckB: boolean;
+      expected: [Expected, Expected];
+    }) {
+      const TRANSFORMER_TOKEN_A = '0x0000000000000000000000000000000000000005';
+      const TRANSFORMER_TOKEN_B = '0x0000000000000000000000000000000000000006';
+      when(title, () => {
+        let transformers: string[];
+        given(async () => {
+          registry.transformers.returns(({ dependents }: { dependents: string[] }) =>
+            dependents.map((dependent) => {
+              switch (dependent) {
+                case TOKEN_A:
+                  return TRANSFORMER_TOKEN_A;
+                case TOKEN_B:
+                  return TRANSFORMER_TOKEN_B;
+                default:
+                  throw new Error('WTF');
+              }
+            })
+          );
+          transformers = await transformerOracle.internalFetchTransformers(TOKEN_A, TOKEN_B, shouldCheckA, shouldCheckB);
+        });
+        then('registry was called correctly', () => {
+          const tokens: string[] = [];
+          if (shouldCheckA) tokens.push(TOKEN_A);
+          if (shouldCheckB) tokens.push(TOKEN_B);
+          if (tokens.length > 0) {
+            expect(registry.transformers).to.have.been.calledOnceWith(tokens);
+          } else {
+            expect(registry.transformers).to.not.have.been.called;
+          }
+        });
+        then('result is returned correctly', () => {
+          const result = [
+            expected[0] === 'zero address' ? constants.AddressZero : TRANSFORMER_TOKEN_A,
+            expected[1] === 'zero address' ? constants.AddressZero : TRANSFORMER_TOKEN_B,
           ];
           expect(transformers).to.eql(result);
         });

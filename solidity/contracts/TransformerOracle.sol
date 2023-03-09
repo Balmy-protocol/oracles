@@ -187,16 +187,54 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
   function _getTransformers(address _tokenA, address _tokenB)
     internal
     view
-    virtual
     returns (ITransformer _transformerTokenA, ITransformer _transformerTokenB)
   {
-    address[] memory _tokens = new address[](2);
-    _tokens[0] = _tokenA;
-    _tokens[1] = _tokenB;
-    ITransformer[] memory _transformers = REGISTRY.transformers(_tokens);
-    _transformerTokenA = _transformers[0];
-    _transformerTokenB = _transformers[1];
+    return _getTransformersOptimized(_tokenA, _tokenB, true, true);
+  }
 
+  function _getTransformersOptimized(
+    address _tokenA,
+    address _tokenB,
+    bool _shouldCheckA,
+    bool _shouldCheckB
+  ) internal view virtual returns (ITransformer _transformerTokenA, ITransformer _transformerTokenB) {
+    (ITransformer _fetchedTransformerA, ITransformer _fetchedTransformerB) = _fetchTransformers(_tokenA, _tokenB, _shouldCheckA, _shouldCheckB);
+    return _hideTransformersBasedOnConfig(_tokenA, _tokenB, _fetchedTransformerA, _fetchedTransformerB);
+  }
+
+  function _fetchTransformers(
+    address _tokenA,
+    address _tokenB,
+    bool _shouldCheckA,
+    bool _shouldCheckB
+  ) internal view returns (ITransformer _transformerTokenA, ITransformer _transformerTokenB) {
+    if (_shouldCheckA && _shouldCheckB) {
+      address[] memory _tokens = new address[](2);
+      _tokens[0] = _tokenA;
+      _tokens[1] = _tokenB;
+      ITransformer[] memory _transformers = REGISTRY.transformers(_tokens);
+      return (_transformers[0], _transformers[1]);
+    } else if (_shouldCheckA) {
+      address[] memory _tokens = new address[](1);
+      _tokens[0] = _tokenA;
+      ITransformer[] memory _transformers = REGISTRY.transformers(_tokens);
+      return (_transformers[0], ITransformer(address(0)));
+    } else if (_shouldCheckB) {
+      address[] memory _tokens = new address[](1);
+      _tokens[0] = _tokenB;
+      ITransformer[] memory _transformers = REGISTRY.transformers(_tokens);
+      return (ITransformer(address(0)), _transformers[0]);
+    } else {
+      return (ITransformer(address(0)), ITransformer(address(0)));
+    }
+  }
+
+  function _hideTransformersBasedOnConfig(
+    address _tokenA,
+    address _tokenB,
+    ITransformer _transformerTokenA,
+    ITransformer _transformerTokenB
+  ) internal view returns (ITransformer _mappedTransformerTokenA, ITransformer _mappedTransformerTokenB) {
     bool _tokenAHasTransformer = address(_transformerTokenA) != address(0);
     bool _tokenBHasTransformer = address(_transformerTokenB) != address(0);
 
@@ -213,12 +251,12 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
         _avoidMappingTokenB = _tokenBHasTransformer && willAvoidMappingToUnderlying[_tokenB];
       }
 
-      if (_avoidMappingTokenA) {
-        _transformerTokenA = ITransformer(address(0));
+      if (!_avoidMappingTokenA) {
+        _mappedTransformerTokenA = _transformerTokenA;
       }
 
-      if (_avoidMappingTokenB) {
-        _transformerTokenB = ITransformer(address(0));
+      if (!_avoidMappingTokenB) {
+        _mappedTransformerTokenB = _transformerTokenB;
       }
     }
   }
