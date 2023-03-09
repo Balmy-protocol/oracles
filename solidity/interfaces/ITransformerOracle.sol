@@ -105,6 +105,12 @@ interface ITransformerOracle is ITokenPriceOracle {
   function getMappingForPair(address tokenA, address tokenB) external view returns (address mappedTokenA, address mappedTokenB);
 
   /**
+   * @notice Very similar to `getMappingForPair`, but recursive. Since an underlying could have an underlying, we might need to map
+   *         the given pair recursively
+   */
+  function getRecursiveMappingForPair(address tokenA, address tokenB) external view returns (address mappedTokenA, address mappedTokenB);
+
+  /**
    * @notice Returns any pair-specific mapping configuration for the given tokens
    * @dev tokenA and tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order
    * @param tokenA One of the pair's tokens

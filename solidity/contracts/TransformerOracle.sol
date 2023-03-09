@@ -51,6 +51,16 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
   }
 
   /// @inheritdoc ITransformerOracle
+  function getRecursiveMappingForPair(address _tokenA, address _tokenB)
+    public
+    view
+    virtual
+    returns (address _mappedTokenA, address _mappedTokenB)
+  {
+    return _getRecursiveMappingForPair(_tokenA, _tokenB, true, true);
+  }
+
+  /// @inheritdoc ITransformerOracle
   function pairSpecificMappingConfig(address _tokenA, address _tokenB) public view virtual returns (PairSpecificMappingConfig memory) {
     return _pairSpecificMappingConfig[_keyForPair(_tokenA, _tokenB)];
   }
@@ -182,6 +192,30 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
     }
     address[] memory _underlying = _transformer.getUnderlying(_token);
     return _underlying[0];
+  }
+
+  function _getRecursiveMappingForPair(
+    address _tokenA,
+    address _tokenB,
+    bool _shouldCheckA,
+    bool _shouldCheckB
+  ) internal view returns (address _mappedTokenA, address _mappedTokenB) {
+    (ITransformer _transformerTokenA, ITransformer _transformerTokenB) = _getTransformersOptimized(
+      _tokenA,
+      _tokenB,
+      _shouldCheckA,
+      _shouldCheckB
+    );
+    if (address(_transformerTokenA) == address(0) && address(_transformerTokenB) == address(0)) {
+      return (_tokenA, _tokenB);
+    }
+    return
+      _getRecursiveMappingForPair(
+        _mapToUnderlyingIfExists(_tokenA, _transformerTokenA),
+        _mapToUnderlyingIfExists(_tokenB, _transformerTokenB),
+        address(_transformerTokenA) != address(0),
+        address(_transformerTokenB) != address(0)
+      );
   }
 
   function _getTransformers(address _tokenA, address _tokenB)
