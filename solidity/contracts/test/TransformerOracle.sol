@@ -51,7 +51,7 @@ contract TransformerOracleMock is TransformerOracle {
     return _hideTransformersBasedOnConfig(_tokenA, _tokenB, _transformerTokenA, _transformerTokenB);
   }
 
-  function _getTransformersOptimized(
+  function _getTransformers(
     address _tokenA,
     address _tokenB,
     bool _shouldCheckA,
@@ -61,7 +61,7 @@ contract TransformerOracleMock is TransformerOracle {
     if (_transformers.length > 0) {
       return (_transformers[0], _transformers[1]);
     } else {
-      return super._getTransformersOptimized(_tokenA, _tokenB, _shouldCheckA, _shouldCheckB);
+      return super._getTransformers(_tokenA, _tokenB, _shouldCheckA, _shouldCheckB);
     }
   }
 
