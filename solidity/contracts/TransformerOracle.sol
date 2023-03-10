@@ -45,7 +45,7 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
 
   /// @inheritdoc ITransformerOracle
   function getMappingForPair(address _tokenA, address _tokenB) public view virtual returns (address _mappedTokenA, address _mappedTokenB) {
-    (ITransformer _transformerTokenA, ITransformer _transformerTokenB) = _getTransformers(_tokenA, _tokenB);
+    (ITransformer _transformerTokenA, ITransformer _transformerTokenB) = _getTransformers(_tokenA, _tokenB, true, true);
     _mappedTokenA = _mapToUnderlyingIfExists(_tokenA, _transformerTokenA);
     _mappedTokenB = _mapToUnderlyingIfExists(_tokenB, _transformerTokenB);
   }
@@ -135,23 +135,46 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
     address _tokenOut,
     bytes calldata _data
   ) external view returns (uint256 _amountOut) {
-    (ITransformer _transformerTokenIn, ITransformer _transformerTokenOut) = _getTransformers(_tokenIn, _tokenOut);
+    return _getRecursiveQuote(_tokenIn, _amountIn, _tokenOut, _data, true, true);
+  }
 
-    if (address(_transformerTokenIn) != address(0)) {
+  function _getRecursiveQuote(
+    address _tokenIn,
+    uint256 _amountIn,
+    address _tokenOut,
+    bytes calldata _data,
+    bool _shouldCheckIn,
+    bool _shouldCheckOut
+  ) internal view returns (uint256 _amountOut) {
+    (ITransformer _transformerTokenIn, ITransformer _transformerTokenOut) = _getTransformers(
+      _tokenIn,
+      _tokenOut,
+      _shouldCheckIn,
+      _shouldCheckOut
+    );
+
+    bool _tokenInHasUnderlying = address(_transformerTokenIn) != address(0);
+    bool _tokenOutHasUnderlying = address(_transformerTokenOut) != address(0);
+
+    if (!_tokenInHasUnderlying && !_tokenOutHasUnderlying) {
+      return UNDERLYING_ORACLE.quote(_tokenIn, _amountIn, _tokenOut, _data);
+    }
+
+    if (_tokenInHasUnderlying) {
       // If token in has a transformer, then calculate how much amount it would be in underlying, and calculate the quote for that
       ITransformer.UnderlyingAmount[] memory _transformedIn = _transformerTokenIn.calculateTransformToUnderlying(_tokenIn, _amountIn);
       _tokenIn = _transformedIn[0].underlying;
       _amountIn = _transformedIn[0].amount;
     }
 
-    if (address(_transformerTokenOut) != address(0)) {
+    if (_tokenOutHasUnderlying) {
       // If token out has a transformer, then calculate the quote for the underlying and then transform the result
       address[] memory _underlyingOut = _transformerTokenOut.getUnderlying(_tokenOut);
-      uint256 _amountOutUnderlying = UNDERLYING_ORACLE.quote(_tokenIn, _amountIn, _underlyingOut[0], _data);
+      uint256 _amountOutUnderlying = _getRecursiveQuote(_tokenIn, _amountIn, _underlyingOut[0], _data, _tokenInHasUnderlying, true);
       return _transformerTokenOut.calculateTransformToDependent(_tokenOut, _toUnderlyingAmount(_underlyingOut[0], _amountOutUnderlying));
     }
 
-    return UNDERLYING_ORACLE.quote(_tokenIn, _amountIn, _tokenOut, _data);
+    return _getRecursiveQuote(_tokenIn, _amountIn, _tokenOut, _data, _tokenInHasUnderlying, false);
   }
 
   /// @inheritdoc ITokenPriceOracle
@@ -200,12 +223,7 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
     bool _shouldCheckA,
     bool _shouldCheckB
   ) internal view returns (address _mappedTokenA, address _mappedTokenB) {
-    (ITransformer _transformerTokenA, ITransformer _transformerTokenB) = _getTransformersOptimized(
-      _tokenA,
-      _tokenB,
-      _shouldCheckA,
-      _shouldCheckB
-    );
+    (ITransformer _transformerTokenA, ITransformer _transformerTokenB) = _getTransformers(_tokenA, _tokenB, _shouldCheckA, _shouldCheckB);
     if (address(_transformerTokenA) == address(0) && address(_transformerTokenB) == address(0)) {
       return (_tokenA, _tokenB);
     }
@@ -218,15 +236,7 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
       );
   }
 
-  function _getTransformers(address _tokenA, address _tokenB)
-    internal
-    view
-    returns (ITransformer _transformerTokenA, ITransformer _transformerTokenB)
-  {
-    return _getTransformersOptimized(_tokenA, _tokenB, true, true);
-  }
-
-  function _getTransformersOptimized(
+  function _getTransformers(
     address _tokenA,
     address _tokenB,
     bool _shouldCheckA,

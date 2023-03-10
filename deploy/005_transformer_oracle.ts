@@ -12,7 +12,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   await deployThroughDeterministicFactory({
     deployer,
     name: 'TransformerOracle',
-    salt: 'MF-Transformer-Oracle-V1',
+    salt: 'MF-Transformer-Oracle-V2',
     contract: 'solidity/contracts/TransformerOracle.sol:TransformerOracle',
     bytecode,
     constructorArgs: {

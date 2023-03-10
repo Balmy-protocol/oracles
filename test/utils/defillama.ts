@@ -12,10 +12,9 @@ export const getPrice = async (network: string, coin: string, timestamp?: number
 
 export const getTokenData = async (network: string, coin: string, timestamp?: number): Promise<{ price: number; decimals: number }> => {
   const coinId = `${network}:${coin.toLowerCase()}`;
-  const response = await axios.post('https://coins.llama.fi/prices', { coins: [coinId], timestamp });
-
+  const url = timestamp ? `https://coins.llama.fi/prices/historical/${timestamp}/${coinId}` : `https://coins.llama.fi/prices/current/${coinId}`;
+  const response = await axios.get(url);
   const { coins } = response.data;
-
   return coins[coinId];
 };
 
