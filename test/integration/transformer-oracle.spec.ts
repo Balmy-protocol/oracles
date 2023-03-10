@@ -19,7 +19,7 @@ const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const STETH = '0xae7ab96520de3a18e5e111b5eaab095312d7fe84';
 const WSTETH = '0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0';
 
-describe.only('TransformerOracle', () => {
+describe('TransformerOracle', () => {
   let oracle: TransformerOracle;
   let transformerRegistry: TransformerRegistry;
   let admin: JsonRpcSigner;
