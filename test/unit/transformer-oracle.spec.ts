@@ -263,6 +263,17 @@ describe('TransformerOracle', () => {
       expectedB: UNDERLYING_TOKEN_B,
     });
 
+    getRecursiveMappingForPairTest({
+      when: 'only tokenB has a recursive mapping',
+      underlyings: {
+        [TOKEN_A]: UNDERLYING_TOKEN_A,
+        [TOKEN_B]: UNDERLYING_TOKEN_B,
+        [UNDERLYING_TOKEN_B]: UNDERLYING_UNDERLYING_TOKEN_B,
+      },
+      expectedA: UNDERLYING_TOKEN_A,
+      expectedB: UNDERLYING_UNDERLYING_TOKEN_B,
+    });
+
     function getRecursiveMappingForPairTest({
       when: title,
       underlyings,
