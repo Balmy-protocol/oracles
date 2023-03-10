@@ -229,6 +229,11 @@ contract TransformerOracle is BaseOracle, AccessControl, ITransformerOracle {
     }
   }
 
+  /**
+   * @dev We have the transformers for tokenA and tokenB, but maybe, based on the config, we don't want to map these tokens to their underlying.
+   *      For example, this is normally the case for WETH and ETH. So this function will take the transformers and, based on the config, return
+   *      the fetched transformers or the zero address
+   */
   function _hideTransformersBasedOnConfig(
     address _tokenA,
     address _tokenB,
