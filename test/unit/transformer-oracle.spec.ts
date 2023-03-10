@@ -202,6 +202,113 @@ describe('TransformerOracle', () => {
     }
   });
 
+  describe('getRecursiveMappingForPair', () => {
+    const UNDERLYING_UNDERLYING_TOKEN_A = '0x0000000000000000000000000000000000000005';
+    const UNDERLYING_UNDERLYING_TOKEN_B = '0x0000000000000000000000000000000000000006';
+
+    getRecursiveMappingForPairTest({
+      when: 'both tokens have underlying',
+      underlyings: {
+        [TOKEN_A]: UNDERLYING_TOKEN_A,
+        [TOKEN_B]: UNDERLYING_TOKEN_B,
+      },
+      expectedA: UNDERLYING_TOKEN_A,
+      expectedB: UNDERLYING_TOKEN_B,
+    });
+
+    getRecursiveMappingForPairTest({
+      when: 'only tokenA has underlying',
+      underlyings: {
+        [TOKEN_A]: UNDERLYING_TOKEN_A,
+      },
+      expectedA: UNDERLYING_TOKEN_A,
+      expectedB: TOKEN_B,
+    });
+
+    getRecursiveMappingForPairTest({
+      when: 'only tokenB has underlying',
+      underlyings: {
+        [TOKEN_B]: UNDERLYING_TOKEN_B,
+      },
+      expectedA: TOKEN_A,
+      expectedB: UNDERLYING_TOKEN_B,
+    });
+
+    getRecursiveMappingForPairTest({
+      when: 'neither of the tokens have underlying',
+      expectedA: TOKEN_A,
+      expectedB: TOKEN_B,
+    });
+
+    getRecursiveMappingForPairTest({
+      when: 'both tokens have recursive mappings',
+      underlyings: {
+        [TOKEN_A]: UNDERLYING_TOKEN_A,
+        [TOKEN_B]: UNDERLYING_TOKEN_B,
+        [UNDERLYING_TOKEN_A]: UNDERLYING_UNDERLYING_TOKEN_A,
+        [UNDERLYING_TOKEN_B]: UNDERLYING_UNDERLYING_TOKEN_B,
+      },
+      expectedA: UNDERLYING_UNDERLYING_TOKEN_A,
+      expectedB: UNDERLYING_UNDERLYING_TOKEN_B,
+    });
+
+    getRecursiveMappingForPairTest({
+      when: 'only tokenA has a recursive mapping',
+      underlyings: {
+        [TOKEN_A]: UNDERLYING_TOKEN_A,
+        [TOKEN_B]: UNDERLYING_TOKEN_B,
+        [UNDERLYING_TOKEN_A]: UNDERLYING_UNDERLYING_TOKEN_A,
+      },
+      expectedA: UNDERLYING_UNDERLYING_TOKEN_A,
+      expectedB: UNDERLYING_TOKEN_B,
+    });
+
+    getRecursiveMappingForPairTest({
+      when: 'only tokenB has a recursive mapping',
+      underlyings: {
+        [TOKEN_A]: UNDERLYING_TOKEN_A,
+        [TOKEN_B]: UNDERLYING_TOKEN_B,
+        [UNDERLYING_TOKEN_B]: UNDERLYING_UNDERLYING_TOKEN_B,
+      },
+      expectedA: UNDERLYING_TOKEN_A,
+      expectedB: UNDERLYING_UNDERLYING_TOKEN_B,
+    });
+
+    function getRecursiveMappingForPairTest({
+      when: title,
+      underlyings,
+      expectedA,
+      expectedB,
+    }: {
+      when: string;
+      underlyings?: Record<string, string>;
+      expectedA: string;
+      expectedB: string;
+    }) {
+      when(title, () => {
+        let transformers: Record<string, string> = {};
+        let mappedTokenA: string, mappedTokenB: string;
+        given(async () => {
+          for (const [dependent, underlying] of Object.entries(underlyings ?? {})) {
+            const transformer = await smock.fake<ITransformer>('ITransformer');
+            transformer.getUnderlying.returns([underlying]);
+            transformers[dependent] = transformer.address;
+          }
+          registry.transformers.returns(({ dependents }: { dependents: string[] }) =>
+            dependents.map((dependent) => transformers[dependent] ?? constants.AddressZero)
+          );
+          [mappedTokenA, mappedTokenB] = await transformerOracle.getRecursiveMappingForPair(TOKEN_A, TOKEN_B);
+        });
+        then('mapped for tokenA is as expected', () => {
+          expect(mappedTokenA).to.equal(expectedA);
+        });
+        then('mapped for tokenB is as expected', () => {
+          expect(mappedTokenB).to.equal(expectedB);
+        });
+      });
+    }
+  });
+
   describe('avoidMappingToUnderlying', () => {
     when('token is set to avoid mapping', () => {
       let tx: TransactionResponse;
