@@ -19,6 +19,8 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     'polygon-mumbai',
     'bnb',
     'bnb-testnet',
+    'base',
+    'base-goerli',
   ];
 
   if (!supportedNetworks.includes(hre.deployments.getNetworkName().toLowerCase())) {
