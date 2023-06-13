@@ -9,7 +9,7 @@ import { smock, FakeContract } from '@defi-wonderland/smock';
 
 chai.use(smock.matchers);
 
-describe.only('API3ChainlinkAdapter', () => {
+describe('API3ChainlinkAdapter', () => {
   const DESCRIPTION = 'TOKEN/USD';
   const VALUE_WITH_18_DECIMALS = utils.parseEther('1.2345');
   const VALUE_WITH_8_DECIMALS = utils.parseUnits('1.2345', 8);

@@ -37,7 +37,7 @@
   dependencies:
     "@openzeppelin/contracts" "4.8.2"
 
-"@api3/contracts@^0.9.1":
+"@api3/contracts@0.9.1":
   version "0.9.1"
   resolved "https://registry.yarnpkg.com/@api3/contracts/-/contracts-0.9.1.tgz#c2a5b14501cb7bc8496c9695e02d9c015adfc102"
   integrity sha512-7D6/BaDvWjupERJ26lcCJuIwze0W90g3mV0NF5tWcoFCagsGvhuL0uYeYy89cl1Um5gE1yFt2vE7TUX4lYh4jA==
