@@ -2,9 +2,10 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { bytecode } from '../artifacts/solidity/contracts/OracleAggregator.sol/OracleAggregator.json';
 import { deployThroughDeterministicFactory } from '@mean-finance/deterministic-factory/utils/deployment';
 import { DeployFunction } from '@0xged/hardhat-deploy/dist/types';
+import { getNamedAccounts } from './utils';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployer, msig } = await hre.getNamedAccounts();
+  const { deployer, msig } = await getNamedAccounts(hre);
 
   const identityOracle = await hre.deployments.get('IdentityOracle');
   const chainlinOracle = await hre.deployments.get('StatefulChainlinkOracle');

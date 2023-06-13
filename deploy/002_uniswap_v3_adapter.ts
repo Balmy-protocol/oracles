@@ -3,6 +3,7 @@ import { bytecode } from '../artifacts/solidity/contracts/adapters/UniswapV3Adap
 import { deployThroughDeterministicFactory } from '@mean-finance/deterministic-factory/utils/deployment';
 import { DeployFunction } from '@0xged/hardhat-deploy/dist/types';
 import moment from 'moment';
+import { getNamedAccounts } from './utils';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const supportedNetworks = [
@@ -27,7 +28,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     return;
   }
 
-  const { deployer, msig } = await hre.getNamedAccounts();
+  const { deployer, msig } = await getNamedAccounts(hre);
 
   const minimumPeriod = moment.duration('5', 'minutes').as('seconds');
   const maximumPeriod = moment.duration('45', 'minutes').as('seconds');
