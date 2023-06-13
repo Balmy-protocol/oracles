@@ -2,10 +2,9 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { bytecode } from '../artifacts/solidity/contracts/IdentityOracle.sol/IdentityOracle.json';
 import { deployThroughDeterministicFactory } from '@mean-finance/deterministic-factory/utils/deployment';
 import { DeployFunction } from '@0xged/hardhat-deploy/dist/types';
-import { getNamedAccounts } from './utils';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployer } = await getNamedAccounts(hre);
+  const { deployer } = await hre.getNamedAccounts();
 
   await deployThroughDeterministicFactory({
     deployer,

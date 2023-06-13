@@ -2,10 +2,9 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from '@0xged/hardhat-deploy/types';
 import { bytecode } from '../artifacts/solidity/contracts/StatefulChainlinkOracle.sol/StatefulChainlinkOracle.json';
 import { deployThroughDeterministicFactory } from '@mean-finance/deterministic-factory/utils/deployment';
-import { getNamedAccounts } from './utils';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployer, msig } = await getNamedAccounts(hre);
+  const { deployer, msig } = await hre.getNamedAccounts();
   const registry = await hre.deployments.get('ChainlinkFeedRegistry');
 
   await deployThroughDeterministicFactory({
