@@ -7,6 +7,7 @@ import { snapshot } from '@utils/evm';
 
 describe('API3ChainlinkAdapterFactory', () => {
   const PROXY = '0x0000000000000000000000000000000000000001';
+  const DECIMALS = 8;
   const DESCRIPTION = 'TOKEN/USD';
 
   let factory: API3ChainlinkAdapterFactory;
@@ -27,8 +28,8 @@ describe('API3ChainlinkAdapterFactory', () => {
       let expectedAddress: string;
       let tx: TransactionResponse;
       given(async () => {
-        expectedAddress = await factory.computeAdapterAddress(PROXY, DESCRIPTION);
-        tx = await factory.createAdapter(PROXY, DESCRIPTION);
+        expectedAddress = await factory.computeAdapterAddress(PROXY, DECIMALS, DESCRIPTION);
+        tx = await factory.createAdapter(PROXY, DECIMALS, DESCRIPTION);
       });
       then('event is emitted', async () => {
         await expect(tx).to.emit(factory, 'AdapterCreated').withArgs(expectedAddress);
@@ -36,15 +37,16 @@ describe('API3ChainlinkAdapterFactory', () => {
       then('contract was deployed correctly', async () => {
         const adapter = API3ChainlinkAdapter__factory.connect(expectedAddress, ethers.provider);
         expect(await adapter.API3_PROXY()).to.equal(PROXY);
+        expect(await adapter.decimals()).to.equal(DECIMALS);
         expect(await adapter.description()).to.equal(DESCRIPTION);
       });
     });
     when('adapter is created twice', () => {
       given(async () => {
-        await factory.createAdapter(PROXY, DESCRIPTION);
+        await factory.createAdapter(PROXY, DECIMALS, DESCRIPTION);
       });
       then('the second time reverts', async () => {
-        const tx = factory.createAdapter(PROXY, DESCRIPTION);
+        const tx = factory.createAdapter(PROXY, DECIMALS, DESCRIPTION);
         await expect(tx).to.have.reverted;
       });
     });

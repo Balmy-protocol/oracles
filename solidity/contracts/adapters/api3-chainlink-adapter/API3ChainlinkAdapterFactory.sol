@@ -7,12 +7,20 @@ contract API3ChainlinkAdapterFactory {
   /// @notice Emitted when a new adapter is deployed
   event AdapterCreated(API3ChainlinkAdapter adapter);
 
-  function createAdapter(IProxy _api3Proxy, string calldata _description) external returns (API3ChainlinkAdapter _adapter) {
-    _adapter = new API3ChainlinkAdapter{salt: bytes32(0)}(_api3Proxy, _description);
+  function createAdapter(
+    IProxy _api3Proxy,
+    uint8 _decimals,
+    string calldata _description
+  ) external returns (API3ChainlinkAdapter _adapter) {
+    _adapter = new API3ChainlinkAdapter{salt: bytes32(0)}(_api3Proxy, _decimals, _description);
     emit AdapterCreated(_adapter);
   }
 
-  function computeAdapterAddress(IProxy _api3Proxy, string calldata _description) external view returns (address _adapter) {
+  function computeAdapterAddress(
+    IProxy _api3Proxy,
+    uint8 _decimals,
+    string calldata _description
+  ) external view returns (address _adapter) {
     return
       _computeCreate2Address(
         keccak256(
@@ -20,7 +28,7 @@ contract API3ChainlinkAdapterFactory {
             // Deployment bytecode:
             type(API3ChainlinkAdapter).creationCode,
             // Constructor arguments:
-            abi.encode(_api3Proxy, _description)
+            abi.encode(_api3Proxy, _decimals, _description)
           )
         )
       );
