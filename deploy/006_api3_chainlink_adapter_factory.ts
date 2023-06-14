@@ -9,7 +9,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   await deployThroughDeterministicFactory({
     deployer,
     name: 'API3ChainlinkAdapterFactory',
-    salt: 'MF-Transformer-Oracle-V2',
+    salt: 'MF-API3-Adapter-Factory-V2',
     contract: 'solidity/contracts/adapters/api3-chainlink-adapter/API3ChainlinkAdapterFactory.sol:API3ChainlinkAdapterFactory',
     bytecode,
     constructorArgs: {
