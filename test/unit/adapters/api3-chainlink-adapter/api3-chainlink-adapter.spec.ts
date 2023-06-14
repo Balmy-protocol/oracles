@@ -10,6 +10,7 @@ import { smock, FakeContract } from '@defi-wonderland/smock';
 chai.use(smock.matchers);
 
 describe('API3ChainlinkAdapter', () => {
+  const DECIMALS = 8;
   const DESCRIPTION = 'TOKEN/USD';
   const VALUE_WITH_18_DECIMALS = utils.parseEther('1.2345');
   const VALUE_WITH_8_DECIMALS = utils.parseUnits('1.2345', 8);
@@ -23,7 +24,7 @@ describe('API3ChainlinkAdapter', () => {
   before(async () => {
     api3Proxy = await smock.fake('IProxy');
     const factory: API3ChainlinkAdapter__factory = await ethers.getContractFactory('API3ChainlinkAdapter');
-    adapter = await factory.deploy(api3Proxy.address, DESCRIPTION);
+    adapter = await factory.deploy(api3Proxy.address, DECIMALS, DESCRIPTION);
     snapshotId = await snapshot.take();
   });
 
@@ -39,16 +40,11 @@ describe('API3ChainlinkAdapter', () => {
         const description = await adapter.description();
         expect(description).to.equal(DESCRIPTION);
       });
+      then('decimals is set correctly', async () => {
+        expect(await adapter.decimals()).to.equal(DECIMALS);
+      });
       then('API3 proxy is set correctly', async () => {
         expect(await adapter.API3_PROXY()).to.equal(api3Proxy.address);
-      });
-    });
-  });
-
-  describe('decimals', () => {
-    when('called', () => {
-      then('value is returned correctly', async () => {
-        expect(await adapter.decimals()).to.equal(8);
       });
     });
   });
@@ -91,7 +87,7 @@ describe('API3ChainlinkAdapter', () => {
     });
   });
 
-  describe('getRoundData', () => {
+  describe('latestRoundData', () => {
     when('called', () => {
       let _roundId: BigNumber, _answer: BigNumber, _startedAt: BigNumber, _updatedAt: BigNumber, _answeredInRound: BigNumber;
 

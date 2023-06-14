@@ -10,18 +10,23 @@ contract API3ChainlinkAdapter is AggregatorV2V3Interface {
 
   /// @notice The address of the underlying API3 Proxy
   IProxy public immutable API3_PROXY;
+  uint8 public immutable decimals;
   string public description;
 
   /// @notice The round number we'll use to represent the latest round
   uint80 internal constant LATEST_ROUND = 0;
+  /// @notice Magnitude to convert API3 values to Chainlink values
+  uint256 internal immutable _magnitudeConversion;
 
-  constructor(IProxy _api3Proxy, string memory _description) {
+  constructor(
+    IProxy _api3Proxy,
+    uint8 _decimals,
+    string memory _description
+  ) {
     API3_PROXY = _api3Proxy;
+    decimals = _decimals;
     description = _description;
-  }
-
-  function decimals() external pure returns (uint8) {
-    return 8;
+    _magnitudeConversion = 10**(18 - _decimals);
   }
 
   function version() external pure returns (uint256) {
@@ -84,6 +89,7 @@ contract API3ChainlinkAdapter is AggregatorV2V3Interface {
 
   function _read() internal view returns (int224 _value, uint32 _timestamp) {
     (_value, _timestamp) = API3_PROXY.read();
-    _value /= 1e10; // API3 uses 18 decimals, while Chainlink USD feeds use 8
+    // API3 uses 18 decimals, while Chainlink feeds might use a different amount
+    _value /= int224(int256(_magnitudeConversion));
   }
 }
