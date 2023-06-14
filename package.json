@@ -79,6 +79,7 @@
   },
   "dependencies": {
     "@0xged/hardhat-deploy": "0.11.5",
+    "@api3/contracts": "0.9.1",
     "@chainlink/contracts": "0.4.2",
     "@mean-finance/chainlink-registry": "2.1.0",
     "@mean-finance/deterministic-factory": "1.6.0",
