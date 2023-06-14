@@ -89,7 +89,9 @@ contract API3ChainlinkAdapter is AggregatorV2V3Interface {
 
   function _read() internal view returns (int224 _value, uint32 _timestamp) {
     (_value, _timestamp) = API3_PROXY.read();
-    // API3 uses 18 decimals, while Chainlink feeds might use a different amount
-    _value /= int224(int256(_magnitudeConversion));
+    unchecked {
+      // API3 uses 18 decimals, while Chainlink feeds might use a different amount
+      _value /= int224(int256(_magnitudeConversion));
+    }
   }
 }
