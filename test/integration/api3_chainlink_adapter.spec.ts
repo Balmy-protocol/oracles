@@ -69,8 +69,8 @@ describe.skip('API3ChainlinkAdapter', () => {
       let adapter: API3ChainlinkAdapter;
       given(async () => {
         // Set up adapter
-        await factory.createAdapter(proxy, `${symbol}/USD`);
-        const adapterAddress = await factory.computeAdapterAddress(proxy, `${symbol}/USD`);
+        await factory.createAdapter(proxy, 8, `${symbol}/USD`);
+        const adapterAddress = await factory.computeAdapterAddress(proxy, 8, `${symbol}/USD`);
         adapter = API3ChainlinkAdapter__factory.connect(adapterAddress, ethers.provider);
 
         // Add to registry
@@ -85,6 +85,9 @@ describe.skip('API3ChainlinkAdapter', () => {
       });
       then('description is set correctly', async () => {
         expect(await adapter.description()).to.equal(`${symbol}/USD`);
+      });
+      then('decimals are set correctly', async () => {
+        expect(await adapter.decimals()).to.equal(8);
       });
     });
   }
