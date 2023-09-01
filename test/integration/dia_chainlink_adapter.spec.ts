@@ -15,7 +15,7 @@ const BLOCK_NUMBER = 47015984;
 const EMPTY_BYTES: BytesLike = [];
 const POLYGON_DAI = '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063';
 const POLYGON_USDC = '0x2791bca1f2de4661ed88a30c99a7a9449aa84174';
-const USD = '0x0000000000000000000000000000000000000348';
+const POLYGON_USD = '0x0000000000000000000000000000000000000348';
 const CHAINLINK_POLYGON_USDC_USD = '0xfe4a8cc5b5b2366c1b58bea3858e81843581b2f7';
 const CHAINLINK_POLYGON_DAI_USD = '0x4746dec9e833a82ec7c2c1356372ccf2cfcd2f3d';
 
@@ -48,7 +48,7 @@ describe('DIAChainlinkAdapter', () => {
     oracle = await ethers.getContract<StatefulChainlinkOracle>('StatefulChainlinkOracle');
 
     // Set up POLYGON_USDC feed
-    await registry.connect(admin).assignFeeds([{ base: POLYGON_USDC, quote: USD, feed: CHAINLINK_POLYGON_USDC_USD }]);
+    await registry.connect(admin).assignFeeds([{ base: POLYGON_USDC, quote: POLYGON_USD, feed: CHAINLINK_POLYGON_USDC_USD }]);
 
     snapshotId = await snapshot.take();
   });
@@ -74,12 +74,12 @@ describe('DIAChainlinkAdapter', () => {
       let adapter: DIAChainlinkAdapter;
       given(async () => {
         // Set up adapter
-        await factory.createAdapter(DIA_ORACLE_POLYGON, 8, `${symbol}/USD`);
-        const adapterAddress = await factory.computeAdapterAddress(DIA_ORACLE_POLYGON, 8, `${symbol}/USD`);
+        await factory.createAdapter(DIA_ORACLE_POLYGON, 8, 8, `${symbol}/USD`);
+        const adapterAddress = await factory.computeAdapterAddress(DIA_ORACLE_POLYGON, 8, 8, `${symbol}/USD`);
         adapter = DIAChainlinkAdapter__factory.connect(adapterAddress, ethers.provider);
 
         // Add to registry
-        await registry.connect(admin).assignFeeds([{ base: address, quote: USD, feed: adapter.address }]);
+        await registry.connect(admin).assignFeeds([{ base: address, quote: POLYGON_USD, feed: adapter.address }]);
 
         // Prepare support
         await oracle.addSupportForPairIfNeeded(address, POLYGON_USDC, EMPTY_BYTES);

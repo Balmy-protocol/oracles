@@ -10,6 +10,7 @@ import { smock, FakeContract } from '@defi-wonderland/smock';
 chai.use(smock.matchers);
 
 describe('DIAChainlinkAdapter', () => {
+  const ORACLE_DECIMALS = 8;
   const DECIMALS = 8;
   const DESCRIPTION = 'ETH/USD';
   const VALUE_WITH_18_DECIMALS = utils.parseEther('1.2345');
@@ -24,7 +25,7 @@ describe('DIAChainlinkAdapter', () => {
   before(async () => {
     diaOracle = await smock.fake('IDIAOracleV2');
     const factory: DIAChainlinkAdapter__factory = await ethers.getContractFactory('DIAChainlinkAdapter');
-    adapter = await factory.deploy(diaOracle.address, DECIMALS, DESCRIPTION);
+    adapter = await factory.deploy(diaOracle.address, ORACLE_DECIMALS, DECIMALS, DESCRIPTION);
     snapshotId = await snapshot.take();
   });
 

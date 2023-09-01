@@ -9,15 +9,17 @@ contract DIAChainlinkAdapterFactory {
 
   function createAdapter(
     address _diaOracle,
+    uint8 _diaOracledecimals,
     uint8 _decimals,
     string calldata _description
   ) external returns (DIAChainlinkAdapter _adapter) {
-    _adapter = new DIAChainlinkAdapter{salt: bytes32(0)}(_diaOracle, _decimals, _description);
+    _adapter = new DIAChainlinkAdapter{salt: bytes32(0)}(_diaOracle, _diaOracledecimals, _decimals, _description);
     emit AdapterCreated(_adapter);
   }
 
   function computeAdapterAddress(
     address _diaOracle,
+    uint8 _diaOracledecimals,
     uint8 _decimals,
     string calldata _description
   ) external view returns (address _adapter) {
@@ -28,7 +30,7 @@ contract DIAChainlinkAdapterFactory {
             // Deployment bytecode:
             type(DIAChainlinkAdapter).creationCode,
             // Constructor arguments:
-            abi.encode(_diaOracle, _decimals, _description)
+            abi.encode(_diaOracle, _diaOracledecimals, _decimals, _description)
           )
         )
       );

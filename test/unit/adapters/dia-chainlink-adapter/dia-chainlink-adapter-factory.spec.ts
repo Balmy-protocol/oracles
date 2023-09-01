@@ -7,6 +7,7 @@ import { snapshot } from '@utils/evm';
 
 describe('DIAChainlinkAdapterFactory', () => {
   const ORACLE_ADDRESS = '0xa93546947f3015c986695750b8bbEa8e26D65856';
+  const ORACLE_DECIMALS = 8;
   const DECIMALS = 8;
   const DESCRIPTION = 'ETH/USD';
 
@@ -28,8 +29,8 @@ describe('DIAChainlinkAdapterFactory', () => {
       let expectedAddress: string;
       let tx: TransactionResponse;
       given(async () => {
-        expectedAddress = await factory.computeAdapterAddress(ORACLE_ADDRESS, DECIMALS, DESCRIPTION);
-        tx = await factory.createAdapter(ORACLE_ADDRESS, DECIMALS, DESCRIPTION);
+        expectedAddress = await factory.computeAdapterAddress(ORACLE_ADDRESS, ORACLE_DECIMALS, DECIMALS, DESCRIPTION);
+        tx = await factory.createAdapter(ORACLE_ADDRESS, ORACLE_DECIMALS, DECIMALS, DESCRIPTION);
       });
       then('event is emitted', async () => {
         await expect(tx).to.emit(factory, 'AdapterCreated').withArgs(expectedAddress);
@@ -43,10 +44,10 @@ describe('DIAChainlinkAdapterFactory', () => {
     });
     when('adapter is created twice', () => {
       given(async () => {
-        await factory.createAdapter(ORACLE_ADDRESS, DECIMALS, DESCRIPTION);
+        await factory.createAdapter(ORACLE_ADDRESS, ORACLE_DECIMALS, DECIMALS, DESCRIPTION);
       });
       then('the second time reverts', async () => {
-        const tx = factory.createAdapter(ORACLE_ADDRESS, DECIMALS, DESCRIPTION);
+        const tx = factory.createAdapter(ORACLE_ADDRESS, ORACLE_DECIMALS, DECIMALS, DESCRIPTION);
         await expect(tx).to.have.reverted;
       });
     });

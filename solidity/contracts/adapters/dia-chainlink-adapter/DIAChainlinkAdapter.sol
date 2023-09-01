@@ -23,15 +23,19 @@ contract DIAChainlinkAdapter is AggregatorV2V3Interface {
   /// @notice Magnitude to convert DIA values to Chainlink values
   uint256 internal immutable _magnitudeConversion;
 
+  bool internal immutable _decimalsGreaterThanOracle;
+
   constructor(
     address _diaOracle,
+    uint8 _oracleDecimals,
     uint8 _decimals,
     string memory _description
   ) {
     DIA_ORACLE = _diaOracle;
     decimals = _decimals;
     description = _description;
-    _magnitudeConversion = 10**(decimals > 8 ? _decimals - 8 : 8 - _decimals);
+    _decimalsGreaterThanOracle = decimals > _oracleDecimals;
+    _magnitudeConversion = 10**(_decimalsGreaterThanOracle ? _decimals - _oracleDecimals : _oracleDecimals - _decimals);
   }
 
   function version() external pure returns (uint256) {
@@ -94,7 +98,9 @@ contract DIAChainlinkAdapter is AggregatorV2V3Interface {
   function _read() internal view returns (int256 _value, uint256 _timestamp) {
     (uint128 value, uint128 timestamp) = IDIAOracleV2(DIA_ORACLE).getValue(description);
     unchecked {
-      _value = (int256(int128(value)) * int256(decimals > 8 ? _magnitudeConversion : 1 / _magnitudeConversion));
+      _value = _decimalsGreaterThanOracle
+        ? (int256(int128(value)) * int256(_magnitudeConversion))
+        : (int256(int128(value)) / int256(_magnitudeConversion));
       _timestamp = uint256(timestamp);
     }
   }
