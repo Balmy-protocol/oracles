@@ -9,11 +9,11 @@ contract DIAChainlinkAdapterFactory {
 
   function createAdapter(
     address _diaOracle,
-    uint8 _oracledecimals,
+    uint8 _oracleDecimals,
     uint8 _feedDecimals,
     string calldata _description
   ) external returns (DIAChainlinkAdapter _adapter) {
-    _adapter = new DIAChainlinkAdapter{salt: bytes32(0)}(_diaOracle, _oracledecimals, _feedDecimals, _description);
+    _adapter = new DIAChainlinkAdapter{salt: bytes32(0)}(_diaOracle, _oracleDecimals, _feedDecimals, _description);
     emit AdapterCreated(_adapter);
   }
 
