@@ -64,6 +64,7 @@ jobs:
         env:
           TS_NODE_SKIP_IGNORE: true
   integration:
+    needs: ["unit", "e2e"]
     runs-on: ubuntu-latest
     steps:
       - name: Check out github repository
