@@ -10,7 +10,6 @@ interface IDIAOracleV2 {
 contract DIAChainlinkAdapter is AggregatorV2V3Interface {
   /// @notice Thrown when trying to query a round that is not the latest one
   error OnlyLatestRoundIsAvailable();
-  error NotImplemented();
 
   /// @notice The address of the underlying DIA Oracle
   address public immutable DIA_ORACLE;

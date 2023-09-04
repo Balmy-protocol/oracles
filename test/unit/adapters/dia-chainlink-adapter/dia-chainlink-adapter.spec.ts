@@ -51,15 +51,8 @@ describe('DIAChainlinkAdapter', () => {
 
   describe('version', () => {
     when('called', () => {
-      then('value should revert', async () => {
-        then('reverts with message', async () => {
-          await behaviours.txShouldRevertWithMessage({
-            contract: adapter,
-            func: 'version',
-            args: [1],
-            message: 'NotImplemented',
-          });
-        });
+      then('value is returned correctly', async () => {
+        expect(await adapter.version()).to.equal(4);
       });
     });
   });
