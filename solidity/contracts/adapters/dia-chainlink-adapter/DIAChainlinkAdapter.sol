@@ -28,18 +28,19 @@ contract DIAChainlinkAdapter is AggregatorV2V3Interface {
   constructor(
     address _diaOracle,
     uint8 _oracleDecimals,
-    uint8 _decimals,
+    uint8 _feedDecimals,
     string memory _description
   ) {
     DIA_ORACLE = _diaOracle;
-    decimals = _decimals;
+    decimals = _feedDecimals;
     description = _description;
     _decimalsGreaterThanOracle = decimals > _oracleDecimals;
-    _magnitudeConversion = 10**(_decimalsGreaterThanOracle ? _decimals - _oracleDecimals : _oracleDecimals - _decimals);
+    _magnitudeConversion = 10**(_decimalsGreaterThanOracle ? _feedDecimals - _oracleDecimals : _oracleDecimals - _feedDecimals);
   }
 
   function version() external pure returns (uint256) {
-    revert NotImplemented();
+    // Not sure what this represents, but current Chainlink feeds use this value
+    return 4;
   }
 
   function getRoundData(uint80 __roundId)
@@ -96,12 +97,12 @@ contract DIAChainlinkAdapter is AggregatorV2V3Interface {
   }
 
   function _read() internal view returns (int256 _value, uint256 _timestamp) {
-    (uint128 value, uint128 timestamp) = IDIAOracleV2(DIA_ORACLE).getValue(description);
+    (uint128 __value, uint128 __timestamp) = IDIAOracleV2(DIA_ORACLE).getValue(description);
     unchecked {
       _value = _decimalsGreaterThanOracle
-        ? (int256(int128(value)) * int256(_magnitudeConversion))
-        : (int256(int128(value)) / int256(_magnitudeConversion));
-      _timestamp = uint256(timestamp);
+        ? (int256(int128(__value)) * int256(_magnitudeConversion))
+        : (int256(int128(__value)) / int256(_magnitudeConversion));
+      _timestamp = uint256(__timestamp);
     }
   }
 }

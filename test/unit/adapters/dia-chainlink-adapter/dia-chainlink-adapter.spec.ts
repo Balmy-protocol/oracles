@@ -11,9 +11,8 @@ chai.use(smock.matchers);
 
 describe('DIAChainlinkAdapter', () => {
   const ORACLE_DECIMALS = 8;
-  const DECIMALS = 8;
+  const FEED_DECIMALS = 8;
   const DESCRIPTION = 'ETH/USD';
-  const VALUE_WITH_18_DECIMALS = utils.parseEther('1.2345');
   const VALUE_WITH_8_DECIMALS = utils.parseUnits('1.2345', 8);
   const TIMESTAMP = 678910;
   const LATEST_ROUND = 0;
@@ -25,7 +24,7 @@ describe('DIAChainlinkAdapter', () => {
   before(async () => {
     diaOracle = await smock.fake('IDIAOracleV2');
     const factory: DIAChainlinkAdapter__factory = await ethers.getContractFactory('DIAChainlinkAdapter');
-    adapter = await factory.deploy(diaOracle.address, ORACLE_DECIMALS, DECIMALS, DESCRIPTION);
+    adapter = await factory.deploy(diaOracle.address, ORACLE_DECIMALS, FEED_DECIMALS, DESCRIPTION);
     snapshotId = await snapshot.take();
   });
 
@@ -42,7 +41,7 @@ describe('DIAChainlinkAdapter', () => {
         expect(description).to.equal(DESCRIPTION);
       });
       then('decimals is set correctly', async () => {
-        expect(await adapter.decimals()).to.equal(DECIMALS);
+        expect(await adapter.decimals()).to.equal(FEED_DECIMALS);
       });
       then('DIA oracle is set correctly', async () => {
         expect(await adapter.DIA_ORACLE()).to.equal(diaOracle.address);

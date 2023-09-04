@@ -13,18 +13,15 @@ import { ChainlinkRegistry } from '@mean-finance/chainlink-registry/dist';
 
 const BLOCK_NUMBER = 47015984;
 const EMPTY_BYTES: BytesLike = [];
-const POLYGON_DAI = '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063';
 const POLYGON_USDC = '0x2791bca1f2de4661ed88a30c99a7a9449aa84174';
 const POLYGON_USD = '0x0000000000000000000000000000000000000348';
 const CHAINLINK_POLYGON_USDC_USD = '0xfe4a8cc5b5b2366c1b58bea3858e81843581b2f7';
-const CHAINLINK_POLYGON_DAI_USD = '0x4746dec9e833a82ec7c2c1356372ccf2cfcd2f3d';
-
 const DIA_ORACLE_POLYGON = '0xf44b3c104f39209cd8420a1d3ca4338818aa72ab';
 
 // Skipped because hardhat caches chain data, so if we try to test this on Polygon and then other tests use Ethereum, everything breakes
 // Tried a few workarounds, but failed :( So we will simply disable this test and run it manually when necessary. Also, we can't test this
 // on Ethereum since there are no funded/active feeds at the moment
-describe('DIAChainlinkAdapter', () => {
+describe.skip('DIAChainlinkAdapter', () => {
   let factory: DIAChainlinkAdapterFactory;
   let oracle: StatefulChainlinkOracle;
   let registry: ChainlinkRegistry;
@@ -59,13 +56,13 @@ describe('DIAChainlinkAdapter', () => {
 
   adapterTest({
     symbol: 'ETH',
-    address: '0x7ceb23fd6bc0add59e62ac25578270cff1b9f619', // POLYGON
+    address: '0x7ceb23fd6bc0add59e62ac25578270cff1b9f619', // POLYGON WETH
     decimals: 18,
   });
 
   adapterTest({
     symbol: 'BTC',
-    address: '0x1bfd67037b42cf73acf2047067bd4f2c47d9bfd6', // POLYGON
+    address: '0x1bfd67037b42cf73acf2047067bd4f2c47d9bfd6', // POLYGON WBTC
     decimals: 8,
   });
 
