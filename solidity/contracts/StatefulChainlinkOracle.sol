@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity >=0.8.7 <0.9.0;
 
-import '@openzeppelin/contracts/access/AccessControl.sol';
-import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
-import '@openzeppelin/contracts/utils/Address.sol';
+import '@openzeppelin/contracts-4.7.3/access/AccessControl.sol';
+import '@openzeppelin/contracts-4.7.3/token/ERC20/extensions/IERC20Metadata.sol';
+import '@openzeppelin/contracts-4.7.3/utils/Address.sol';
 import '@chainlink/contracts/src/v0.8/Denominations.sol';
 import './base/SimpleOracle.sol';
 import './libraries/TokenSorting.sol';
