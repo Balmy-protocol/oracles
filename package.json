@@ -1,7 +1,7 @@
 {
-  "name": "@mean-finance/oracles",
+  "name": "@balmy/oracles",
   "version": "2.6.0",
-  "description": "Mean Oracles",
+  "description": "Balmy Oracles",
   "keywords": [
     "ethereum",
     "smart",
@@ -13,7 +13,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mean-finance/oracles.git"
+    "url": "git+https://github.com/balmy-protocol/oracles.git"
   },
   "license": "AGPL-3.0-only",
   "contributors": [
@@ -93,7 +93,7 @@
     "@codechecks/client": "0.1.12",
     "@commitlint/cli": "16.2.4",
     "@commitlint/config-conventional": "16.2.4",
-    "@defi-wonderland/smock": "2.2.0",
+    "@defi-wonderland/smock": "2.4.0",
     "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers@0.3.0-beta.13",
     "@nomiclabs/hardhat-etherscan": "3.1.0",
     "@nomiclabs/hardhat-waffle": "2.0.3",
@@ -114,7 +114,7 @@
     "dotenv": "16.0.0",
     "ethereum-waffle": "3.4.4",
     "ethers": "5.6.5",
-    "hardhat": "2.9.3",
+    "hardhat": "2.23.0",
     "hardhat-gas-reporter": "1.0.8",
     "hardhat-preprocessor": "0.1.4",
     "husky": "7.0.4",
