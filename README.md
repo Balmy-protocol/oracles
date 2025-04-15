@@ -1,12 +1,12 @@
-[![Lint](https://github.com/Mean-Finance/oracles/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/Mean-Finance/oracles/actions/workflows/lint.yml)
-[![Tests](https://github.com/Mean-Finance/oracles/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Mean-Finance/oracles/actions/workflows/tests.yml)
-[![Slither Analysis](https://github.com/Mean-Finance/oracles/actions/workflows/slither.yml/badge.svg?branch=main)](https://github.com/Mean-Finance/oracles/actions/workflows/slither.yml)
+[![Lint](https://github.com/Balmy-Protocol/oracles/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/Balmy-Protocol/oracles/actions/workflows/lint.yml)
+[![Tests](https://github.com/Balmy-Protocol/oracles/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Balmy-Protocol/oracles/actions/workflows/tests.yml)
+[![Slither Analysis](https://github.com/Balmy-Protocol/oracles/actions/workflows/slither.yml/badge.svg?branch=main)](https://github.com/Balmy-Protocol/oracles/actions/workflows/slither.yml)
 
-# Mean Finance Oracles
+# Balmy Oracles
 
-This repository will hold all Mean Finance's oracle infrastructure. It aims to have a sufficiently flexible architecture as to support a wide amount of tokens composition, and therefore enabling quoting pairs that couldn't be done before.
+This repository will hold all Balmy's oracle infrastructure. It aims to have a sufficiently flexible architecture as to support a wide amount of tokens composition, and therefore enabling quoting pairs that couldn't be done before.
 
-Some of this is achieved by leveraging already existing oracles like [Uniswap V3 Static Oracle](https://github.com/Mean-Finance/uniswap-v3-oracle).
+Some of this is achieved by leveraging already existing oracles like [Uniswap V3 Static Oracle](https://github.com/Balmy-Protocol/uniswap-v3-oracle).
 
 ## 🔒 Audits
 
@@ -16,8 +16,8 @@ Oracles has been audited by [Omniscia](https://omniscia.io/) and can be find [he
 
 The package will contain:
 
-- Artifacts can be found under `@mean-finance/oracles/artifacts`
-- Typescript smart contract typings under `@mean-finance/oracles/typechained`
+- Artifacts can be found under `@balmy/oracles/artifacts`
+- Typescript smart contract typings under `@balmy/oracles/typechained`
 
 ## 📚 Documentation
 
@@ -30,18 +30,18 @@ To install with [**Hardhat**](https://github.com/nomiclabs/hardhat) or [**Truffl
 #### YARN
 
 ```sh
-yarn add @mean-finance/oracles
+yarn add @balmy/oracles
 ```
 
 ### NPM
 
 ```sh
-npm install @mean-finance/oracles
+npm install @balmy/oracles
 ```
 
 ## 📖 Deployment Registry
 
-Contracts are deployed at the same address on all available networks via the [deterministic contract factory](https://github.com/Mean-Finance/deterministic-factory)
+Contracts are deployed at the same address on all available networks via the [deterministic contract factory](https://github.com/Balmy-Protocol/deterministic-factory)
 
 > Available networks: Optimism, Arbitrum One, Polygon.
 
